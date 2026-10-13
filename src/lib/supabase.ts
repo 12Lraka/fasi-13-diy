@@ -1,0 +1,1578 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * 
+ * Sistem Informasi FASI XIII Kota Yogyakarta
+ * Client Koneksi Database Supabase (PostgreSQL)
+ */
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  Participant,
+  CompetitionCategory,
+  Kemantren,
+  AppSettings,
+  AuditLog,
+  FasiLevel,
+  BeritaAcaraKejuaraan,
+  IdCardOfficialData,
+  IdCardCommitteeData,
+  MasterTpa,
+} from '../types/fasi';
+import { KEMANTREN_LIST, normalizeRayonToKemantren } from '../data/fasiMasterData';
+import { unescapeHtml } from '../utils/security';
+
+// Environment variables via Vite import.meta.env and process.env fallback
+const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+const procEnv = (typeof process !== 'undefined' && (process as any).env) || {};
+
+const rawSupabaseUrl = 
+  (metaEnv.VITE_SUPABASE_URL as string | undefined) ||
+  (procEnv.VITE_SUPABASE_URL as string | undefined) ||
+  '';
+const rawSupabaseAnonKey = 
+  (metaEnv.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+  (procEnv.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+  '';
+
+/**
+ * Sanitasi URL Supabase untuk mencegah error PGRST125 jika pengguna memasukkan
+ * URL dengan trailing slash, endpoint /rest/v1, atau URL dashboard.
+ */
+function sanitizeSupabaseUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  let url = rawUrl.trim().replace(/^["']|["']$/g, '');
+  
+  // Jika pengguna menyalin URL dashboard https://supabase.com/dashboard/project/<project_ref>
+  const dashboardMatch = url.match(/supabase\.com\/dashboard\/project\/([a-zA-Z0-9_\-]+)/);
+  if (dashboardMatch && dashboardMatch[1]) {
+    return `https://${dashboardMatch[1]}.supabase.co`;
+  }
+
+  // Hapus /rest/v1 atau /rest/v1/ di akhir URL jika ada
+  url = url.replace(/\/rest\/v1\/?$/i, '');
+  
+  // Hapus trailing slash
+  url = url.replace(/\/+$/, '');
+
+  return url;
+}
+
+function sanitizeSupabaseKey(rawKey: string): string {
+  if (!rawKey) return '';
+  return rawKey.trim().replace(/^["']|["']$/g, '');
+}
+
+const supabaseUrl = sanitizeSupabaseUrl(rawSupabaseUrl);
+const supabaseAnonKey = sanitizeSupabaseKey(rawSupabaseAnonKey);
+
+let supabaseInstance: SupabaseClient | null = null;
+
+/**
+ * Cek apakah kredensial Supabase telah dikonfigurasi di environment
+ */
+export function isSupabaseConfigured(): boolean {
+  return Boolean(
+    supabaseUrl &&
+    supabaseAnonKey &&
+    supabaseUrl.startsWith('https://') &&
+    !supabaseUrl.includes('YOUR_SUPABASE') &&
+    supabaseAnonKey.length > 20
+  );
+}
+
+/**
+ * Mendapatkan Supabase Client instance (Lazy Singleton)
+ */
+export function getSupabaseClient(): SupabaseClient | null {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  if (!supabaseInstance && supabaseUrl && supabaseAnonKey) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
+  }
+
+  return supabaseInstance;
+}
+
+/**
+ * Uji koneksi ke database Supabase
+ */
+export async function testSupabaseConnection(): Promise<{ success: boolean; message: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      success: false,
+      message: 'Supabase URL atau Anon Key belum dikonfigurasi pada environment variables.',
+    };
+  }
+
+  try {
+    const { error } = await client.from('kemantren').select('id').limit(1);
+    if (error) throw error;
+    return { success: true, message: 'Koneksi ke database Supabase berhasil terhubung.' };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Gagal terhubung ke Supabase: ${err?.message || 'Error tidak diketahui'}`,
+    };
+  }
+}
+
+// ====================================================================
+// MAPPER: TypeScript (camelCase) <-> Supabase (snake_case)
+// ====================================================================
+
+/**
+ * Konversi tanggal lahir dari DD/MM/YYYY (aplikasi) ke YYYY-MM-DD (PostgreSQL DATE)
+ */
+function formatDateToIso(dateStr: string): string {
+  if (!dateStr) return '2015-01-01';
+  // Jika sudah format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  // Jika format DD/MM/YYYY
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  // Fallback
+  return dateStr;
+}
+
+/**
+ * Konversi tanggal dari YYYY-MM-DD (PostgreSQL DATE) ke DD/MM/YYYY (aplikasi)
+ */
+function formatDateToDisplay(dateStr: string): string {
+  if (!dateStr) return '';
+  // Jika sudah format DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  // Jika format YYYY-MM-DD
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const year = parts[0];
+    const month = parts[1].padStart(2, '0');
+    const day = parts[2].padStart(2, '0');
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+}
+
+/**
+ * Normalisasi status kehadiran untuk Supabase
+ * Mendukung format sederhana ('belum_hadir', 'hadir') dan kompatibilitas ke belakang ('belum_tampil', 'siap_tampil', 'sudah_tampil')
+ */
+function normalizeAttendanceForDb(attendance?: string, useLegacyDbEnum = false): string {
+  const isHadir = attendance === 'hadir' || attendance === 'siap_tampil' || attendance === 'sudah_tampil' || attendance === 'siap';
+  if (useLegacyDbEnum) {
+    return isHadir ? 'siap_tampil' : 'belum_tampil';
+  }
+  return isHadir ? 'hadir' : 'belum_hadir';
+}
+
+/**
+ * Normalisasi status pendaftaran untuk Supabase
+ * Schema Supabase CHECK (status IN ('draft', 'verified', 'pending', 'rejected'))
+ */
+function normalizeStatusForDb(status?: string): string {
+  if (!status) return 'verified';
+  const clean = status.trim().toLowerCase();
+  if (clean === 'rejected') return 'rejected';
+  if (clean === 'pending' || clean === 'draft') return 'draft';
+  return 'verified';
+}
+
+/**
+ * Konversi timestamp ke ISO string untuk PostgreSQL TIMESTAMP WITH TIME ZONE
+ */
+function formatTimestampToIso(timestampStr?: string): string {
+  if (!timestampStr) return new Date().toISOString();
+  
+  // Jika sudah ISO string
+  if (timestampStr.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(timestampStr)) {
+    const d = new Date(timestampStr);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+
+  // Format lokal Indonesia: "24/08/2026, 21.16.37" atau "24/08/2026 21:16:37"
+  const match = timestampStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})[,\s]+(\d{1,2})[.:](\d{1,2})[.:](\d{1,2})/);
+  if (match) {
+    const [_, d, m, y, h, min, s] = match;
+    const isoLike = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${h.padStart(2, '0')}:${min.padStart(2, '0')}:${s.padStart(2, '0')}+07:00`;
+    const dateObj = new Date(isoLike);
+    if (!isNaN(dateObj.getTime())) return dateObj.toISOString();
+  }
+
+  return new Date().toISOString();
+}
+
+function mapParticipantToDb(p: Participant, useLegacyDbEnum = false): Record<string, any> {
+  const points = p.rank === 1 ? 5 : p.rank === 2 ? 3 : p.rank === 3 ? 1 : 0;
+  
+  // Ambil fallback nama PJ dan Kontak berdasarkan Kemantren jika data peserta belum mengisinya
+  const kemantrenFallback = KEMANTREN_LIST.find((k) => k.id === p.kemantrenId);
+  const safePjName = (p.pjName && p.pjName.trim()) 
+    ? unescapeHtml(p.pjName.trim()) 
+    : (kemantrenFallback?.adminName || 'Admin Kontingen');
+  const safeWhatsapp = (p.whatsappNumber && p.whatsappNumber.trim()) 
+    ? unescapeHtml(p.whatsappNumber.trim()) 
+    : (kemantrenFallback?.contactPerson || '081200000000');
+  const safeTpaUnit = (p.tpaUnitName && p.tpaUnitName.trim()) 
+    ? unescapeHtml(p.tpaUnitName.trim()) 
+    : `TPA Rayon ${kemantrenFallback?.name || ''}`;
+
+  return {
+    id: p.id,
+    registration_number: p.registrationNumber,
+    full_name: unescapeHtml(p.fullName) || 'Santri FASI',
+    gender: p.gender === 'L' || p.gender === 'P' ? p.gender : 'L',
+    birth_date: formatDateToIso(p.birthDate),
+    age_years: p.ageOnCutoff?.years || 0,
+    age_months: p.ageOnCutoff?.months || 0,
+    age_days: p.ageOnCutoff?.days || 0,
+    kemantren_id: p.kemantrenId || 'kem-1',
+    category_id: p.categoryId || 'cat-tka-1',
+    tpa_unit_name: safeTpaUnit,
+    pj_name: safePjName,
+    whatsapp_number: safeWhatsapp,
+    document_url: p.documentUrl || null,
+    lottery_number: p.lotteryNumber || null,
+    status: normalizeStatusForDb(p.status),
+    attendance: normalizeAttendanceForDb(p.attendance, useLegacyDbEnum),
+    score_jury1: p.scoreJury1 ?? null,
+    score_jury2: p.scoreJury2 ?? null,
+    score_jury3: p.scoreJury3 ?? null,
+    average_score: p.averageScore ?? null,
+    rank: p.rank ?? null,
+    points_awarded: points,
+    notes: p.notes ? unescapeHtml(p.notes) : null,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function mapDbToParticipant(row: Record<string, any>): Participant {
+  const years = row.age_years || 0;
+  let levelEligible: FasiLevel | null = null;
+  if (years <= 7) levelEligible = 'TKA';
+  else if (years <= 12) levelEligible = 'TPA';
+  else if (years <= 15) levelEligible = 'TQA';
+
+  const isHadir = row.attendance === 'hadir' || row.attendance === 'siap_tampil' || row.attendance === 'sudah_tampil';
+
+  return {
+    id: row.id,
+    registrationNumber: row.registration_number,
+    fullName: unescapeHtml(row.full_name),
+    gender: row.gender,
+    birthDate: formatDateToDisplay(row.birth_date),
+    kemantrenId: row.kemantren_id,
+    categoryId: row.category_id,
+    tpaUnitName: unescapeHtml(row.tpa_unit_name),
+    documentUrl: row.document_url || undefined,
+    lotteryNumber: row.lottery_number || null,
+    pjName: unescapeHtml(row.pj_name),
+    whatsappNumber: unescapeHtml(row.whatsapp_number),
+    status: row.status || 'verified',
+    attendance: isHadir ? 'hadir' : 'belum_hadir',
+    scoreJury1: row.score_jury1 !== null ? Number(row.score_jury1) : undefined,
+    scoreJury2: row.score_jury2 !== null ? Number(row.score_jury2) : undefined,
+    scoreJury3: row.score_jury3 !== null ? Number(row.score_jury3) : undefined,
+    averageScore: row.average_score !== null ? Number(row.average_score) : undefined,
+    rank: row.rank !== null ? Number(row.rank) : undefined,
+    notes: row.notes ? unescapeHtml(row.notes) : undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    ageOnCutoff: {
+      years: row.age_years || 0,
+      months: row.age_months || 0,
+      days: row.age_days || 0,
+      isValid: true,
+      levelEligible,
+    },
+  };
+}
+
+// ====================================================================
+// SERVICE CRUD OPERATIONS
+// ====================================================================
+
+/**
+ * Mengambil semua peserta dari database Supabase
+ */
+export async function fetchParticipantsFromSupabase(): Promise<Participant[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const allData: any[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await client
+        .from('participants')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.warn(
+            'Tabel "participants" belum dibuat di database Supabase. Silakan jalankan DDL SQL dari src/db/schema.sql pada Supabase SQL Editor.'
+          );
+        } else {
+          console.warn('Gagal mengambil data peserta dari Supabase:', error.message || error);
+        }
+        return null;
+      }
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allData.push(...data);
+        if (data.length < pageSize) {
+          hasMore = false;
+        } else {
+          from += pageSize;
+        }
+      }
+    }
+
+    return allData.map(mapDbToParticipant);
+  } catch (error: any) {
+    console.warn('Gagal mengambil data peserta dari Supabase:', error?.message || error);
+    return null;
+  }
+}
+
+/**
+ * Menyimpan atau memperbarui data peserta ke Supabase
+ */
+export async function upsertParticipantToSupabase(participant: Participant): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Supabase URL & Anon Key belum terpasang di environment' };
+  }
+
+  try {
+    const payload = mapParticipantToDb(participant);
+    let { error } = await client.from('participants').upsert(payload, { onConflict: 'id' });
+    if (error && error.message?.includes('participants_attendance_check')) {
+      const fallbackPayload = mapParticipantToDb(participant, true);
+      const retry = await client.from('participants').upsert(fallbackPayload, { onConflict: 'id' });
+      error = retry.error;
+    }
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Gagal menyimpan peserta ke Supabase:', error);
+    return { success: false, error: error?.message || 'Gagal menyimpan ke Supabase' };
+  }
+}
+
+/**
+ * Memperbarui status kehadiran peserta secara atomik per-baris (khusus scan QR hari-H)
+ * Berjalan langsung di tingkat baris ID sehingga pemindaian beruntun rombongan santri
+ * dijamin 100% tersimpan per peserta tanpa pernah menimpa peserta sebelumnya.
+ */
+export async function updateParticipantAttendanceInSupabase(
+  participantId: string,
+  attendance: 'hadir' | 'belum_hadir'
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Supabase URL & Anon Key belum terpasang di environment' };
+  }
+
+  try {
+    const { error } = await client
+      .from('participants')
+      .update({
+        attendance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', participantId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Gagal update kehadiran peserta di Supabase:', error);
+    return { success: false, error: error?.message || 'Gagal update kehadiran di Supabase' };
+  }
+}
+
+/**
+ * Menghapus peserta dari Supabase
+ */
+export async function deleteParticipantFromSupabase(participantId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { error } = await client.from('participants').delete().eq('id', participantId);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Gagal menghapus peserta di Supabase:', error);
+    return false;
+  }
+}
+
+/**
+ * Sinkronisasi massal seluruh data peserta ke Supabase
+ */
+export async function bulkSyncParticipantsToSupabase(participants: Participant[]): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Supabase tidak aktif' };
+  }
+
+  try {
+    if (participants.length === 0) {
+      // Jika peserta kosong, hapus semua data di tabel Supabase
+      const { error } = await client.from('participants').delete().neq('id', 'dummy-never-match');
+      if (error) throw error;
+      return { success: true, count: 0 };
+    }
+
+    let payloads = participants.map((p) => mapParticipantToDb(p, false));
+    let { error } = await client.from('participants').upsert(payloads, { onConflict: 'id' });
+    if (error && error.message?.includes('participants_attendance_check')) {
+      payloads = participants.map((p) => mapParticipantToDb(p, true));
+      const retry = await client.from('participants').upsert(payloads, { onConflict: 'id' });
+      error = retry.error;
+    }
+    if (error) throw error;
+    return { success: true, count: payloads.length };
+  } catch (error: any) {
+    console.error('Gagal sinkronisasi data peserta ke Supabase:', error);
+    return { success: false, count: 0, error: error?.message || 'Gagal sync ke Supabase' };
+  }
+}
+
+/**
+ * Menghapus seluruh data peserta dari Supabase
+ */
+export async function deleteAllParticipantsFromSupabase(): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { error } = await client.from('participants').delete().neq('id', 'dummy-never-match');
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Gagal menghapus semua peserta di Supabase:', error);
+    return false;
+  }
+}
+
+/**
+ * Simpan massal peserta dummy ke Supabase dalam batch aman (100 per batch)
+ */
+export async function bulkInsertDummyParticipantsToSupabase(
+  dummyParticipants: Participant[],
+  onProgress?: (inserted: number, total: number) => void
+): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Supabase belum terhubung' };
+  }
+
+  try {
+    let useLegacy = false;
+    let payloads = dummyParticipants.map((p) => mapParticipantToDb(p, false));
+    const BATCH_SIZE = 100;
+    let totalInserted = 0;
+
+    for (let i = 0; i < payloads.length; i += BATCH_SIZE) {
+      let batch = payloads.slice(i, i + BATCH_SIZE);
+      let { error } = await client.from('participants').upsert(batch, { onConflict: 'id' });
+      if (error && error.message?.includes('participants_attendance_check')) {
+        useLegacy = true;
+        batch = dummyParticipants.slice(i, i + BATCH_SIZE).map((p) => mapParticipantToDb(p, true));
+        const retry = await client.from('participants').upsert(batch, { onConflict: 'id' });
+        error = retry.error;
+      }
+      if (error) throw error;
+      totalInserted += batch.length;
+      if (onProgress) {
+        onProgress(totalInserted, payloads.length);
+      }
+    }
+
+    return { success: true, count: totalInserted };
+  } catch (error: any) {
+    console.error('Gagal simpan massal dummy ke Supabase:', error);
+    return { success: false, count: 0, error: error?.message || 'Gagal simpan data dummy ke Supabase' };
+  }
+}
+
+/**
+ * Menghapus seluruh data peserta dummy dari Supabase
+ * Kriteria: id berawalan dummy- atau registration_number berawalan DMY- atau notes mengandung [DUMMY_DATA]
+ */
+export async function deleteDummyParticipantsFromSupabase(): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Supabase belum terhubung' };
+  }
+
+  try {
+    const res1 = await client
+      .from('participants')
+      .delete({ count: 'exact' })
+      .like('id', 'dummy-%');
+
+    if (res1.error) throw res1.error;
+
+    const res2 = await client
+      .from('participants')
+      .delete({ count: 'exact' })
+      .like('registration_number', 'DMY-%');
+
+    if (res2.error) throw res2.error;
+
+    const res3 = await client
+      .from('participants')
+      .delete({ count: 'exact' })
+      .like('notes', '%[DUMMY_DATA]%');
+
+    if (res3.error) throw res3.error;
+
+    const totalDeleted = (res1.count || 0) + (res2.count || 0) + (res3.count || 0);
+    return { success: true, count: totalDeleted };
+  } catch (error: any) {
+    console.error('Gagal menghapus data dummy dari Supabase:', error);
+    return { success: false, count: 0, error: error?.message || 'Gagal menghapus data dummy dari Supabase' };
+  }
+}
+
+/**
+ * Mendapatkan ringkasan jumlah peserta riil dan dummy langsung dari Supabase
+ */
+export async function getRemoteParticipantCounts(): Promise<{ total: number; dummy: number; real: number }> {
+  const client = getSupabaseClient();
+  if (!client) return { total: 0, dummy: 0, real: 0 };
+  try {
+    const { count: total, error } = await client.from('participants').select('*', { count: 'exact', head: true });
+    if (error) return { total: 0, dummy: 0, real: 0 };
+
+    const { count: dummyIdCount } = await client.from('participants').select('*', { count: 'exact', head: true }).like('id', 'dummy-%');
+    const { count: dummyRegCount } = await client.from('participants').select('*', { count: 'exact', head: true }).like('registration_number', 'DMY-%');
+
+    const dummyTotal = Math.max(dummyIdCount || 0, dummyRegCount || 0);
+    const totalCount = total || 0;
+    const realCount = Math.max(0, totalCount - dummyTotal);
+    return { total: totalCount, dummy: dummyTotal, real: realCount };
+  } catch {
+    return { total: 0, dummy: 0, real: 0 };
+  }
+}
+
+/**
+ * Langganan Realtime Postgres Changes untuk Tabel Participants
+ * Mendukung pembaruan seketika per-baris (onSingleUpdate) agar saat scan 10 peserta beruntun,
+ * setiap peserta langsung terupdate instan di layar tanpa menunggu refetch massal.
+ */
+export function subscribeToParticipantsRealtime(
+  onUpdate: (participants: Participant[]) => void,
+  onSingleUpdate?: (updatedParticipant: Participant) => void
+): (() => void) | null {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    let debounceTimer: any = null;
+
+    const channel = client
+      .channel('realtime_participants_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'participants' },
+        async (payload: any) => {
+          // Jika event adalah UPDATE baris tunggal (seperti scan kehadiran / nomor undian)
+          if (payload.eventType === 'UPDATE' && payload.new && onSingleUpdate) {
+            try {
+              const singleMapped = mapDbToParticipant(payload.new);
+              onSingleUpdate(singleMapped);
+              return;
+            } catch (err) {
+              console.warn('Gagal map single update peserta:', err);
+            }
+          }
+
+          // Untuk INSERT/DELETE atau jika onSingleUpdate tidak didefinisikan:
+          // Debounce fetch 400ms agar tidak saling tumpang-tindih jika ada pembaruan beruntun
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            const freshData = await fetchParticipantsFromSupabase();
+            if (freshData !== null) {
+              onUpdate(freshData);
+            }
+          }, 400);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      client.removeChannel(channel);
+    };
+  } catch (error) {
+    console.warn('Gagal mengaktifkan Realtime Supabase untuk participants:', error);
+    return null;
+  }
+}
+
+/**
+ * Langganan Realtime Postgres Changes untuk Tabel Berita Acara
+ */
+export function subscribeToBeritaAcaraRealtime(
+  onUpdate: (beritaAcara: BeritaAcaraKejuaraan[]) => void
+): (() => void) | null {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const channel = client
+      .channel('realtime_berita_acara_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'berita_acara_kejuaraan' },
+        async () => {
+          const freshData = await fetchBeritaAcaraFromSupabase();
+          if (freshData !== null) {
+            onUpdate(freshData);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (error) {
+    console.warn('Gagal mengaktifkan Realtime Supabase untuk berita acara:', error);
+    return null;
+  }
+}
+
+/**
+ * Normalisasi status audit log agar sesuai dengan CHECK constraint di database PostgreSQL Supabase
+ * Schema database Supabase standar: CHECK (status IN ('SUCCESS', 'BLOCKED_BOT', 'FLAGGED'))
+ */
+function normalizeAuditStatusForDb(status?: string): 'SUCCESS' | 'BLOCKED_BOT' | 'FLAGGED' {
+  if (!status) return 'SUCCESS';
+  const clean = status.trim().toUpperCase();
+  if (clean === 'SUCCESS' || clean === 'BLOCKED_BOT' || clean === 'FLAGGED') {
+    return clean as 'SUCCESS' | 'BLOCKED_BOT' | 'FLAGGED';
+  }
+  // Jika status adalah 'ERROR' atau nilai lainnya, petakan ke 'FLAGGED' agar tidak melanggar check constraint
+  return 'FLAGGED';
+}
+
+/**
+ * Mengambil data audit log dari Supabase
+ */
+export async function fetchAuditLogsFromSupabase(): Promise<AuditLog[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('audit_logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    return (data || []).map((row) => {
+      const isError =
+        row.status === 'ERROR' ||
+        (row.status === 'FLAGGED' &&
+          (row.action === 'SYSTEM_ERROR' || (row.details && row.details.startsWith('[ERROR]'))));
+
+      return {
+        id: row.id,
+        user: row.user_name || row.user || 'Unknown',
+        action: row.action,
+        details: row.details,
+        status: isError ? 'ERROR' : (row.status as any),
+        ipMock: row.ip_address || row.ip_mock || '127.0.0.1',
+        timestamp: row.timestamp,
+      };
+    });
+  } catch (error) {
+    console.error('Gagal mengambil audit log dari Supabase:', error);
+    return null;
+  }
+}
+
+/**
+ * Menambahkan catatan audit log ke Supabase
+ */
+export async function insertAuditLogToSupabase(log: AuditLog): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const dbStatus = normalizeAuditStatusForDb(log.status);
+    let detailsText = log.details || '';
+    if (log.status === 'ERROR' && !detailsText.startsWith('[ERROR]')) {
+      detailsText = `[ERROR] ${detailsText}`;
+    }
+    if (log.stack) {
+      detailsText += `\nStack: ${log.stack.slice(0, 300)}`;
+    }
+
+    const { error } = await client.from('audit_logs').insert({
+      id: log.id,
+      user_name: log.user,
+      action: log.action,
+      details: detailsText,
+      status: dbStatus,
+      ip_address: log.ipMock || null,
+      timestamp: formatTimestampToIso(log.timestamp),
+    });
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.warn('Gagal mencatat audit log ke Supabase:', error);
+    return false;
+  }
+}
+
+// ====================================================================
+// MASTER DATA: CATEGORIES & KEMANTREN SYNC
+// ====================================================================
+
+function mapCategoryToDb(cat: CompetitionCategory): Record<string, any> {
+  return {
+    id: cat.id,
+    code: cat.code,
+    level: cat.level,
+    name: cat.name,
+    gender_requirement: cat.genderRequirement,
+    is_group: Boolean(cat.isGroup),
+    group_member_count: cat.groupMemberCount || 1,
+    max_participants_per_kemantren: cat.maxParticipantsPerKemantren || 1,
+    description: cat.description || '',
+  };
+}
+
+function mapDbToCategory(row: Record<string, any>): CompetitionCategory {
+  return {
+    id: row.id,
+    code: row.code,
+    level: row.level as any,
+    name: row.name,
+    genderRequirement: (row.gender_requirement || 'ALL') as any,
+    isGroup: Boolean(row.is_group),
+    groupMemberCount: row.group_member_count || 1,
+    maxParticipantsPerKemantren: row.max_participants_per_kemantren || 1,
+    description: row.description || '',
+  };
+}
+
+/**
+ * Mengambil data cabang lomba dari Supabase
+ */
+export async function fetchCategoriesFromSupabase(): Promise<CompetitionCategory[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('categories')
+      .select('*')
+      .order('code', { ascending: true });
+
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+
+    return data.map(mapDbToCategory);
+  } catch (error: any) {
+    console.warn('Gagal mengambil master cabang lomba dari Supabase:', error?.message || error);
+    return null;
+  }
+}
+
+/**
+ * Sinkronisasi seluruh master cabang lomba ke Supabase
+ */
+export async function syncCategoriesToSupabase(categories: CompetitionCategory[]): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Supabase belum terkonfigurasi di environment.' };
+  }
+
+  try {
+    const payloads = categories.map(mapCategoryToDb);
+    const { error } = await client.from('categories').upsert(payloads, { onConflict: 'id' });
+    if (error) throw error;
+    return { success: true, count: payloads.length };
+  } catch (error: any) {
+    console.error('Gagal sinkronisasi kategori lomba ke Supabase:', error);
+    return { success: false, count: 0, error: error?.message || 'Gagal menyimpan ke Supabase' };
+  }
+}
+
+/**
+ * Sinkronisasi master kemantren ke Supabase
+ */
+export async function syncKemantrenToSupabase(kemantrenList: Kemantren[]): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Supabase belum terkonfigurasi di environment.' };
+  }
+
+  try {
+    const payloads = kemantrenList.map((k) => ({
+      id: k.id,
+      code: k.code,
+      name: k.name,
+      admin_name: k.adminName,
+      password_hash: k.password || `${k.name.toLowerCase().replace(/\s+/g, '')}123`,
+      drive_folder_url: k.driveFolderUrl || null,
+    }));
+    const { error } = await client.from('kemantren').upsert(payloads, { onConflict: 'id' });
+    if (error) throw error;
+    return { success: true, count: payloads.length };
+  } catch (error: any) {
+    console.error('Gagal sinkronisasi kemantren ke Supabase:', error);
+    return { success: false, count: 0, error: error?.message || 'Gagal menyimpan ke Supabase' };
+  }
+}
+
+/**
+ * Mengambil master kemantren dari Supabase
+ */
+export async function fetchKemantrenFromSupabase(): Promise<Kemantren[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('kemantren')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+
+    return data.map((row: any) => {
+      const fallback = KEMANTREN_LIST.find((k) => k.id === row.id || k.code === row.code);
+      return {
+        id: row.id,
+        code: row.code,
+        name: row.name,
+        adminName: row.admin_name || fallback?.adminName || `Admin ${row.name}`,
+        contactPerson: fallback?.contactPerson || '',
+        password: row.password_hash || row.password || fallback?.password || '',
+        driveFolderUrl: row.drive_folder_url || fallback?.driveFolderUrl || '',
+      };
+    });
+  } catch (error: any) {
+    console.error('Gagal mengambil data kemantren dari Supabase:', error);
+    return null;
+  }
+}
+
+/**
+ * Berlangganan (Realtime Subscription) untuk perubahan kemantren dari Supabase
+ */
+export function subscribeToKemantrenRealtime(callback: (kemantren: Kemantren[]) => void) {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const channel = client
+      .channel('public:kemantren')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'kemantren' },
+        async () => {
+          const fresh = await fetchKemantrenFromSupabase();
+          if (fresh) {
+            callback(fresh);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (error) {
+    console.warn('Gagal mengaktifkan Realtime Supabase untuk kemantren:', error);
+    return null;
+  }
+}
+
+/**
+ * Mengambil pengaturan aplikasi (app_settings) dari Supabase
+ */
+export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('app_settings')
+      .select('*')
+      .in('id', [1, 2]);
+
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+
+    const row1 = data.find((r: any) => r.id === 1) || {};
+    const row2 = data.find((r: any) => r.id === 2);
+
+    let extraSettings: Partial<AppSettings> = {};
+    if (row2?.tagline) {
+      try {
+        extraSettings = JSON.parse(row2.tagline);
+      } catch (e) {
+        console.warn('Gagal parse extra app_settings dari Supabase:', e);
+      }
+    }
+
+    return {
+      eventName: row1.event_name || 'FESTIVAL ANAK SHOLEH INDONESIA - XIII',
+      eventSubtitle: row1.event_subtitle || 'Kota Yogyakarta 2026',
+      tagline: row1.tagline || 'Santri Hebat, Hebat Prestasi, Hebat Mengaji, & Berakhlakul Karimah.',
+      eventDate: row1.event_date || 'Ahad, 11 Oktober 2026',
+      eventLocation: row1.event_location || 'SMPN 1 Yogyakarta (Jl. Cik Di Tiro No. 29, Terban, Gondokusuman)',
+      themeColor: row1.theme_color || 'emerald',
+      superAdminPassword: row1.superadmin_password || 'badko2026',
+      superAdminSecondaryPassword: 'BadkoJogja2026!',
+      publishResultsToRayon: extraSettings.publishResultsToRayon ?? false,
+      registrationStatus: extraSettings.registrationStatus || 'open',
+      allowSuperAdminBypass: extraSettings.allowSuperAdminBypass ?? true,
+      registrationDeadlineDate: extraSettings.registrationDeadlineDate || '2026-10-05',
+      registrationDeadlineTime: extraSettings.registrationDeadlineTime || '12:00',
+      registrationAutoClose: Boolean(extraSettings.registrationAutoClose),
+      registrationClosedMessage:
+        extraSettings.registrationClosedMessage ||
+        'Pendaftaran santri baru resmi ditutup pada 5 Oktober 2026 pukul 12.00 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang Technical Meeting (TM).',
+    };
+  } catch (error: any) {
+    console.error('Gagal mengambil data pengaturan dari Supabase:', error);
+    return null;
+  }
+}
+
+/**
+ * Sinkronisasi pengaturan aplikasi ke Supabase
+ */
+export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Supabase belum terkonfigurasi' };
+
+  try {
+    const payloadRow1 = {
+      id: 1,
+      event_name: settings.eventName,
+      event_subtitle: settings.eventSubtitle,
+      tagline: settings.tagline,
+      event_date: settings.eventDate,
+      event_location: settings.eventLocation,
+      theme_color: settings.themeColor,
+      superadmin_password: settings.superAdminPassword || 'badko2026',
+      updated_at: new Date().toISOString(),
+    };
+
+    const extraConfig = {
+      registrationStatus: settings.registrationStatus || 'open',
+      allowSuperAdminBypass: settings.allowSuperAdminBypass ?? true,
+      registrationDeadlineDate: settings.registrationDeadlineDate || '2026-10-05',
+      registrationDeadlineTime: settings.registrationDeadlineTime || '12:00',
+      registrationAutoClose: Boolean(settings.registrationAutoClose),
+      registrationClosedMessage: settings.registrationClosedMessage || '',
+      publishResultsToRayon: Boolean(settings.publishResultsToRayon),
+    };
+
+    const payloadRow2 = {
+      id: 2,
+      event_name: 'FASI_CONFIG_REGISTRATION',
+      event_subtitle: 'Kota Yogyakarta 2026',
+      tagline: JSON.stringify(extraConfig),
+      event_date: settings.eventDate || 'Ahad, 11 Oktober 2026',
+      event_location: settings.eventLocation || '',
+      theme_color: settings.themeColor || 'emerald',
+      superadmin_password: settings.superAdminPassword || 'badko2026',
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: err1 } = await client.from('app_settings').upsert(payloadRow1, { onConflict: 'id' });
+    if (err1) throw err1;
+
+    const { error: err2 } = await client.from('app_settings').upsert(payloadRow2, { onConflict: 'id' });
+    if (err2) throw err2;
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Gagal menyimpan app_settings ke Supabase:', error);
+    return { success: false, error: error?.message || 'Gagal menyimpan pengaturan ke Supabase' };
+  }
+}
+
+/**
+ * Berlangganan (Realtime Subscription) untuk perubahan app_settings dari Supabase
+ */
+export function subscribeToSettingsRealtime(callback: (settings: AppSettings) => void) {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const channel = client
+      .channel('public:app_settings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'app_settings' },
+        async () => {
+          const fresh = await fetchSettingsFromSupabase();
+          if (fresh) {
+            callback(fresh);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (error) {
+    console.warn('Gagal mengaktifkan Realtime Supabase untuk app_settings:', error);
+    return null;
+  }
+}
+
+/**
+ * Mengambil seluruh Berita Acara Kejuaraan dari Supabase
+ */
+export async function fetchBeritaAcaraFromSupabase(): Promise<BeritaAcaraKejuaraan[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('berita_acara_kejuaraan')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      // Jika tabel belum dibuat di Supabase, jangan crash, return null
+      console.warn('Gagal memuat berita acara dari Supabase:', error.message);
+      return null;
+    }
+
+    if (!data) return [];
+
+    return data.map((row: any): BeritaAcaraKejuaraan => {
+      const juri1 = row.juri_satu || row.nama_ketua_juri || '';
+      const juri2 = row.juri_dua || row.nama_anggota_juri || row.nama_sekretaris_juri || '';
+      const catatanVal = row.catatan || row.catatan_juri || '';
+
+      return {
+        id: row.id,
+        cabangId: row.cabang_id,
+        namaCabang: row.nama_cabang,
+        cabangNama: row.nama_cabang,
+        jenjang: row.jenjang,
+        golongan: row.golongan,
+        isCabangUtama: Boolean(row.is_cabang_utama),
+        tanggalPenetapan: row.tanggal_penetapan || new Date().toISOString().split('T')[0],
+        status: (row.status === 'Disahkan' ? 'Disahkan' : 'Draft') as 'Draft' | 'Disahkan',
+        juriSatu: juri1,
+        juriDua: juri2,
+        namaKetuaJuri: juri1,
+        namaAnggotaJuri: juri2,
+        namaSekretarisJuri: juri2,
+        catatan: catatanVal,
+        catatanJuri: catatanVal,
+        pemenang: row.pemenang || {},
+        updatedAt: row.updated_at || new Date().toISOString(),
+      };
+    });
+  } catch (error: any) {
+    console.warn('Exception fetchBeritaAcaraFromSupabase:', error?.message || error);
+    return null;
+  }
+}
+
+/**
+ * Menyimpan / Upsert satu Berita Acara ke Supabase
+ */
+export async function upsertBeritaAcaraToSupabase(ba: BeritaAcaraKejuaraan): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Klien Supabase belum aktif atau belum terkonfigurasi' };
+
+  const juri1 = ba.juriSatu || ba.namaKetuaJuri || null;
+  const juri2 = ba.juriDua || ba.namaAnggotaJuri || ba.namaSekretarisJuri || null;
+  const catatanVal = ba.catatanJuri || ba.catatan || null;
+
+  try {
+    // Primary payload: mencakup kedua varian kolom catatan (catatan_juri & catatan) serta juri (juri_satu & juri_dua)
+    const payload: Record<string, any> = {
+      id: ba.id,
+      cabang_id: ba.cabangId,
+      jenjang: ba.jenjang,
+      golongan: ba.golongan,
+      is_cabang_utama: ba.isCabangUtama,
+      tanggal_penetapan: ba.tanggalPenetapan || new Date().toISOString().split('T')[0],
+      status: ba.status,
+      juri_satu: juri1,
+      juri_dua: juri2,
+      catatan_juri: catatanVal,
+      catatan: catatanVal,
+      pemenang: ba.pemenang || {},
+      updated_at: new Date().toISOString(),
+    };
+
+    let { error } = await client
+      .from('berita_acara_kejuaraan')
+      .upsert(payload, { onConflict: 'id' });
+
+    // Fallback 1: Jika tabel di Supabase tidak memiliki kolom 'catatan'
+    if (error && (error.message?.includes("'catatan'") || error.message?.includes('catatan'))) {
+      const fallbackPayloadWithoutCatatan = { ...payload };
+      delete fallbackPayloadWithoutCatatan.catatan;
+      const res = await client
+        .from('berita_acara_kejuaraan')
+        .upsert(fallbackPayloadWithoutCatatan, { onConflict: 'id' });
+      error = res.error;
+    }
+
+    // Fallback 2: Jika tabel di Supabase tidak memiliki kolom 'catatan_juri'
+    if (error && (error.message?.includes("'catatan_juri'") || error.message?.includes('catatan_juri'))) {
+      const fallbackPayloadWithoutCatatanJuri = { ...payload };
+      delete fallbackPayloadWithoutCatatanJuri.catatan_juri;
+      const res = await client
+        .from('berita_acara_kejuaraan')
+        .upsert(fallbackPayloadWithoutCatatanJuri, { onConflict: 'id' });
+      error = res.error;
+    }
+
+    // Fallback 3: Jika tabel di Supabase masih menggunakan nama kolom lama (nama_ketua_juri / nama_anggota_juri)
+    if (error && (error.message?.includes('juri_satu') || error.message?.includes('juri_dua') || error.code === 'PGRST204')) {
+      const legacyPayload: Record<string, any> = {
+        id: ba.id,
+        cabang_id: ba.cabangId,
+        jenjang: ba.jenjang,
+        golongan: ba.golongan,
+        is_cabang_utama: ba.isCabangUtama,
+        tanggal_penetapan: ba.tanggalPenetapan || new Date().toISOString().split('T')[0],
+        status: ba.status,
+        nama_ketua_juri: juri1,
+        nama_anggota_juri: juri2,
+        catatan_juri: catatanVal,
+        catatan: catatanVal,
+        pemenang: ba.pemenang || {},
+        updated_at: new Date().toISOString(),
+      };
+      const res = await client
+        .from('berita_acara_kejuaraan')
+        .upsert(legacyPayload, { onConflict: 'id' });
+      error = res.error;
+    }
+
+    if (error) {
+      console.error('Error upserting berita acara to Supabase:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (error: any) {
+    console.error('Exception upsertBeritaAcaraToSupabase:', error?.message || error);
+    return { success: false, error: error?.message || 'Terjadi kesalahan sistem saat menyimpan ke Supabase' };
+  }
+}
+
+/**
+ * Menghapus satu Berita Acara dari Supabase
+ */
+export async function deleteBeritaAcaraFromSupabase(id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { error } = await client
+      .from('berita_acara_kejuaraan')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting berita acara from Supabase:', error);
+      return false;
+    }
+    return true;
+  } catch (error: any) {
+    console.error('Exception deleteBeritaAcaraFromSupabase:', error?.message || error);
+    return false;
+  }
+}
+
+/**
+ * ============================================================================
+ * MANAJEMEN ID CARD OFFICIAL KONTINGEN (Tabel: id_card_officials)
+ * ============================================================================
+ */
+
+export async function fetchOfficialsFromSupabase(): Promise<IdCardOfficialData[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+
+  try {
+    const { data, error } = await client
+      .from('id_card_officials')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching officials from Supabase:', error);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      name: row.name || '',
+      role: row.role || 'Official',
+      kemantrenName: row.kemantren_name || '',
+      kemantrenCode: row.kemantren_code || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  } catch (err: any) {
+    console.error('Exception fetchOfficialsFromSupabase:', err?.message || err);
+    return [];
+  }
+}
+
+export async function upsertOfficialToSupabase(official: IdCardOfficialData): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Klien Supabase belum terhubung' };
+
+  try {
+    const payload = {
+      id: official.id,
+      name: official.name,
+      role: official.role,
+      kemantren_name: official.kemantrenName,
+      kemantren_code: official.kemantrenCode || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await client
+      .from('id_card_officials')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error upserting official to Supabase:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error('Exception upsertOfficialToSupabase:', err?.message || err);
+    return { success: false, error: err?.message || 'Gagal menyimpan data official ke Supabase' };
+  }
+}
+
+export async function deleteOfficialFromSupabase(id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { error } = await client
+      .from('id_card_officials')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting official from Supabase:', error);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.error('Exception deleteOfficialFromSupabase:', err?.message || err);
+    return false;
+  }
+}
+
+/**
+ * ============================================================================
+ * MANAJEMEN ID CARD PANITIA & DEWAN HAKIM (Tabel: id_card_committees)
+ * ============================================================================
+ */
+
+export async function fetchCommitteesFromSupabase(): Promise<IdCardCommitteeData[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+
+  try {
+    const { data, error } = await client
+      .from('id_card_committees')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching committees from Supabase:', error);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      name: row.name || '',
+      division: row.division || 'Panitia Pelaksana',
+      accessLevel: row.access_level || 'ALL ACCESS',
+      cardCategory: row.card_category === 'dewan_hakim' ? 'dewan_hakim' : (row.card_category === 'panitera' ? 'panitera' : 'panitia'),
+      customBadge: row.custom_badge || (row.card_category === 'dewan_hakim' ? 'DEWAN HAKIM' : (row.card_category === 'panitera' ? 'PANITERA' : 'PANITIA')),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  } catch (err: any) {
+    console.error('Exception fetchCommitteesFromSupabase:', err?.message || err);
+    return [];
+  }
+}
+
+export async function upsertCommitteeToSupabase(committee: IdCardCommitteeData): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Klien Supabase belum terhubung' };
+
+  try {
+    const payload = {
+      id: committee.id,
+      name: committee.name || '',
+      division: committee.division,
+      access_level: committee.accessLevel || 'ALL ACCESS',
+      card_category: committee.cardCategory || 'panitia',
+      custom_badge: committee.customBadge || (committee.cardCategory === 'dewan_hakim' ? 'DEWAN HAKIM' : (committee.cardCategory === 'panitera' ? 'PANITERA' : 'PANITIA')),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await client
+      .from('id_card_committees')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error upserting committee to Supabase:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error('Exception upsertCommitteeToSupabase:', err?.message || err);
+    return { success: false, error: err?.message || 'Gagal menyimpan data panitia ke Supabase' };
+  }
+}
+
+export async function deleteCommitteeFromSupabase(id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { error } = await client
+      .from('id_card_committees')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting committee from Supabase:', error);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.error('Exception deleteCommitteeFromSupabase:', err?.message || err);
+    return false;
+  }
+}
+
+/**
+ * ==========================================================
+ * MASTER TPA (Table: master_tpa)
+ * ==========================================================
+ */
+
+export async function fetchMasterTpaFromSupabase(): Promise<MasterTpa[]> {
+  const client = getSupabaseClient();
+  if (!client) return [];
+
+  try {
+    const { data, error } = await client
+      .from('master_tpa')
+      .select('*')
+      .order('nama_tpa', { ascending: true });
+
+    if (error) {
+      console.warn('Gagal fetch master_tpa dari Supabase:', error.message);
+      return [];
+    }
+
+    if (!data || !Array.isArray(data)) return [];
+
+    return data.map((row: any) => {
+      // Normalisasi kemantren ID jika hanya ada teks nama Rayon uppercase
+      let kId = row.kemantren_id || '';
+      let rName = row.rayon_name || '';
+
+      if (!kId && rName) {
+        const matched = normalizeRayonToKemantren(rName);
+        if (matched) {
+          kId = matched.id;
+          rName = matched.name;
+        }
+      } else if (kId && !rName) {
+        const matched = KEMANTREN_LIST.find((k) => k.id === kId);
+        if (matched) rName = matched.name;
+      }
+
+      return {
+        id: String(row.id),
+        namaTpa: String(row.nama_tpa || '').trim(),
+        namaDirektur: String(row.nama_direktur || '').trim(),
+        kemantrenId: kId,
+        rayonName: rName,
+        kontakDirektur: row.kontak_direktur ? String(row.kontak_direktur).trim() : undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    });
+  } catch (err: any) {
+    console.error('Exception fetchMasterTpaFromSupabase:', err?.message || err);
+    return [];
+  }
+}
+
+export async function upsertMasterTpaToSupabase(tpa: MasterTpa): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Klien Supabase belum aktif.' };
+  }
+
+  try {
+    // Pastikan kemantrenId terpetakan dengan benar meski input rayonName Uppercase
+    let kId = tpa.kemantrenId;
+    let rName = tpa.rayonName;
+    if (!kId && rName) {
+      const matched = normalizeRayonToKemantren(rName);
+      if (matched) {
+        kId = matched.id;
+        rName = matched.name;
+      }
+    } else if (kId && !rName) {
+      const matched = KEMANTREN_LIST.find((k) => k.id === kId);
+      if (matched) rName = matched.name;
+    }
+
+    const payload = {
+      id: tpa.id,
+      nama_tpa: tpa.namaTpa.trim(),
+      nama_direktur: tpa.namaDirektur.trim(),
+      kemantren_id: kId,
+      rayon_name: rName || '',
+      kontak_direktur: tpa.kontakDirektur?.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await client
+      .from('master_tpa')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error upserting master_tpa to Supabase:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.error('Exception upsertMasterTpaToSupabase:', err?.message || err);
+    return { success: false, error: err?.message || 'Gagal menyimpan data TPA ke Supabase' };
+  }
+}
+
+export async function bulkSyncMasterTpaToSupabase(tpaList: MasterTpa[]): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, count: 0, error: 'Klien Supabase belum aktif.' };
+  }
+
+  if (!tpaList || tpaList.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  try {
+    const payload = tpaList.map((tpa) => {
+      let kId = tpa.kemantrenId;
+      let rName = tpa.rayonName;
+      if (!kId && rName) {
+        const matched = normalizeRayonToKemantren(rName);
+        if (matched) {
+          kId = matched.id;
+          rName = matched.name;
+        }
+      } else if (kId && !rName) {
+        const matched = KEMANTREN_LIST.find((k) => k.id === kId);
+        if (matched) rName = matched.name;
+      }
+
+      return {
+        id: tpa.id,
+        nama_tpa: tpa.namaTpa.trim(),
+        nama_direktur: tpa.namaDirektur.trim(),
+        kemantren_id: kId,
+        rayon_name: rName || '',
+        kontak_direktur: tpa.kontakDirektur?.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+    });
+
+    const { error } = await client
+      .from('master_tpa')
+      .upsert(payload, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error bulkSyncMasterTpaToSupabase:', error);
+      return { success: false, count: 0, error: error.message };
+    }
+
+    return { success: true, count: payload.length };
+  } catch (err: any) {
+    console.error('Exception bulkSyncMasterTpaToSupabase:', err?.message || err);
+    return { success: false, count: 0, error: err?.message || 'Gagal sinkronisasi data master TPA ke Supabase' };
+  }
+}
+
+export async function deleteMasterTpaFromSupabase(id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { error } = await client
+      .from('master_tpa')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting master_tpa from Supabase:', error);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.error('Exception deleteMasterTpaFromSupabase:', err?.message || err);
+    return false;
+  }
+}
+
+

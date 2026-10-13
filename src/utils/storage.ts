@@ -1,0 +1,1022 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * 
+ * Sistem Informasi FASI XIII Kota Yogyakarta
+ * Storage & State Synchronization Layer
+ * (Local Persistence, RBAC Session, Medal Calculator, Lottery Engine)
+ */
+
+import {
+  Participant,
+  ParticipantDraft,
+  MedalTally,
+  UserSession,
+  AuditLog,
+  AppSettings,
+  CompetitionCategory,
+  Kemantren,
+  BeritaAcaraKejuaraan,
+  IdCardOfficialData,
+  IdCardCommitteeData,
+  MasterTpa,
+} from '../types/fasi';
+import { KEMANTREN_LIST, CATEGORIES_LIST, INITIAL_PARTICIPANTS, INITIAL_MASTER_TPA, normalizeRayonToKemantren } from '../data/fasiMasterData';
+import { createAuditLog, unescapeHtml } from './security';
+import {
+  isSupabaseConfigured,
+  bulkSyncParticipantsToSupabase,
+  upsertParticipantToSupabase,
+  deleteParticipantFromSupabase,
+  insertAuditLogToSupabase,
+  fetchOfficialsFromSupabase,
+  upsertOfficialToSupabase,
+  deleteOfficialFromSupabase,
+  fetchCommitteesFromSupabase,
+  upsertCommitteeToSupabase,
+  deleteCommitteeFromSupabase,
+  saveSettingsToSupabase,
+  fetchMasterTpaFromSupabase,
+  upsertMasterTpaToSupabase,
+  bulkSyncMasterTpaToSupabase,
+  deleteMasterTpaFromSupabase,
+} from '../lib/supabase';
+
+const PARTICIPANTS_KEY = 'fasi13_participants_data';
+const DRAFTS_KEY = 'fasi13_participants_drafts';
+const AUDIT_LOGS_KEY = 'fasi13_audit_logs';
+const SESSION_KEY = 'fasi13_user_session';
+const SETTINGS_KEY = 'fasi13_app_settings';
+const CATEGORIES_KEY = 'fasi13_categories_data';
+const KEMANTREN_KEY = 'fasi13_kemantren_data';
+const BERITA_ACARA_KEY = 'fasi13_berita_acara_data';
+const OFFICIALS_KEY = 'fasi13_id_card_officials';
+const COMMITTEES_KEY = 'fasi13_id_card_committees';
+const MASTER_TPA_KEY = 'fasi13_master_tpa_data';
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  tagline: 'Santri Hebat, Hebat Prestasi, Hebat Mengaji, & Berakhlakul Karimah.',
+  eventName: 'FESTIVAL ANAK SHOLEH INDONESIA - XIII',
+  eventSubtitle: 'Kota Yogyakarta 2026',
+  eventDate: 'Ahad, 11 Oktober 2026',
+  eventLocation: 'SMPN 1 Yogyakarta (Jl. Cik Di Tiro No. 29, Terban, Gondokusuman)',
+  themeColor: 'emerald',
+  publishResultsToRayon: false,
+  superAdminPassword: 'badko2026',
+  superAdminSecondaryPassword: 'BadkoJogja2026!',
+  registrationStatus: 'open',
+  allowSuperAdminBypass: true,
+  registrationDeadlineDate: '2026-10-05',
+  registrationDeadlineTime: '12:00',
+  registrationAutoClose: false,
+  registrationClosedMessage: 'Pendaftaran santri baru resmi ditutup pada 5 Oktober 2026 pukul 12.00 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang Technical Meeting (TM).',
+  presensiPin: 'fasi132026',
+};
+
+const PRESENSI_AUTH_KEY = 'fasi13_presensi_authorized';
+
+export function isPresensiAuthorized(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(PRESENSI_AUTH_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setPresensiAuthorized(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(PRESENSI_AUTH_KEY, 'true');
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Mendapatkan status pendaftaran aktif (memperhitungkan waktu deadline otomatis jika diaktifkan)
+ */
+export function getEffectiveRegistrationStatus(settings?: AppSettings): 'open' | 'closed' | 'lockdown' {
+  const s = settings || getStoredSettings();
+  const currentStatus = s.registrationStatus || 'open';
+
+  if (currentStatus === 'lockdown') return 'lockdown';
+  if (currentStatus === 'closed') return 'closed';
+
+  // Cek apakah fitur auto-close aktif dan telah melewati deadline
+  if (s.registrationAutoClose && s.registrationDeadlineDate) {
+    try {
+      const timeStr = s.registrationDeadlineTime || '12:00';
+      const deadlineDate = new Date(`${s.registrationDeadlineDate}T${timeStr}:00`);
+      if (!isNaN(deadlineDate.getTime()) && Date.now() >= deadlineDate.getTime()) {
+        return 'closed';
+      }
+    } catch (e) {
+      console.warn('Error parsing registration deadline:', e);
+    }
+  }
+
+  return currentStatus;
+}
+
+/**
+ * Pengaturan Aplikasi (Tagline, Warna Tema, Event Info)
+ */
+export function getStoredSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
+      return DEFAULT_SETTINGS;
+    }
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export function saveSettings(settings: AppSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_settings_updated', { detail: settings }));
+    }
+    if (isSupabaseConfigured()) {
+      saveSettingsToSupabase(settings).catch((e) => {
+        console.warn('Sync app_settings to Supabase warning:', e);
+      });
+    }
+  } catch (err) {
+    console.error('Gagal menyimpan pengaturan:', err);
+  }
+}
+
+/**
+ * CRUD Master Cabang Lomba
+ */
+export function getStoredCategories(): CompetitionCategory[] {
+  try {
+    const raw = localStorage.getItem(CATEGORIES_KEY);
+    if (!raw) {
+      localStorage.setItem(CATEGORIES_KEY, JSON.stringify(CATEGORIES_LIST));
+      return CATEGORIES_LIST;
+    }
+    const parsed: CompetitionCategory[] = JSON.parse(raw);
+    // Upgrade legacy default quota 1 to 3 (individual) / 9 (group)
+    const upgraded = parsed.map((cat) => {
+      if (!cat.maxParticipantsPerKemantren || cat.maxParticipantsPerKemantren === 1) {
+        return { ...cat, maxParticipantsPerKemantren: cat.isGroup ? 9 : 3 };
+      }
+      return cat;
+    });
+    return upgraded;
+  } catch {
+    return CATEGORIES_LIST;
+  }
+}
+
+export function saveCategories(categories: CompetitionCategory[]): void {
+  try {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+  } catch (err) {
+    console.error('Gagal menyimpan master cabang lomba:', err);
+  }
+}
+
+export function resetCategories(): CompetitionCategory[] {
+  try {
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(CATEGORIES_LIST));
+    return CATEGORIES_LIST;
+  } catch {
+    return CATEGORIES_LIST;
+  }
+}
+
+/**
+ * CRUD Master Kemantren & Akun Admin Kecamatan
+ */
+export function getStoredKemantren(): Kemantren[] {
+  try {
+    const raw = localStorage.getItem(KEMANTREN_KEY);
+    if (!raw) {
+      localStorage.setItem(KEMANTREN_KEY, JSON.stringify(KEMANTREN_LIST));
+      return KEMANTREN_LIST;
+    }
+    const parsed: Kemantren[] = JSON.parse(raw);
+    const upgraded = parsed.map((kem) => {
+      const defaultPass = `${kem.name.toLowerCase().replace(/\s+/g, '')}123`;
+      const master = KEMANTREN_LIST.find((m) => m.id === kem.id || m.code === kem.code);
+      const driveFolderUrl = kem.driveFolderUrl || master?.driveFolderUrl || '';
+      return {
+        ...kem,
+        password: (!kem.password || kem.password === 'kemantren123') ? defaultPass : kem.password,
+        driveFolderUrl,
+      };
+    });
+    return upgraded;
+  } catch {
+    return KEMANTREN_LIST;
+  }
+}
+
+export function saveKemantren(kemantrenList: Kemantren[]): void {
+  try {
+    localStorage.setItem(KEMANTREN_KEY, JSON.stringify(kemantrenList));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_kemantren_updated', { detail: kemantrenList }));
+    }
+  } catch (err) {
+    console.error('Gagal menyimpan data kemantren:', err);
+  }
+}
+
+export function resetKemantren(): Kemantren[] {
+  try {
+    localStorage.setItem(KEMANTREN_KEY, JSON.stringify(KEMANTREN_LIST));
+    return KEMANTREN_LIST;
+  } catch {
+    return KEMANTREN_LIST;
+  }
+}
+
+/**
+ * Inisialisasi & Ambil Data Peserta
+ */
+export function getStoredParticipants(): Participant[] {
+  try {
+    const raw = localStorage.getItem(PARTICIPANTS_KEY);
+    if (!raw) {
+      localStorage.setItem(PARTICIPANTS_KEY, JSON.stringify([]));
+      return [];
+    }
+    const parsed: Participant[] = JSON.parse(raw);
+    // Filter out legacy dummy sample participant items and unescape any legacy HTML entities
+    const cleaned = parsed
+      .filter((p) => !p.id.match(/^p-0[1-9]$|^p-10$/))
+      .map((p) => ({
+        ...p,
+        fullName: unescapeHtml(p.fullName),
+        tpaUnitName: unescapeHtml(p.tpaUnitName),
+        pjName: unescapeHtml(p.pjName),
+        whatsappNumber: unescapeHtml(p.whatsappNumber),
+        notes: p.notes ? unescapeHtml(p.notes) : undefined,
+      }));
+    return cleaned;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Simpan Data Peserta ke LocalStorage dan kirim sinyal update lokal.
+ * Catatan: Sinkronisasi ke Supabase dilakukan spesifik per-aksi (upsertParticipantToSupabase / deleteParticipantFromSupabase)
+ * agar cache perangkat lain tidak menimpa atau memulihkan santri yang telah dihapus oleh Superadmin.
+ */
+export function saveParticipants(participants: Participant[]): void {
+  try {
+    localStorage.setItem(PARTICIPANTS_KEY, JSON.stringify(participants));
+    window.dispatchEvent(new CustomEvent('fasi_participants_updated'));
+  } catch (err) {
+    console.error('Gagal menyimpan data peserta:', err);
+  }
+}
+
+/**
+ * Manajemen Draft Peserta (Untuk Pengisian Cepat & Kirim Massal)
+ */
+export function getStoredDrafts(): ParticipantDraft[] {
+  try {
+    const raw = localStorage.getItem(DRAFTS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveDrafts(drafts: ParticipantDraft[]): void {
+  try {
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  } catch (err) {
+    console.error('Gagal menyimpan data draft:', err);
+  }
+}
+
+export function clearDrafts(): void {
+  try {
+    localStorage.removeItem(DRAFTS_KEY);
+  } catch (err) {
+    console.error('Gagal membersihkan data draft:', err);
+  }
+}
+
+/**
+ * Menambahkan peserta dummy ke LocalStorage dan memancarkan event pembaruan
+ */
+export function addDummyParticipantsToStorage(dummies: Participant[]): Participant[] {
+  try {
+    const current = getStoredParticipants();
+    const existingIds = new Set(current.map((p) => p.id));
+    const newItems = dummies.filter((d) => !existingIds.has(d.id));
+    const updated = [...current, ...newItems];
+    localStorage.setItem(PARTICIPANTS_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('fasi_participants_updated'));
+    return updated;
+  } catch (err) {
+    console.error('Gagal simpan dummy ke storage:', err);
+    return getStoredParticipants();
+  }
+}
+
+/**
+ * Menghapus seluruh data peserta dummy dari LocalStorage
+ */
+export function removeDummyParticipantsFromStorage(): { updated: Participant[]; deletedCount: number } {
+  try {
+    const current = getStoredParticipants();
+    const filtered = current.filter(
+      (p) => !p.id.startsWith('dummy-') && !p.notes?.includes('[DUMMY_DATA]')
+    );
+    const deletedCount = current.length - filtered.length;
+    localStorage.setItem(PARTICIPANTS_KEY, JSON.stringify(filtered));
+    window.dispatchEvent(new CustomEvent('fasi_participants_updated'));
+    return { updated: filtered, deletedCount };
+  } catch (err) {
+    console.error('Gagal menghapus dummy dari storage:', err);
+    return { updated: getStoredParticipants(), deletedCount: 0 };
+  }
+}
+
+/**
+ * Aturan Bobot Poin Kejuaraan FASI XIII:
+ * - Khusus cabang Tartil Al-Qur'an (TKA & TPA) dan Tilawati Al-Quran (TQA):
+ *   Juara I = 7 Poin, Juara II = 5 Poin, Juara III = 3 Poin
+ * - Cabang lomba lainnya:
+ *   Juara I = 5 Poin, Juara II = 3 Poin, Juara III = 1 Poin
+ */
+export function getCategoryPointsForRank(categoryId: string, rank: number): number {
+  const cat = getStoredCategories().find((c) => c.id === categoryId);
+  const isSpecial =
+    cat &&
+    ((cat.level === 'TKA' && cat.name.toLowerCase().includes('tartil')) ||
+      (cat.level === 'TPA' && cat.name.toLowerCase().includes('tartil')) ||
+      (cat.level === 'TQA' && (cat.name.toLowerCase().includes('tilawati') || cat.name.toLowerCase().includes('tilawah'))));
+
+  if (isSpecial) {
+    if (rank === 1) return 7;
+    if (rank === 2) return 5;
+    if (rank === 3) return 3;
+  } else {
+    if (rank === 1) return 5;
+    if (rank === 2) return 3;
+    if (rank === 3) return 1;
+  }
+  return 0;
+}
+
+/**
+ * Generate Nomor Registrasi Resmi FASI XIII
+ * Format: {KODE_KEMANTREN}-{LEVEL}-{KODE_CABANG_NUM}-{URUTAN_2_DIGIT}
+ * Contoh: KG-TPA-01-04
+ * 
+ * Menggunakan algoritma deteksi gap & nomor urut terkecil yang belum terpakai.
+ * Mencegah error duplicate key value violates unique constraint jika ada regu/peserta
+ * dengan nomor di bawahnya yang kosong (misal 01-03 kosong, sedangkan 04-09 sudah ada).
+ */
+export function generateRegistrationNumber(
+  kemantrenId: string,
+  categoryId: string,
+  currentParticipants: Participant[]
+): string {
+  const kemantren = getStoredKemantren().find((k) => k.id === kemantrenId);
+  const category = getStoredCategories().find((c) => c.id === categoryId);
+
+  const kCode = kemantren ? kemantren.code : 'YK';
+  const level = category ? category.level : 'TPA';
+  const catCode = category ? category.code.replace(/[^\d]/g, '') : '01';
+  const prefix = `${kCode}-${level}-${catCode}-`;
+
+  // Gabungkan currentParticipants dengan data yang tersimpan di localStorage
+  // untuk memastikan seluruh nomor terdaftar terlacak lengkap
+  const allKnown = new Map<string, Participant>();
+  (currentParticipants || []).forEach((p) => {
+    if (p && p.id) allKnown.set(p.id, p);
+  });
+  getStoredParticipants().forEach((p) => {
+    if (p && p.id) allKnown.set(p.id, p);
+  });
+
+  // Himpun seluruh sequence number yang SUDAH digunakan pada cabang & rayon ini
+  const usedSequences = new Set<number>();
+  allKnown.forEach((p) => {
+    if (
+      (p.kemantrenId === kemantrenId && p.categoryId === categoryId) ||
+      (p.registrationNumber && p.registrationNumber.startsWith(prefix))
+    ) {
+      if (p.registrationNumber) {
+        const parts = p.registrationNumber.split('-');
+        const lastPart = parts[parts.length - 1];
+        const num = parseInt(lastPart, 10);
+        if (!isNaN(num) && num > 0) {
+          usedSequences.add(num);
+        }
+      }
+    }
+  });
+
+  // Cari nomor urut terkecil yang belum pernah dipakai (mulai dari 1)
+  let seq = 1;
+  while (usedSequences.has(seq)) {
+    seq++;
+  }
+
+  const sequence = String(seq).padStart(2, '0');
+  return `${prefix}${sequence}`;
+}
+
+/**
+ * Kalkulasi Klasemen Medali Real-time 14 Kemantren dengan Pembobotan Khusus
+ */
+export function calculateMedalTallies(participants: Participant[]): MedalTally[] {
+  const tallies: Record<string, MedalTally> = {};
+  const kemantrenList = getStoredKemantren();
+
+  // Inisialisasi seluruh kemantren
+  kemantrenList.forEach((k) => {
+    tallies[k.id] = {
+      kemantrenId: k.id,
+      kemantrenName: k.name,
+      gold: 0,
+      silver: 0,
+      bronze: 0,
+      harapan1: 0,
+      harapan2: 0,
+      harapan3: 0,
+      totalPoints: 0,
+      rank: 0,
+    };
+  });
+
+  // Hitung medali dan bobot poin dari peserta yang sudah dinilai
+  participants.forEach((p) => {
+    if (p.rank && tallies[p.kemantrenId]) {
+      const points = getCategoryPointsForRank(p.categoryId, p.rank);
+      tallies[p.kemantrenId].totalPoints += points;
+
+      if (p.rank === 1) {
+        tallies[p.kemantrenId].gold += 1;
+      } else if (p.rank === 2) {
+        tallies[p.kemantrenId].silver += 1;
+      } else if (p.rank === 3) {
+        tallies[p.kemantrenId].bronze += 1;
+      } else if (p.rank === 4) {
+        tallies[p.kemantrenId].harapan1 += 1;
+      } else if (p.rank === 5) {
+        tallies[p.kemantrenId].harapan2 += 1;
+      } else if (p.rank === 6) {
+        tallies[p.kemantrenId].harapan3 += 1;
+      }
+    }
+  });
+
+  // Urutkan berdasarkan: Total Poin -> Emas -> Perak -> Perunggu -> Nama
+  const sorted = Object.values(tallies).sort((a, b) => {
+    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    if (b.gold !== a.gold) return b.gold - a.gold;
+    if (b.silver !== a.silver) return b.silver - a.silver;
+    if (b.bronze !== a.bronze) return b.bronze - a.bronze;
+    return a.kemantrenName.localeCompare(b.kemantrenName);
+  });
+
+  // Tentukan peringkat klasemen
+  return sorted.map((item, idx) => ({
+    ...item,
+    rank: idx + 1,
+  }));
+}
+
+/**
+ * Eksekusi Pengundian Nomor Tampil Acak (Random Lottery Draw Engine)
+ */
+export function shuffleLotteryNumbers(
+  categoryId: string,
+  participants: Participant[]
+): { updatedList: Participant[]; drawnCount: number } {
+  const inCategory = participants.filter(p => p.categoryId === categoryId && p.status === 'verified');
+  
+  if (inCategory.length === 0) {
+    return { updatedList: participants, drawnCount: 0 };
+  }
+
+  // Buat array nomor undian 1 s.d. N
+  const numbers = Array.from({ length: inCategory.length }, (_, i) => i + 1);
+  
+  // Algoritma Fisher-Yates Shuffle
+  for (let i = numbers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+
+  // Petakan ke peserta
+  const idToNumberMap = new Map<string, number>();
+  inCategory.forEach((p, idx) => {
+    idToNumberMap.set(p.id, numbers[idx]);
+  });
+
+  const updatedList = participants.map(p => {
+    if (idToNumberMap.has(p.id)) {
+      return {
+        ...p,
+        lotteryNumber: idToNumberMap.get(p.id)!,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return p;
+  });
+
+  saveParticipants(updatedList);
+  return { updatedList, drawnCount: inCategory.length };
+}
+
+/**
+ * Manajemen Audit Log
+ */
+export function getStoredAuditLogs(): AuditLog[] {
+  try {
+    const raw = localStorage.getItem(AUDIT_LOGS_KEY);
+    if (!raw) {
+      const initLog = createAuditLog('SISTEM', 'INISIALISASI', 'Sistem Informasi FASI XIII Kota Yogyakarta siap digunakan.');
+      localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify([initLog]));
+      return [initLog];
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function logAuditEvent(
+  user: string,
+  action: string,
+  details: string,
+  status: 'SUCCESS' | 'BLOCKED_BOT' | 'FLAGGED' | 'ERROR' = 'SUCCESS',
+  stack?: string
+): void {
+  try {
+    const logs = getStoredAuditLogs();
+    const newLog = createAuditLog(user, action, details, status, stack);
+    const updated = [newLog, ...logs].slice(0, 150); // Maks 150 log
+    localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(updated));
+
+    if (isSupabaseConfigured()) {
+      insertAuditLogToSupabase(newLog).catch((err) =>
+        console.warn('Gagal mencatat audit log ke Supabase:', err)
+      );
+    }
+  } catch (err) {
+    console.error('Gagal mencatat audit log:', err);
+  }
+}
+
+/**
+ * Catat Error Sistem Otomatis ke Audit Log
+ */
+export function logErrorEvent(user: string, context: string, error: unknown): void {
+  const errMsg = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
+  const errStack = error instanceof Error ? error.stack : undefined;
+  logAuditEvent(user || 'SISTEM', 'SYSTEM_ERROR', `[${context}] ${errMsg}`, 'ERROR', errStack);
+}
+
+export function clearAuditLogs(): void {
+  try {
+    const initLog = createAuditLog('SISTEM', 'LOG_CLEARED', 'Riwayat log telah dibersihkan oleh Administrator.');
+    localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify([initLog]));
+  } catch (err) {
+    console.error('Gagal membersihkan audit log:', err);
+  }
+}
+
+/**
+ * Manajemen Session RBAC
+ */
+export function getStoredSession(): UserSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const session: UserSession = JSON.parse(raw);
+    
+    // Cek kadaluarsa session (misal 8 jam)
+    if (Date.now() > session.expiresAt) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSession(session: UserSession): void {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch (err) {
+    console.error('Gagal menyimpan session:', err);
+  }
+}
+
+export function clearSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (err) {
+    console.error('Gagal menghapus session:', err);
+  }
+}
+
+/**
+ * Manajemen Berita Acara Kejuaraan Resmi (FASI XIII)
+ */
+export function getStoredBeritaAcara(): BeritaAcaraKejuaraan[] {
+  try {
+    const raw = localStorage.getItem(BERITA_ACARA_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('Gagal mengambil data berita acara:', err);
+    return [];
+  }
+}
+
+export function saveBeritaAcaraList(list: BeritaAcaraKejuaraan[]): void {
+  try {
+    localStorage.setItem(BERITA_ACARA_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_berita_acara_updated', { detail: list }));
+    }
+  } catch (err) {
+    console.error('Gagal menyimpan berita acara:', err);
+  }
+}
+
+/**
+ * ============================================================================
+ * MANAJEMEN PERSISTENSI ID CARD OFFICIAL
+ * ============================================================================
+ */
+
+export const DEFAULT_OFFICIALS: IdCardOfficialData[] = [
+  {
+    id: 'off-1',
+    name: 'Ust. H. Ahmad Fauzi, S.Pd.I',
+    role: 'Ketua Kontingen',
+    kemantrenName: 'Danurejan',
+    kemantrenCode: 'DN',
+  },
+  {
+    id: 'off-2',
+    name: 'Usth. Siti Nurjanah, S.Ag',
+    role: 'Official Pendamping',
+    kemantrenName: 'Danurejan',
+    kemantrenCode: 'DN',
+  },
+];
+
+export function getStoredOfficials(): IdCardOfficialData[] {
+  try {
+    const raw = localStorage.getItem(OFFICIALS_KEY);
+    if (!raw) return DEFAULT_OFFICIALS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_OFFICIALS;
+  } catch (err) {
+    console.error('Gagal mengambil data stored officials:', err);
+    return DEFAULT_OFFICIALS;
+  }
+}
+
+export function saveOfficialsList(list: IdCardOfficialData[]): void {
+  try {
+    localStorage.setItem(OFFICIALS_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_officials_updated', { detail: list }));
+    }
+  } catch (err) {
+    console.error('Gagal menyimpan data officials:', err);
+  }
+}
+
+export async function persistOfficial(official: IdCardOfficialData): Promise<void> {
+  const current = getStoredOfficials();
+  const existingIdx = current.findIndex((o) => o.id === official.id);
+  let updated: IdCardOfficialData[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = official;
+  } else {
+    updated = [...current, official];
+  }
+  saveOfficialsList(updated);
+
+  if (isSupabaseConfigured()) {
+    upsertOfficialToSupabase(official).catch((err) => {
+      console.warn('Gagal background sync official ke Supabase:', err);
+    });
+  }
+}
+
+export async function removeOfficial(id: string): Promise<void> {
+  const current = getStoredOfficials();
+  const updated = current.filter((o) => o.id !== id);
+  saveOfficialsList(updated);
+
+  if (isSupabaseConfigured()) {
+    deleteOfficialFromSupabase(id).catch((err) => {
+      console.warn('Gagal background delete official dari Supabase:', err);
+    });
+  }
+}
+
+export async function syncOfficialsFromCloud(): Promise<IdCardOfficialData[]> {
+  if (!isSupabaseConfigured()) return getStoredOfficials();
+  try {
+    const cloudData = await fetchOfficialsFromSupabase();
+    if (cloudData && cloudData.length > 0) {
+      saveOfficialsList(cloudData);
+      return cloudData;
+    }
+    return getStoredOfficials();
+  } catch (err) {
+    console.warn('Gagal sync officials dari cloud:', err);
+    return getStoredOfficials();
+  }
+}
+
+/**
+ * ============================================================================
+ * MANAJEMEN PERSISTENSI ID CARD PANITIA & DEWAN HAKIM
+ * ============================================================================
+ */
+
+export const DEFAULT_COMMITTEES: IdCardCommitteeData[] = [
+  { id: 'com-1', name: 'Dr. H. Muhammad Asrori, M.Ag', division: 'Ketua Panitia FASI XIII', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
+  { id: 'com-2', name: 'Ustadz Ridwan Hakim, S.T', division: 'Sekretaris Panitia', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
+  { id: 'com-3', name: 'Ustadzah Hj. Maryam, S.E', division: 'Bendahara Panitia', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
+  { id: 'com-4', name: 'Ustadz Farhan Al-Ghifari, S.Pd', division: 'Koordinator Sie Acara & Lomba', accessLevel: 'STAGE & LOMBA', cardCategory: 'panitia', customBadge: 'PANITIA' },
+  { id: 'com-5', name: 'Ustadz Ilham Ramadhan, S.Kom', division: 'Koordinator Sie IT & Registrasi', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
+  { id: 'com-6', name: 'K.H. Ahmad Syukri, M.S.I', division: 'Koordinator Dewan Hakim', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
+  { id: 'com-7', name: 'Ustadz M. Qasim, S.Th.I', division: 'Sekretaris Dewan Hakim', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
+  { id: 'com-8', name: 'Dewan Hakim Tilawah Al-Qur\'an', division: 'Cabang Tilawah (TKA, TPA, TQA)', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
+  { id: 'com-9', name: 'Dewan Hakim Tahfidz Juz \'Amma', division: 'Cabang Tahfidz (TPA & TQA)', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
+  { id: 'com-10', name: 'Panitera Cabang Tilawah Al-Qur\'an', division: 'Panitera Arena Tilawah', accessLevel: 'ARENA LOMBA & MEJA PANITERA', cardCategory: 'panitera', customBadge: 'PANITERA' },
+  { id: 'com-11', name: 'Panitera Cabang Tahfidz Juz \'Amma', division: 'Panitera Arena Tahfidz', accessLevel: 'ARENA LOMBA & MEJA PANITERA', cardCategory: 'panitera', customBadge: 'PANITERA' },
+  { id: 'com-12', name: 'Panitera Cerdas Cermat Al-Qur\'an', division: 'Panitera Arena CCQ', accessLevel: 'ARENA LOMBA & MEJA PANITERA', cardCategory: 'panitera', customBadge: 'PANITERA' },
+];
+
+export function getStoredCommittees(): IdCardCommitteeData[] {
+  try {
+    const raw = localStorage.getItem(COMMITTEES_KEY);
+    if (!raw) return DEFAULT_COMMITTEES;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_COMMITTEES;
+  } catch (err) {
+    console.error('Gagal mengambil data stored committees:', err);
+    return DEFAULT_COMMITTEES;
+  }
+}
+
+export function saveCommitteesList(list: IdCardCommitteeData[]): void {
+  try {
+    localStorage.setItem(COMMITTEES_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_committees_updated', { detail: list }));
+    }
+  } catch (err) {
+    console.error('Gagal menyimpan data committees:', err);
+  }
+}
+
+export async function persistCommittee(committee: IdCardCommitteeData): Promise<void> {
+  const current = getStoredCommittees();
+  const existingIdx = current.findIndex((c) => c.id === committee.id);
+  let updated: IdCardCommitteeData[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = committee;
+  } else {
+    updated = [...current, committee];
+  }
+  saveCommitteesList(updated);
+
+  if (isSupabaseConfigured()) {
+    upsertCommitteeToSupabase(committee).catch((err) => {
+      console.warn('Gagal background sync committee ke Supabase:', err);
+    });
+  }
+}
+
+export async function removeCommittee(id: string): Promise<void> {
+  const current = getStoredCommittees();
+  const updated = current.filter((c) => c.id !== id);
+  saveCommitteesList(updated);
+
+  if (isSupabaseConfigured()) {
+    deleteCommitteeFromSupabase(id).catch((err) => {
+      console.warn('Gagal background delete committee dari Supabase:', err);
+    });
+  }
+}
+
+export async function syncCommitteesFromCloud(): Promise<IdCardCommitteeData[]> {
+  if (!isSupabaseConfigured()) return getStoredCommittees();
+  try {
+    const cloudData = await fetchCommitteesFromSupabase();
+    if (cloudData && cloudData.length > 0) {
+      saveCommitteesList(cloudData);
+      return cloudData;
+    }
+    return getStoredCommittees();
+  } catch (err) {
+    console.warn('Gagal sync committees dari cloud:', err);
+    return getStoredCommittees();
+  }
+}
+
+/**
+ * ==========================================================
+ * MASTER TPA STORAGE & SYNC
+ * ==========================================================
+ */
+
+/**
+ * Memformat nama TPA secara cerdas:
+ * Jika belum memiliki awalan lembaga (TPA/TKA/TPQ/TQA), otomatis ditambahkan awalan "TPA ".
+ * Jika sudah memiliki awalan, memastikan formatnya rapi tanpa menduplikasi awalan.
+ */
+export function formatTpaName(rawName: string): string {
+  if (!rawName) return '';
+  const trimmed = rawName.trim();
+  if (!trimmed) return '';
+
+  // Cek apakah sudah berawalan TPA, TKA, TPQ, atau TQA
+  const prefixMatch = trimmed.match(/^(tpa|tka|tpq|tqa)\b[\s\-\.]*/i);
+  if (prefixMatch) {
+    const matchedPrefix = prefixMatch[1].toUpperCase();
+    const rest = trimmed.slice(prefixMatch[0].length).trim();
+    return `${matchedPrefix} ${rest}`;
+  }
+
+  // Jika belum memiliki awalan, tambahkan "TPA "
+  return `TPA ${trimmed}`;
+}
+
+export function getStoredMasterTpa(): MasterTpa[] {
+  try {
+    const raw = localStorage.getItem(MASTER_TPA_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      // Bersihkan data dummy awal bawaan jika masih tersimpan di cache
+      const cleaned = parsed.filter(
+        (t: any) => !String(t.id || '').match(/^tpa-(dn|gt|gk|gm|jt|kg|kr|mj|mg|ng|pa|tr|uh|wb)-\d+$/)
+      );
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(MASTER_TPA_KEY, JSON.stringify(cleaned));
+      }
+      return cleaned;
+    }
+    return [];
+  } catch (err) {
+    console.error('Gagal membaca data master TPA:', err);
+    return [];
+  }
+}
+
+export function saveMasterTpaList(list: MasterTpa[]): void {
+  try {
+    localStorage.setItem(MASTER_TPA_KEY, JSON.stringify(list));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_master_tpa_updated', { detail: list }));
+    }
+  } catch (err) {
+    console.error('Gagal menyimpan data master TPA:', err);
+  }
+}
+
+export async function persistMasterTpa(tpa: MasterTpa): Promise<void> {
+  // Pastikan kemantren terpetakan meski input uppercase
+  let kId = tpa.kemantrenId;
+  let rName = tpa.rayonName;
+  if (!kId && rName) {
+    const matched = normalizeRayonToKemantren(rName);
+    if (matched) {
+      kId = matched.id;
+      rName = matched.name;
+    }
+  } else if (kId && !rName) {
+    const matched = KEMANTREN_LIST.find((k) => k.id === kId);
+    if (matched) rName = matched.name;
+  }
+
+  const normalizedTpa: MasterTpa = {
+    ...tpa,
+    namaTpa: formatTpaName(tpa.namaTpa),
+    kemantrenId: kId,
+    rayonName: rName,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // 1. Langsung simpan ke server Supabase (Primary Source of Truth)
+  if (isSupabaseConfigured()) {
+    const res = await upsertMasterTpaToSupabase(normalizedTpa);
+    if (!res.success) {
+      throw new Error(res.error || 'Gagal menyimpan data ke server Supabase');
+    }
+  }
+
+  // 2. Perbarui cache lokal untuk performa dan rendering offline
+  const current = getStoredMasterTpa();
+  const existingIdx = current.findIndex((t) => t.id === normalizedTpa.id);
+  let updated: MasterTpa[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = normalizedTpa;
+  } else {
+    updated = [normalizedTpa, ...current];
+  }
+  saveMasterTpaList(updated);
+}
+
+export async function bulkPersistMasterTpa(newList: MasterTpa[]): Promise<{ count: number }> {
+  // Normalisasi data baru
+  const normalizedNewList = newList.map((t) => {
+    let kId = t.kemantrenId;
+    let rName = t.rayonName;
+    if (!kId && rName) {
+      const matched = normalizeRayonToKemantren(rName);
+      if (matched) {
+        kId = matched.id;
+        rName = matched.name;
+      }
+    } else if (kId && !rName) {
+      const matched = KEMANTREN_LIST.find((k) => k.id === kId);
+      if (matched) rName = matched.name;
+    }
+
+    return {
+      ...t,
+      namaTpa: formatTpaName(t.namaTpa),
+      kemantrenId: kId,
+      rayonName: rName,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+
+  // 1. Langsung simpan massal ke server Supabase
+  if (isSupabaseConfigured()) {
+    const res = await bulkSyncMasterTpaToSupabase(normalizedNewList);
+    if (!res.success) {
+      throw new Error(res.error || 'Gagal menyimpan data massal ke server Supabase');
+    }
+  }
+
+  // 2. Perbarui cache lokal
+  const current = getStoredMasterTpa();
+  const map = new Map<string, MasterTpa>();
+  current.forEach((t) => map.set(t.id, t));
+  normalizedNewList.forEach((t) => map.set(t.id, t));
+  const merged = Array.from(map.values()).sort((a, b) => a.namaTpa.localeCompare(b.namaTpa));
+
+  saveMasterTpaList(merged);
+
+  return { count: normalizedNewList.length };
+}
+
+export async function removeMasterTpa(id: string): Promise<void> {
+  // 1. Hapus langsung di server Supabase
+  if (isSupabaseConfigured()) {
+    const success = await deleteMasterTpaFromSupabase(id);
+    if (!success) {
+      throw new Error('Gagal menghapus data dari server Supabase');
+    }
+  }
+
+  // 2. Perbarui cache lokal
+  const current = getStoredMasterTpa();
+  const updated = current.filter((t) => t.id !== id);
+  saveMasterTpaList(updated);
+}
+
+export async function syncMasterTpaFromCloud(): Promise<MasterTpa[]> {
+  if (!isSupabaseConfigured()) return getStoredMasterTpa();
+  try {
+    const cloudData = await fetchMasterTpaFromSupabase();
+    // Sinkronisasi data murni dari Supabase ke cache lokal
+    saveMasterTpaList(cloudData);
+    return cloudData;
+  } catch (err) {
+    console.warn('Gagal sync master_tpa dari cloud:', err);
+    return getStoredMasterTpa();
+  }
+}
+
