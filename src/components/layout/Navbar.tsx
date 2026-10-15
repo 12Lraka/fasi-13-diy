@@ -54,18 +54,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-            <span className="font-semibold tracking-wide uppercase">{settings?.eventOrganizer || 'BADKO TKA-TPA Kota Yogyakarta'}</span>
+            <span className="font-semibold tracking-wide uppercase">{settings?.eventOrganizer || 'BADKO TKA-TPA D.I. Yogyakarta'}</span>
             <span className="hidden sm:inline text-amber-400">•</span>
-            <span className="hidden sm:inline">{settings?.eventTitle || 'FASI XIII Kota Yogyakarta'} {settings?.eventYear || '2026'}</span>
+            <span className="hidden sm:inline">{settings?.eventTitle || 'FASI XIII D.I. Yogyakarta'} {settings?.eventYear || '2026'}</span>
           </div>
           <div className="flex items-center gap-4 text-slate-200">
             <span className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-amber-400" />
-              <span>{settings?.eventDate || 'Ahad, 11 Oktober 2026'}</span>
+              <span>{settings?.eventDate || 'Ahad, 2026'}</span>
             </span>
             <span className="hidden md:flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
-              <span>{settings?.eventVenue || 'SMP Negeri 1 Yogyakarta'}</span>
+              <span>{settings?.eventVenue || 'D.I. Yogyakarta'}</span>
             </span>
           </div>
         </div>
@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-base sm:text-lg tracking-tight leading-tight text-white group-hover:text-amber-300 transition-colors">
-                  {settings?.eventTitle || 'FASI XIII KOTA YOGYAKARTA'}
+                  {settings?.eventTitle || 'FASI XIII D.I. YOGYAKARTA'}
                 </h1>
               </div>
               <p className={`text-xs ${theme.headerSubtext} font-normal`}>

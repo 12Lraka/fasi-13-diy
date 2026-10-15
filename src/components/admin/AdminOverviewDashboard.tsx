@@ -367,7 +367,7 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
                 <div>
                   <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-emerald-700" />
-                    Progres Pendaftaran 14 Rayon se-Kota
+                    Progres Pendaftaran 5 Kabupaten / Kota se-DIY
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Evaluasi keterisian cabang dan total pendaftar di setiap kontingen
@@ -382,10 +382,10 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200/80">
-                      <th className="py-2.5 px-3">Rayon</th>
+                      <th className="py-2.5 px-3">Kabupaten / Kota</th>
                       <th className="py-2.5 px-3 text-center">Jml Santri</th>
                       <th className="py-2.5 px-3">Keterisian Cabang</th>
-                      <th className="py-2.5 px-3 text-right">Berkas Drive</th>
+                      <th className="py-2.5 px-3 text-right">Official Kontingen</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -419,16 +419,9 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
                             </span>
                           </div>
                         </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <a
-                            href={kem.driveFolderUrl || 'https://drive.google.com'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-900 font-bold hover:underline"
-                          >
-                            <FolderSync className="w-3 h-3" />
-                            <span>Buka Folder</span>
-                          </a>
+                        <td className="py-2.5 px-3 text-right text-[11px] text-slate-600 font-medium">
+                          <span className="font-bold text-slate-800 block">{kem.adminName}</span>
+                          <span className="text-[10px] text-slate-400">{kem.contactPerson || '-'}</span>
                         </td>
                       </tr>
                     ))}
@@ -559,45 +552,7 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
             </div>
           </div>
 
-          {/* CEK BERKAS GOOGLE DRIVE KHUSUS */}
-          <div className="bg-gradient-to-br from-slate-900 to-emerald-950 rounded-2xl p-5 text-white shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-              <FolderSync className="w-4 h-4" />
-              <span>Verifikasi Berkas Google Drive</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {isSuperAdmin
-                ? 'Pilih kemantren untuk meninjau dokumen scan berkas (Akta) di Google Drive resmi.'
-                : `Akses folder Google Drive khusus Rayon ${currentKemantren?.name} untuk mengunggah dan memverifikasi berkas santri.`}
-            </p>
 
-            {isSuperAdmin && (
-              <div className="space-y-1">
-                <label className="text-[11px] text-slate-400 font-semibold">Pilih Wilayah Rayon:</label>
-                <select
-                  value={selectedDriveKemantrenId}
-                  onChange={(e) => setSelectedDriveKemantrenId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                >
-                  {kemantrenList.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {k.code} - Rayon {k.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <a
-              href={activeDriveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
-            >
-              <span>Buka Folder Google Drive</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
 
           {/* TIMELINE & PENGUMUMAN PANITIA */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-3.5">
@@ -645,9 +600,9 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
                   <span className="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-800">Pelaksanaan FASI XIII Kota Yogyakarta</div>
-                  <div className="text-[11px] text-slate-600 font-semibold">11 Oktober 2026</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Perlombaan di SMPN 1 Yogyakarta.</div>
+                  <div className="text-xs font-bold text-slate-800">Pelaksanaan FASI XIII D.I. Yogyakarta</div>
+                  <div className="text-[11px] text-slate-600 font-semibold">Tahun 2026</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Perlombaan di D.I. Yogyakarta.</div>
                 </div>
               </div>
             </div>

@@ -735,18 +735,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           )}
 
-          {currentKemantren?.driveFolderUrl && (
-            <a
-              href={currentKemantren.driveFolderUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full px-3 py-2 text-slate-700 hover:text-emerald-900 hover:bg-slate-100 font-semibold rounded-xl flex items-center gap-2 transition-colors text-left"
-            >
-              <FolderOpen className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="truncate">Google Drive Berkas</span>
-            </a>
-          )}
-
           {session.role === 'super_admin' && (
             <>
               <div className="pt-2 px-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -890,7 +878,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-emerald-950 uppercase tracking-wider">
-                    {session.role === 'super_admin' ? 'Pusat FASI XIII Kota' : `Wilayah Rayon ${currentKemantren?.name || ''}`}
+                    {session.role === 'super_admin' ? 'Pusat FASI XIII DIY' : `Kontingen ${currentKemantren?.name || ''}`}
                   </span>
                   <span className="text-xs text-emerald-300">
                     {appSettings.eventDate}
@@ -1028,7 +1016,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       onChange={(e) => setSelectedKemantrenFilter(e.target.value)}
                       className="w-full py-2 px-3 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none cursor-pointer"
                     >
-                      <option value="ALL">Semua Rayon (14)</option>
+                      <option value="ALL">Semua Kabupaten / Kota (5)</option>
                       {kemantrenList.map((k) => (
                         <option key={k.id} value={k.id}>
                           {k.name} ({k.code})
@@ -1039,7 +1027,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ) : (
                   <div className="sm:col-span-3">
                     <div className="w-full py-2 px-3 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium truncate">
-                      Wilayah: Rayon {currentKemantren?.name}
+                      Kontingen: {currentKemantren?.name}
                     </div>
                   </div>
                 )}
@@ -1241,7 +1229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
                                   <Building2 className="w-4 h-4 text-emerald-700" />
                                   <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                                    Rayon {kemGroup.kemantrenName}
+                                    Kontingen {kemGroup.kemantrenName}
                                   </h4>
                                 </div>
                               )}
@@ -1420,7 +1408,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <th className="py-3 px-3 text-center w-12">No</th>
                         <th className="py-3 px-3">No. Registrasi</th>
                         <th className="py-3 px-3">Nama Santri</th>
-                        <th className="py-3 px-3">Rayon / Unit TPA</th>
+                        <th className="py-3 px-3">Kontingen Kab / Kota</th>
                         <th className="py-3 px-3">Cabang Lomba</th>
                         <th className="py-3 px-3 text-center">No. Undian</th>
                         <th className="py-3 px-3 text-center">Kehadiran</th>
@@ -1477,13 +1465,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </div>
                               </td>
 
-                              {/* Kemantren & TPA */}
+                              {/* Kontingen Kab / Kota */}
                               <td className="py-3 px-3">
                                 <div className="font-semibold text-slate-800">
-                                  Rayon {kem?.name || participant.kemantrenId}
+                                  {kem?.name || participant.kemantrenId}
                                 </div>
-                                <div className="text-[11px] text-slate-500 truncate max-w-[150px]">
-                                  {participant.tpaUnitName}
+                                <div className="text-[10px] text-emerald-700 font-bold">
+                                  D.I. Yogyakarta
                                 </div>
                               </td>
 

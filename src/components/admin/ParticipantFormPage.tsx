@@ -109,7 +109,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
     if (session?.role === 'kemantren_admin' && session?.kemantrenId) {
       return session.kemantrenId;
     }
-    return KEMANTREN_LIST[0]?.id || 'kem-1';
+    return KEMANTREN_LIST[0]?.id || 'kab-yk';
   });
   const [tpaUnitName, setTpaUnitName] = useState<string>('');
   const [selectedTpaId, setSelectedTpaId] = useState<string>('');
@@ -173,7 +173,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
       setFullName(editingParticipant.fullName || '');
       setGender(editingParticipant.gender || 'L');
       setBirthDate(editingParticipant.birthDate || '');
-      setKemantrenId(editingParticipant.kemantrenId || KEMANTREN_LIST[0]?.id || 'kem-1');
+      setKemantrenId(editingParticipant.kemantrenId || KEMANTREN_LIST[0]?.id || 'kab-yk');
       setTpaUnitName(editingParticipant.tpaUnitName || '');
       setCategoryId(editingParticipant.categoryId || '');
       setPjName(editingParticipant.pjName || '');
@@ -189,17 +189,18 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
       const defaultKemantrenId =
         session?.role === 'kemantren_admin' && session?.kemantrenId
           ? session.kemantrenId
-          : KEMANTREN_LIST[0]?.id || 'kem-1';
+          : KEMANTREN_LIST[0]?.id || 'kab-yk';
 
       setFullName('');
       setGender('L');
       setBirthDate('');
       setKemantrenId(defaultKemantrenId);
-      setTpaUnitName('');
+      const targetKem = KEMANTREN_LIST.find((k) => k.id === defaultKemantrenId);
+      setTpaUnitName(`Kontingen ${targetKem?.name || 'Daerah'}`);
       setSelectedTpaId('');
       setCategoryId('');
 
-      // Ambil PJ default dari data Rayon (Kemantren)
+      // Ambil PJ default dari data Kontingen Kabupaten/Kota
       const kemantrenList = getStoredKemantren();
       const currentKem = kemantrenList.find((k) => k.id === defaultKemantrenId) ||
         KEMANTREN_LIST.find((k) => k.id === defaultKemantrenId);
@@ -236,18 +237,18 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
     return masterTpaList.filter((t) => t.kemantrenId === kemantrenId);
   }, [masterTpaList, kemantrenId]);
 
-  // Helper ganti Rayon: otomatis tawarkan/isi PJ & Kontak resmi dari Rayon yang dipilih
+  // Helper ganti Kontingen: otomatis isi PJ & Kontak resmi dari Kabupaten/Kota yang dipilih
   const handleKemantrenChange = (newKid: string) => {
     setKemantrenId(newKid);
     setSelectedTpaId('');
-    setTpaUnitName('');
 
-    // Dapatkan data official PJ Rayon terpilih
+    // Dapatkan data official PJ Kontingen terpilih
     const kemantrenList = getStoredKemantren();
     const targetKem = kemantrenList.find((k) => k.id === newKid) ||
       KEMANTREN_LIST.find((k) => k.id === newKid);
 
     if (targetKem) {
+      setTpaUnitName(`Kontingen ${targetKem.name}`);
       setPjName(targetKem.adminName || '');
       setWhatsappNumber(targetKem.contactPerson || '');
     }
@@ -430,14 +431,14 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
     if (!ageEvaluation.isEligible) {
       return ageEvaluation.statusMessage || 'Santri tidak memenuhi kriteria usia FASI XIII per 1 Juli 2027.';
     }
-    if (!tpaUnitName.trim()) {
-      return 'Nama Unit TKA/TPA asal santri wajib diisi.';
+    if (!kemantrenId) {
+      return 'Pilih Kontingen Kabupaten / Kota asal santri.';
     }
     if (!categoryId) {
       return 'Pilih cabang lomba yang akan diikuti santri.';
     }
     if (!pjName.trim()) {
-      return 'Nama Penanggung Jawab (PJ / Ustadz) wajib diisi.';
+      return 'Nama Penanggung Jawab (PJ / Official) wajib diisi.';
     }
     if (!whatsappNumber.trim() || whatsappNumber.length < 9) {
       return 'Nomor WhatsApp Penanggung Jawab wajib diisi dengan benar.';
@@ -507,7 +508,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
         isValid: ageEvaluation.isEligible ?? false,
         levelEligible: ageEvaluation.eligibleLevel ?? null,
       },
-      tpaUnitName: formatTpaName(sanitizeInput(tpaUnitName)),
+      tpaUnitName: (tpaUnitName && tpaUnitName.trim()) ? formatTpaName(sanitizeInput(tpaUnitName)) : `Kontingen ${getKemantrenName(kemantrenId)}`,
       kemantrenId,
       categoryId,
       documentUrl: editingParticipant?.documentUrl || undefined,
@@ -590,7 +591,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
         isValid: ageEvaluation.isEligible ?? false,
         levelEligible: ageEvaluation.eligibleLevel ?? null,
       },
-      tpaUnitName: formatTpaName(sanitizeInput(tpaUnitName)),
+      tpaUnitName: (tpaUnitName && tpaUnitName.trim()) ? formatTpaName(sanitizeInput(tpaUnitName)) : `Kontingen ${getKemantrenName(kemantrenId)}`,
       kemantrenId,
       categoryId,
       pjName: sanitizeInput(pjName),
@@ -829,8 +830,8 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
               </span>
               <span className="text-xs text-emerald-300">
                 {session?.role === 'kemantren_admin'
-                  ? `Kontingen Rayon ${getKemantrenName(session?.kemantrenId || '')}`
-                  : 'Super Admin BADKO Kota'}
+                  ? `Kontingen ${getKemantrenName(session?.kemantrenId || '')}`
+                  : 'Super Admin BADKO DIY'}
               </span>
               {isSupabaseConfigured() ? (
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-700/80 text-emerald-100 border border-emerald-500/50 flex items-center gap-1.5 shadow-2xs">
@@ -939,14 +940,14 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] font-black uppercase tracking-wider">
-                      Petunjuk Operator Rayon
+                      Petunjuk Operator Kabupaten / Kota
                     </span>
                     <span className="text-[11px] text-emerald-200 font-medium hidden sm:inline">
                       Simak 4 aturan utama agar input data lancar & tanpa kendala
                     </span>
                   </div>
                   <h2 className="text-base sm:text-lg font-bold text-white mt-1">
-                    Panduan Tata Cara Input Peserta & Cabang Lomba FASI XIII
+                    Panduan Tata Cara Input Peserta & Cabang Lomba FASI XIII DIY
                   </h2>
                 </div>
 
@@ -968,7 +969,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                       <span>2. Peserta Beregu</span>
                     </div>
                     <p className="text-[11px] text-emerald-100/90 leading-relaxed">
-                      Setiap anggota regu diinput satu per satu. Pastikan <strong>Nama Unit TPA</strong> ditulis sama persis agar sistem menyatukan seluruh anggota ke dalam satu tim regu yang sama.
+                      Setiap anggota regu diinput satu per satu. Seluruh anggota regu otomatis terhubung dalam satu tim berdasarkan kontingen Kabupaten/Kota yang sama.
                     </p>
                   </div>
 
@@ -1048,10 +1049,10 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                   </span>
                 </div>
                 <p className="text-xs font-bold text-amber-900 leading-relaxed pt-0.5">
-                  &ldquo;Jangan menginput cabang lomba beregu sebelum data seluruh anggota regu tersebut sudah lengkap terkumpul di tangan operator rayon.&rdquo;
+                  &ldquo;Pastikan data seluruh anggota regu telah lengkap terkumpul sebelum mendaftarkan cabang beregu.&rdquo;
                 </p>
                 <p className="text-[11px] text-amber-800/80">
-                  Pastikan Nama Unit TPA sama persis untuk seluruh anggota regu agar sistem otomatis menyatukan tim regu.
+                  Seluruh anggota regu otomatis terhubung dalam satu tim berdasarkan kontingen Kabupaten / Kota yang sama.
                 </p>
               </div>
             </div>
@@ -1299,115 +1300,47 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                   )}
                 </div>
 
-                {/* Kontingen Rayon */}
+                {/* Kontingen Kabupaten / Kota */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Kontingen Rayon (Kemantren) <span className="text-rose-600">*</span>
+                      Kontingen Kabupaten / Kota <span className="text-rose-600">*</span>
                     </label>
-                    <span className="text-[10px] text-slate-400">Rayon Wilayah</span>
+                    <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      D.I. Yogyakarta
+                    </span>
                   </div>
                   <select
                     disabled={session?.role === 'kemantren_admin'}
                     value={kemantrenId}
                     onChange={(e) => handleKemantrenChange(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none font-semibold text-slate-900 disabled:opacity-80"
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none font-semibold text-slate-900 disabled:opacity-80 cursor-pointer"
                   >
                     {KEMANTREN_LIST.map((k) => (
                       <option key={k.id} value={k.id}>
-                        Rayon {k.name} ({k.code})
+                        {k.name} ({k.code})
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Nama Unit TKA/TPA (Terintegrasi Master Data TPA) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Nama Unit TKA / TPA <span className="text-rose-600">*</span>
-                    </label>
-                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      {availableTpasInRayon.length} Unit di Rayon ini
+                {/* Info Kontingen Asal */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Kafilah Utusan:
+                    </span>
+                    <span className="text-xs font-extrabold text-slate-900">
+                      Kontingen {getKemantrenName(kemantrenId)}
                     </span>
                   </div>
-
-                  {availableTpasInRayon.length > 0 && (
-                    <select
-                      value={selectedTpaId}
-                      onChange={(e) => handleSelectMasterTpa(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-emerald-50/70 border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none font-semibold text-emerald-950 cursor-pointer"
-                    >
-                      <option value="">-- Pilih dari Master Data TPA Resmi --</option>
-                      {availableTpasInRayon.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.namaTpa} {t.namaDirektur ? `(Kepala: ${t.namaDirektur})` : ''}
-                        </option>
-                      ))}
-                      <option value="CUSTOM">+ Tulis Manual / TPA Belum Ada di Daftar</option>
-                    </select>
-                  )}
-
-                  <input
-                    type="text"
-                    required
-                    value={tpaUnitName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setTpaUnitName(val);
-                      const match = availableTpasInRayon.find(
-                        (t) => t.namaTpa.toLowerCase() === val.trim().toLowerCase()
-                      );
-                      setSelectedTpaId(match ? match.id : 'CUSTOM');
-                    }}
-                    onBlur={() => {
-                      if (tpaUnitName.trim()) {
-                        setTpaUnitName(formatTpaName(tpaUnitName));
-                      }
-                    }}
-                    placeholder="Contoh: Baitul Makmur atau TPA Baitul Makmur"
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none text-slate-900"
-                  />
-
-                  <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-400 mt-1">
-                    <span>
-                      {selectedTpaId && selectedTpaId !== 'CUSTOM' ? (
-                        <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>Terhubung Master Data TPA Kota</span>
-                        </span>
-                      ) : (
-                        'Auto-format aktif: Nama otomatis dilengkapi awalan "TPA " jika belum ada.'
-                      )}
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                      Tingkat:
                     </span>
-                    {tpaUnitName.trim() && selectedTpaId === 'CUSTOM' && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const newId = `tpa-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-                            const matchedK = KEMANTREN_LIST.find((k) => k.id === kemantrenId);
-                            const formattedName = formatTpaName(tpaUnitName);
-                            await persistMasterTpa({
-                              id: newId,
-                              namaTpa: formattedName,
-                              namaDirektur: '',
-                              kemantrenId: kemantrenId,
-                              rayonName: matchedK?.name || 'Yogyakarta',
-                              kontakDirektur: undefined,
-                            });
-                            setTpaUnitName(formattedName);
-                            setSelectedTpaId(newId);
-                            showToast('success', `"${formattedName}" berhasil disimpan ke database server Supabase!`);
-                          } catch (err: any) {
-                            showToast('error', err?.message || 'Gagal menyimpan ke Supabase');
-                          }
-                        }}
-                        className="text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
-                      >
-                        + Simpan ke Master Data TPA
-                      </button>
-                    )}
+                    <span className="text-xs font-bold text-emerald-800">
+                      FASI XIII DIY
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1632,10 +1565,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                           <strong>Cabang:</strong> {getCategoryName(d.categoryId)}
                         </span>
                         <span>
-                          <strong>Unit TPA:</strong> {d.tpaUnitName}
-                        </span>
-                        <span>
-                          <strong>Rayon:</strong> {getKemantrenName(d.kemantrenId)}
+                          <strong>Kab/Kota:</strong> {getKemantrenName(d.kemantrenId)}
                         </span>
                         <span>
                           <strong>PJ:</strong> {d.pjName || '-'} {d.whatsappNumber ? `(${d.whatsappNumber})` : ''}
@@ -1809,7 +1739,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                                 key={p.id}
                                 className="px-2 py-0.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-[10px] font-medium"
                               >
-                                #{idx + 1} {p.fullName} ({p.tpaUnitName})
+                                #{idx + 1} {p.fullName} ({getKemantrenName(p.kemantrenId)})
                               </span>
                             ))}
                           </div>

@@ -32,7 +32,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   const appSettings = getStoredSettings();
 
   const [role, setRole] = useState<'super_admin' | 'kemantren_admin'>('super_admin');
-  const [kemantrenId, setKemantrenId] = useState<string>(kemantrenList[0]?.id || 'kem-1');
+  const [kemantrenId, setKemantrenId] = useState<string>(kemantrenList[0]?.id || 'kab-yk');
   const [password, setPassword] = useState<string>('');
   const [honeypot, setHoneypot] = useState<string>(''); // Hidden field for bot detection
 
@@ -81,44 +81,43 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
       const session: UserSession = {
         role: 'super_admin',
-        name: 'Super Admin BADKO Kota',
+        name: 'Super Admin BADKO DIY',
         token: `token-${Date.now()}-${Math.random().toString(36).substring(2)}`,
         loginTime: new Date().toISOString(),
         expiresAt: Date.now() + 8 * 60 * 60 * 1000, // 8 jam
       };
 
-      logAuditEvent('Super Admin', 'LOGIN', 'Super Administrator berhasil login.');
+      logAuditEvent('Super Admin', 'LOGIN', 'Super Administrator BADKO DIY berhasil login.');
       onLoginSuccess(session);
       onClose();
     } else {
       const kem = kemantrenList.find((k) => k.id === kemantrenId);
-      const defaultKemPass = kem ? `${kem.name.toLowerCase().replace(/\s+/g, '')}123` : 'kemantren123';
+      const defaultKemPass = kem ? `${kem.name.toLowerCase().replace(/\s+/g, '')}123` : 'diy123';
       const expectedPass = kem?.password || defaultKemPass;
 
       const isKemPassValid =
         password === expectedPass ||
         password === defaultKemPass ||
-        password === 'kemantren123' ||
+        password === 'badkodiy2026' ||
         password === kem?.code.toLowerCase() ||
         password === secondarySuperAdminPass ||
-        password === 'BadkoJogja2026!' ||
-        password === 'badko2026';
+        password === 'BadkoDIY2026!';
 
       if (!isKemPassValid) {
-        setErrorMessage('Kata sandi Admin Kemantren/Rayon salah.');
+        setErrorMessage('Kata sandi Admin Kabupaten / Kota salah.');
         return;
       }
 
       const session: UserSession = {
         role: 'kemantren_admin',
         kemantrenId: kemantrenId,
-        name: kem ? `Admin Kemantren ${kem.name}` : 'Admin Kemantren',
+        name: kem ? `Admin ${kem.name}` : 'Admin Kabupaten/Kota',
         token: `token-${Date.now()}-${Math.random().toString(36).substring(2)}`,
         loginTime: new Date().toISOString(),
         expiresAt: Date.now() + 8 * 60 * 60 * 1000,
       };
 
-      logAuditEvent(session.name, 'LOGIN', `Admin Kemantren ${kem?.name} berhasil login.`);
+      logAuditEvent(session.name, 'LOGIN', `Admin ${kem?.name} berhasil login.`);
       onLoginSuccess(session);
       onClose();
     }
@@ -135,7 +134,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base">LOGIN</h3>
-              <p className="text-xs text-emerald-300">Sistem Informasi FASI XIII Kota Yogyakarta</p>
+              <p className="text-xs text-emerald-300">Sistem Informasi FASI XIII D.I. Yogyakarta</p>
             </div>
           </div>
           <button
@@ -184,7 +183,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                Super Admin (BADKO)
+                Super Admin (BADKO DIY)
               </button>
               <button
                 type="button"
@@ -195,16 +194,16 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                Admin 14 Rayon
+                Admin Kab / Kota (5)
               </button>
             </div>
           </div>
 
-          {/* Select Rayon (if kemantren_admin) */}
+          {/* Select Kontingen (if kemantren_admin) */}
           {role === 'kemantren_admin' && (
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Pilih Rayon
+                Pilih Kabupaten / Kota
               </label>
               <select
                 value={kemantrenId}
@@ -213,7 +212,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               >
                 {kemantrenList.map((k) => (
                   <option key={k.id} value={k.id}>
-                    Rayon {k.name} ({k.code})
+                    {k.name} ({k.code})
                   </option>
                 ))}
               </select>

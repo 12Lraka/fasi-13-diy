@@ -9,20 +9,11 @@
 import { Kemantren, CompetitionCategory, Participant, MasterTpa } from '../types/fasi';
 
 export const KEMANTREN_LIST: Kemantren[] = [
-  { id: 'kem-1', code: 'DN', name: 'Danurejan', adminName: 'Ust. Ahmad Danu', contactPerson: '08122334401', password: 'danurejan123', driveFolderUrl: 'https://drive.google.com/drive/folders/1HO9KHF4pQjqoe03-2ahxAyvc-hE0g05G' },
-  { id: 'kem-2', code: 'GT', name: 'Gedongtengen', adminName: 'Ustz. Siti Aminah', contactPerson: '08122334402', password: 'gedongtengen123', driveFolderUrl: 'https://drive.google.com/drive/folders/1b_nPXP8S0ADH0n-9Rf333YN2S1btZrTs' },
-  { id: 'kem-3', code: 'GK', name: 'Gondokusuman', adminName: 'Ust. Muhammad Rizqi', contactPerson: '08122334403', password: 'gondokusuman123', driveFolderUrl: 'https://drive.google.com/drive/folders/1f1na0IhF6O6eF17jAghcM8Rbo6WNREoM' },
-  { id: 'kem-4', code: 'GM', name: 'Gondomanan', adminName: 'Ust. Fajar Shodiq', contactPerson: '08122334404', password: 'gondomanan123', driveFolderUrl: 'https://drive.google.com/drive/folders/1IMZKxCyJIzLsEPBugk4ARREMgYMfBYRY' },
-  { id: 'kem-5', code: 'JT', name: 'Jetis', adminName: 'Ustz. Nur Hidayati', contactPerson: '08122334405', password: 'jetis123', driveFolderUrl: 'https://drive.google.com/drive/folders/1WIm0312ZyXouHWf0UKHQLQlAfRS0nhBc' },
-  { id: 'kem-6', code: 'KG', name: 'Kotagede', adminName: 'Ust. Hasan Basri', contactPerson: '08122334406', password: 'kotagede123', driveFolderUrl: 'https://drive.google.com/drive/folders/1jrAa5nwZYNynAEMQh_fc4onSBiLe3YIs' },
-  { id: 'kem-7', code: 'KR', name: 'Kraton', adminName: 'Ustz. Fatimah Azzahra', contactPerson: '08122334407', password: 'kraton123', driveFolderUrl: 'https://drive.google.com/drive/folders/1jHsda5prXfQI-udObjs34RdsCWxl0dzR' },
-  { id: 'kem-8', code: 'MJ', name: 'Mantrijeron', adminName: 'Ust. Burhanuddin', contactPerson: '08122334408', password: 'mantrijeron123', driveFolderUrl: 'https://drive.google.com/drive/folders/1Pk1zIZ1vfG2B127OqQc-IRyawt9VCzf8' },
-  { id: 'kem-9', code: 'MG', name: 'Mergangsan', adminName: 'Ustz. Tri Wahyuni', contactPerson: '08122334409', password: 'mergangsan123', driveFolderUrl: 'https://drive.google.com/drive/folders/1VUGO8JBACOUNreHnEpwK2T73bMbhe_hu' },
-  { id: 'kem-10', code: 'NG', name: 'Ngampilan', adminName: 'Ust. Abdul Somad', contactPerson: '08122334410', password: 'ngampilan123', driveFolderUrl: 'https://drive.google.com/drive/folders/1cNSbzYZ69NvlbNfNUkM0le8-8c9aDU9-' },
-  { id: 'kem-11', code: 'PA', name: 'Pakualaman', adminName: 'Ustz. Dewi Sartika', contactPerson: '08122334411', password: 'pakualaman123', driveFolderUrl: 'https://drive.google.com/drive/folders/1993QvNjj_kzxwXokT26djcOaTMLs80YX' },
-  { id: 'kem-12', code: 'TR', name: 'Tegalrejo', adminName: 'Ust. Hendra Wijaya', contactPerson: '08122334412', password: 'tegalrejo123', driveFolderUrl: 'https://drive.google.com/drive/folders/1GeQvB82DoxpYeeFmqjtmSSXx7Iq5aHVX' },
-  { id: 'kem-13', code: 'UH', name: 'Umbulharjo', adminName: 'Ust. Lukman Hakim', contactPerson: '08122334413', password: 'umbulharjo123', driveFolderUrl: 'https://drive.google.com/drive/folders/1uBQYxr25XeZWGHOLGeAwuJHxMqHPnOny' },
-  { id: 'kem-14', code: 'WB', name: 'Wirobrajan', adminName: 'Ustz. Anisa Rahma', contactPerson: '08122334414', password: 'wirobrajan123', driveFolderUrl: 'https://drive.google.com/drive/folders/1v4l7sw1BwJWO8aJpKleb69Bn5D8MCf7H' },
+  { id: 'kab-yk', code: 'YK', name: 'Kota Yogyakarta', adminName: 'Admin Kota Yogyakarta', contactPerson: '081200000001', password: 'jogja123' },
+  { id: 'kab-slm', code: 'SLM', name: 'Kabupaten Sleman', adminName: 'Admin Kab. Sleman', contactPerson: '081200000002', password: 'sleman123' },
+  { id: 'kab-btl', code: 'BTL', name: 'Kabupaten Bantul', adminName: 'Admin Kab. Bantul', contactPerson: '081200000003', password: 'bantul123' },
+  { id: 'kab-kp', code: 'KP', name: 'Kabupaten Kulon Progo', adminName: 'Admin Kab. Kulon Progo', contactPerson: '081200000004', password: 'kulonprogo123' },
+  { id: 'kab-gk', code: 'GK', name: 'Kabupaten Gunungkidul', adminName: 'Admin Kab. Gunungkidul', contactPerson: '081200000005', password: 'gunungkidul123' },
 ];
 
 export const CATEGORIES_LIST: CompetitionCategory[] = [
@@ -395,6 +386,9 @@ export function normalizeRayonToKemantren(rawInput: string): Kemantren | undefin
   // Bersihkan prefiks umum & ubah ke UPPERCASE
   const cleaned = rawStr
     .toUpperCase()
+    .replace(/^KABUPATEN\s+/i, '')
+    .replace(/^KOTA\s+/i, '')
+    .replace(/^KAB\.\s*/i, '')
     .replace(/^RAYON\s+/i, '')
     .replace(/^KEMANTREN\s+/i, '')
     .replace(/^KECAMATAN\s+/i, '')
