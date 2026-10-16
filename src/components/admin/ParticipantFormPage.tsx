@@ -70,6 +70,9 @@ interface ParticipantFormPageProps {
   onBack: () => void;
 }
 
+const getCategoryName = (id: string) => CATEGORIES_LIST.find((c) => c.id === id)?.name || id;
+const getKemantrenName = (id: string) => KEMANTREN_LIST.find((k) => k.id === id)?.name || id;
+
 export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
   session,
   allParticipants = [],
@@ -824,9 +827,6 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  const getCategoryName = (id: string) => CATEGORIES_LIST.find((c) => c.id === id)?.name || id;
-  const getKemantrenName = (id: string) => KEMANTREN_LIST.find((k) => k.id === id)?.name || id;
 
   if (isFormBlocked) {
     return (
