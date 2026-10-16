@@ -523,7 +523,7 @@ export const MasterTpaAdmin: React.FC<MasterTpaAdminProps> = ({ session }) => {
                 <th className="py-3 px-3.5 text-center w-12">No</th>
                 <th className="py-3 px-3.5">Nama Unit TKA / TPA</th>
                 <th className="py-3 px-3.5">Nama Direktur / Kepala TPA</th>
-                <th className="py-3 px-3.5">Rayon / Kemantren</th>
+                <th className="py-3 px-3.5">Kabupaten / Kota</th>
                 <th className="py-3 px-3.5">No. Kontak / WA</th>
                 <th className="py-3 px-3.5 text-center w-28">Aksi</th>
               </tr>
@@ -774,7 +774,7 @@ export const MasterTpaAdmin: React.FC<MasterTpaAdminProps> = ({ session }) => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  Wilayah Rayon / Kemantren <span className="text-rose-500">*</span>
+                  Wilayah Kabupaten / Kota <span className="text-rose-500">*</span>
                 </label>
                 {isSuperAdmin ? (
                   <select
@@ -784,7 +784,7 @@ export const MasterTpaAdmin: React.FC<MasterTpaAdminProps> = ({ session }) => {
                   >
                     {KEMANTREN_LIST.map((k) => (
                       <option key={k.id} value={k.id}>
-                        Rayon {k.name} ({k.code})
+                        {k.name} ({k.code})
                       </option>
                     ))}
                   </select>
@@ -942,7 +942,7 @@ export const MasterTpaAdmin: React.FC<MasterTpaAdminProps> = ({ session }) => {
                             <td className="py-1.5 px-2.5">
                               {item.matchedKemantren ? (
                                 <span className="text-emerald-700 font-bold">
-                                  Rayon {item.matchedKemantren.name}
+                                  {item.matchedKemantren.name}
                                 </span>
                               ) : (
                                 <span className="text-rose-600 font-semibold">

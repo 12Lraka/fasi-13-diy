@@ -121,9 +121,9 @@ export function exportPemenangToExcel(
   const winnerRows = extractWinnerRows(categories, beritaAcaraMap, false);
 
   const titleRows = [
-    ['FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII KOTA YOGYAKARTA'],
-    ['BADKO TKA-TPA KOTA YOGYAKARTA'],
-    ['Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551'],
+    ['FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII D.I. YOGYAKARTA'],
+    ['BADKO TKA-TPA D.I. YOGYAKARTA'],
+    ['Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194'],
     [],
     ['DAFTAR RESMI PEMENANG KEJUARAAN PER CABANG LOMBA'],
     [
@@ -249,13 +249,13 @@ export async function exportPemenangToPdf(
 
   doc.setFontSize(13);
   doc.setTextColor(6, 78, 59); // emerald-900
-  doc.text('BADKO TKA-TPA KOTA YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  doc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
   doc.text(
-    'Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525',
+    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
     pageWidth / 2,
     topY + 14,
     { align: 'center' }
@@ -412,13 +412,13 @@ export async function exportSingleCabangPdf(
 
   doc.setFontSize(12);
   doc.setTextColor(6, 78, 59);
-  doc.text('BADKO TKA-TPA KOTA YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  doc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(71, 85, 105);
   doc.text(
-    'Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551',
+    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
     pageWidth / 2,
     topY + 14,
     { align: 'center' }

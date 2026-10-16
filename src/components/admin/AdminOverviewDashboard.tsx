@@ -11,10 +11,8 @@ import {
   Users,
   Award,
   ShieldCheck,
-  FolderSync,
   UserPlus,
   FileSpreadsheet,
-  ExternalLink,
   ChevronRight,
   Sparkles,
   Dices,
@@ -92,17 +90,7 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
   // Status Verifikasi: Sesuai instruksi, status dibuat terverifikasi semua (100% siap tanding)
   const verifiedPercentage = totalCount > 0 ? 100 : 100;
 
-  // Google Drive Modal / Selector untuk Superadmin
-  const [selectedDriveKemantrenId, setSelectedDriveKemantrenId] = useState<string>(
-    session.kemantrenId || kemantrenList[0]?.id || ''
-  );
-
-  const activeDriveUrl = isSuperAdmin
-    ? kemantrenList.find((k) => k.id === selectedDriveKemantrenId)?.driveFolderUrl ||
-      'https://drive.google.com'
-    : currentKemantren?.driveFolderUrl || 'https://drive.google.com';
-
-  // Perhitungan Data 14 Kemantren untuk Superadmin
+  // Perhitungan Data 5 Kabupaten / Kota untuk Superadmin
   const kemantrenProgress = kemantrenList.map((kem) => {
     const kemParticipants = participants.filter((p) => p.kemantrenId === kem.id);
     const kemFilledCats = new Set(kemParticipants.map((p) => p.categoryId)).size;
@@ -126,7 +114,7 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-emerald-950 uppercase tracking-wider shadow-xs">
-                {isSuperAdmin ? 'Pusat FASI XIII Kota Yogyakarta' : `Rayon ${currentKemantren?.name || ''}`}
+                {isSuperAdmin ? 'Pusat FASI XIII D.I. Yogyakarta' : `Kontingen ${currentKemantren?.name || ''}`}
               </span>
               <span className="flex items-center gap-1 text-xs text-emerald-200 bg-emerald-800/60 px-2.5 py-0.5 rounded-full border border-emerald-600/40">
                 <Calendar className="w-3.5 h-3.5 text-amber-300" />
@@ -139,8 +127,8 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
               {isSuperAdmin
-                ? 'Pantau progres pendaftaran santri 14 Rayon, kesiapan berkas kafilah, dan statistik cabang lomba se-Kota Yogyakarta secara real-time.'
-                : `Panel statistik dan kesiapan kafilah santri Rayon ${currentKemantren?.name}. Pastikan seluruh kuota cabang lomba terisi maksimal.`}
+                ? 'Pantau progres pendaftaran santri 5 Kabupaten / Kota, kesiapan berkas kafilah, dan statistik cabang lomba se-D.I. Yogyakarta secara real-time.'
+                : `Panel statistik dan kesiapan kafilah santri Kontingen ${currentKemantren?.name}. Pastikan seluruh kuota cabang lomba terisi maksimal.`}
             </p>
           </div>
 
@@ -153,18 +141,6 @@ export const AdminOverviewDashboard: React.FC<AdminOverviewDashboardProps> = ({
               <UserPlus className="w-4 h-4" />
               <span>+ Daftarkan Santri</span>
             </button>
-
-            <a
-              href={activeDriveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              id="btn-quick-gdrive"
-              className="px-4 py-2.5 bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl border border-emerald-500/50 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
-            >
-              <FolderSync className="w-4 h-4 text-amber-300" />
-              <span>Folder Berkas Drive</span>
-              <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-            </a>
           </div>
         </div>
       </div>

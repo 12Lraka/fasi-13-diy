@@ -20,20 +20,20 @@ export const Footer: React.FC = () => {
               <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center text-amber-300 font-bold text-xs">
                 F13
               </div>
-              <h3 className="font-bold text-white text-sm">BADKO TKA-TPA KOTA YOGYAKARTA</h3>
+              <h3 className="font-bold text-white text-sm">BADKO TKA-TPA D.I. YOGYAKARTA</h3>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed max-w-lg">
-              Sistem Informasi Manajemen & Pendaftaran Festival Anak Sholeh Indonesia (FASI) XIII Tingkat Kota Yogyakarta Tahun 2026. Mewujudkan generasi Qur’ani yang cerdas, sholeh, mandiri, dan berakhlakul karimah.
+              Sistem Informasi Manajemen & Pendaftaran Festival Anak Sholeh Indonesia (FASI) XIII Tingkat D.I. Yogyakarta Tahun 2026. Mewujudkan generasi Qur’ani yang cerdas, sholeh, mandiri, dan berakhlakul karimah.
             </p>
             <div className="flex items-center gap-3 pt-1 text-slate-300">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                Ahad, 11 Oktober 2026
+                Ahad, 2026
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                SMP Negeri 1 Yogyakarta
+                D.I. Yogyakarta
               </span>
             </div>
           </div>
@@ -69,7 +69,7 @@ export const Footer: React.FC = () => {
 
         {/* Baris Bawah */}
         <div className="pt-4 flex items-center justify-center text-slate-400 text-xs text-center">
-          <p>© 2026 BADKO TKA-TPA Kota Yogyakarta</p>
+          <p>© 2026 BADKO TKA-TPA D.I. Yogyakarta</p>
         </div>
       </div>
     </footer>

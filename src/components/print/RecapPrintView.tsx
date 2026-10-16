@@ -273,7 +273,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
               Laporan Rekapitulasi Berita Acara & Nominasi Tetap
             </h2>
             <p className="text-xs text-slate-500">
-              Dokumen resmi rekapitulasi peserta FASI XIII BADKO TKA-TPA Kota Yogyakarta.
+              Dokumen resmi rekapitulasi peserta FASI XIII BADKO TKA-TPA D.I. YOGYAKARTA.
             </p>
           </div>
 
@@ -301,7 +301,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
               <span>Download PDF (Halaman Ini)</span>
             </button>
 
-            {/* Download Semua PDF (14 Kemantren) */}
+            {/* Download Semua PDF (5 Kabupaten/Kota) */}
             {session.role === 'super_admin' && (
               <button
                 onClick={handleDownloadAllKemantrenPdf}
@@ -318,7 +318,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
                 ) : (
                   <>
                     <Download className="w-4 h-4 text-white" />
-                    <span>Download Semua PDF (14 Kemantren)</span>
+                    <span>Download Semua PDF (5 Kab/Kota)</span>
                   </>
                 )}
               </button>
@@ -341,7 +341,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
           {/* Filter 1: Kemantren */}
           <div>
             <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider text-[10px]">
-              Kontingen Rayon:
+              Kabupaten / Kota:
             </label>
             <select
               value={selectedKemantrenFilter}
@@ -349,10 +349,10 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
               disabled={isKemantrenAdmin}
               className="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white disabled:opacity-60 cursor-pointer"
             >
-              {!isKemantrenAdmin && <option value="ALL">Semua 14 Kemantren (Kota Yogyakarta)</option>}
+              {!isKemantrenAdmin && <option value="ALL">Semua Kabupaten/Kota (D.I. Yogyakarta)</option>}
               {kemantrenList.map((k) => (
                 <option key={k.id} value={k.id}>
-                  Rayon {k.name} ({k.code})
+                  {k.name} ({k.code})
                 </option>
               ))}
             </select>
@@ -457,10 +457,10 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
                 FESTIVAL ANAK SHOLEH INDONESIA XIII
               </h2>
               <h3 className="font-black text-xs sm:text-sm md:text-base text-emerald-950 uppercase tracking-wider leading-tight mt-0.5">
-                BADKO TKA-TPA KOTA YOGYAKARTA
+                BADKO TKA-TPA D.I. YOGYAKARTA
               </h3>
               <p className="text-[8.5px] sm:text-[10px] md:text-[11px] text-slate-700 font-medium leading-tight mt-1">
-                Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525
+                Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
               </p>
             </div>
 
@@ -517,7 +517,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
                 <th className="border border-slate-300 py-2 px-2.5">Nama Lengkap Santri</th>
                 <th className="border border-slate-300 py-2 px-2 text-center w-10">L/P</th>
                 <th className="border border-slate-300 py-2 px-2 text-center">Tgl Lahir / Usia</th>
-                <th className="border border-slate-300 py-2 px-2.5">Rayon & Unit TPA</th>
+                <th className="border border-slate-300 py-2 px-2.5">Kabupaten / Kota</th>
                 <th className="border border-slate-300 py-2 px-2.5">Cabang Lomba</th>
                 <th className="border border-slate-300 py-2 px-2 text-center w-16">No. Undian</th>
               </tr>
@@ -561,10 +561,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
                         </div>
                       </td>
                       <td className="border border-slate-300 py-1.5 px-2.5 text-slate-800">
-                        <div className="font-bold text-slate-900">Rayon. {kem?.name || p.kemantrenId}</div>
-                        {p.tpaUnitName && (
-                          <div className="text-[10px] text-slate-600 font-medium">{p.tpaUnitName}</div>
-                        )}
+                        <div className="font-bold text-slate-900">{kem?.name || p.kemantrenId}</div>
                       </td>
                       <td className="border border-slate-300 py-1.5 px-2.5 font-medium text-slate-900">
                         <span className="font-bold text-emerald-950">[{cat?.level}]</span> {cat?.name} {cat?.isGroup ? '(Grup)' : ''}

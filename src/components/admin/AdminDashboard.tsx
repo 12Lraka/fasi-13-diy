@@ -430,8 +430,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleExportDataPeserta = () => {
     const filename =
       session.role === 'kemantren_admin'
-        ? `Data_Peserta_FASI_Kemantren_${currentKemantren?.name || 'Kecamatan'}`
-        : 'Data_Peserta_FASI_Kota_Yogyakarta';
+        ? `Data_Peserta_FASI_Kontingen_${currentKemantren?.name || 'Daerah'}`
+        : 'Data_Peserta_FASI_DIY';
     exportParticipantsToExcel(visibleParticipants, filename);
   };
 
@@ -446,7 +446,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="p-3.5 bg-gradient-to-br from-emerald-900 to-emerald-950 text-white rounded-xl space-y-2">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-emerald-950 uppercase tracking-wider">
-              {session.role === 'super_admin' ? 'Super Admin' : 'Admin Kemantren'}
+              {session.role === 'super_admin' ? 'Super Admin' : 'Admin Kontingen'}
             </span>
           </div>
           <div>
@@ -455,8 +455,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </h3>
             <p className="text-[11px] text-emerald-300 truncate">
               {session.role === 'super_admin'
-                ? 'BADKO Kota Yogyakarta'
-                : `Kemantren ${currentKemantren?.name || ''}`}
+                ? 'BADKO D.I. Yogyakarta'
+                : (currentKemantren?.name || '')}
             </p>
           </div>
         </div>
@@ -1276,7 +1276,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                           {regu.tpaUnitName}
                                         </h5>
                                         <p className="text-[10px] text-slate-500">
-                                          Rayon {kemGroup.kemantrenName}
+                                          {kemGroup.kemantrenName}
                                         </p>
                                       </div>
 

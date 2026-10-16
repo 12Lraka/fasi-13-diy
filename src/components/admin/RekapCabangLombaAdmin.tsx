@@ -70,7 +70,7 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
         <div>
           <h3 className="text-base font-bold text-slate-800">Akses Terbatas (Khusus Superadmin)</h3>
           <p className="text-xs text-slate-600 mt-1">
-            Rekap Cabang Lomba memuat kerahasiaan rekapitulasi penilaian dewan hakim dan berita acara pengesahan juara. Fitur ini hanya dapat dibuka oleh Superadmin BADKO Kota Yogyakarta.
+            Rekap Cabang Lomba memuat kerahasiaan rekapitulasi penilaian dewan hakim dan berita acara pengesahan juara. Fitur ini hanya dapat dibuka oleh Superadmin BADKO D.I. Yogyakarta.
           </p>
         </div>
       </div>
@@ -248,8 +248,8 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold text-[10px] uppercase tracking-wider rounded-md">
                 {isSuperAdmin
-                  ? 'BADKO TKA-TPA KOTA YOGYAKARTA'
-                  : `Kemantren ${myKemantren?.name || ''}`}
+                  ? 'BADKO TKA-TPA D.I. YOGYAKARTA'
+                  : myKemantren?.name || ''}
               </span>
               <span className="text-xs text-slate-500 font-medium">
                 Rekapitulasi Cabang Lomba & Berita Acara
@@ -487,7 +487,7 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
             <div className="bg-white px-3.5 py-2 rounded-xl border border-emerald-200 text-center">
               <span className="text-[10px] font-bold text-slate-400 uppercase block">Partisipasi</span>
               <span className="text-sm font-black text-emerald-950">
-                {filledCount} / {kemantrenList.length} Kemantren
+                {filledCount} / {kemantrenList.length} Daerah (Kab/Kota)
               </span>
             </div>
             <div className="bg-white px-3.5 py-2 rounded-xl border border-emerald-200 text-center">
@@ -529,10 +529,10 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                 FESTIVAL ANAK SHOLEH INDONESIA XIII
               </h2>
               <h3 className="font-black text-xs sm:text-sm md:text-base text-emerald-950 uppercase tracking-wider leading-tight mt-0.5">
-                BADKO TKA-TPA KOTA YOGYAKARTA
+                BADKO TKA-TPA D.I. YOGYAKARTA
               </h3>
               <p className="text-[8.5px] sm:text-[10px] md:text-[11px] text-slate-700 font-medium leading-tight mt-1">
-                Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525
+                Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
               </p>
             </div>
 
@@ -577,7 +577,7 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                   <th className="py-2.5 px-2 border border-slate-300 text-center w-28">No Registrasi</th>
                   <th className="py-2.5 px-3 border border-slate-300">Nama Lengkap</th>
                   <th className="py-2.5 px-1.5 border border-slate-300 text-center w-10">L/P</th>
-                  <th className="py-2.5 px-3 border border-slate-300">Rayon & Unit TPA</th>
+                  <th className="py-2.5 px-3 border border-slate-300">Kabupaten / Kota</th>
                   <th className="py-2.5 px-2 border border-slate-300 text-center w-14">Juri I</th>
                   <th className="py-2.5 px-2 border border-slate-300 text-center w-14">Juri II</th>
                   <th className="py-2.5 px-2 border border-slate-300 text-center w-16">Total Nilai</th>
@@ -628,11 +628,8 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                             {p.gender}
                           </span>
                         </td>
-                        <td className="py-2 px-3 border border-slate-300 text-slate-800">
-                          <div className="font-bold text-slate-900">Rayon {kem?.name || p.kemantrenId}</div>
-                          {p.tpaUnitName && (
-                            <div className="text-[10px] text-slate-600 font-medium">{p.tpaUnitName}</div>
-                          )}
+                        <td className="py-2 px-3 border border-slate-300 font-bold text-slate-800">
+                          {kem?.name || p.kemantrenId}
                         </td>
                         <td className="py-2 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-700">
                           {p.scoreJury1 != null ? p.scoreJury1 : ''}
@@ -661,7 +658,7 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                   <th className="py-2.5 px-2 border border-slate-300 text-center w-28">No Registrasi</th>
                   <th className="py-2.5 px-3 border border-slate-300">Nama Lengkap</th>
                   <th className="py-2.5 px-1.5 border border-slate-300 text-center w-10">L/P</th>
-                  <th className="py-2.5 px-3 border border-slate-300">Rayon & Unit TPA</th>
+                  <th className="py-2.5 px-3 border border-slate-300">Kabupaten / Kota</th>
                   <th className="py-2.5 px-3 border border-slate-300 text-center w-36">Paraf / TTD Peserta</th>
                 </tr>
               </thead>
@@ -705,11 +702,8 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                             {p.gender}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 border border-slate-300 text-slate-800">
-                          <div className="font-bold text-slate-900">Rayon {kem?.name || p.kemantrenId}</div>
-                          {p.tpaUnitName && (
-                            <div className="text-[10px] text-slate-600 font-medium">{p.tpaUnitName}</div>
-                          )}
+                        <td className="py-2.5 px-3 border border-slate-300 font-bold text-slate-800">
+                          {kem?.name || p.kemantrenId}
                         </td>
                         <td className="py-2.5 px-3 border border-slate-300 font-mono text-[11px] text-slate-700">
                           {/* Pola selang-seling khas Lembar Hadir Resmi agar tanda tangan tidak bertumpuk */}

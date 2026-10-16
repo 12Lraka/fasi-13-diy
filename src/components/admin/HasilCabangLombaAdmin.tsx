@@ -529,7 +529,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                                 {p.juara1.nama || '-'}
                               </div>
                               <div className="text-xs text-slate-600 truncate">
-                                Rayon {p.juara1.kemantren || '-'} &bull; {p.juara1.unitTpa || '-'}
+                                {p.juara1.kemantren || '-'}
                               </div>
                             </div>
                           </div>
@@ -559,7 +559,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                                 {p.juara2.nama || '-'}
                               </div>
                               <div className="text-xs text-slate-600 truncate">
-                                Rayon {p.juara2.kemantren || '-'} &bull; {p.juara2.unitTpa || '-'}
+                                {p.juara2.kemantren || '-'}
                               </div>
                             </div>
                           </div>
@@ -589,7 +589,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                                 {p.juara3.nama || '-'}
                               </div>
                               <div className="text-xs text-slate-600 truncate">
-                                Rayon {p.juara3.kemantren || '-'} &bull; {p.juara3.unitTpa || '-'}
+                                {p.juara3.kemantren || '-'}
                               </div>
                             </div>
                           </div>

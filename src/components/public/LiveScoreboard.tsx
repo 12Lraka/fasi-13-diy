@@ -129,7 +129,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
     return beritaAcaraList.filter(b => b.status === 'Disahkan');
   }, [beritaAcaraList]);
 
-  // Kalkulasi Klasemen Rayon (berdasarkan tab aktif: Umum, TKA, TPA, TQA)
+  // Kalkulasi Klasemen Kontingen Daerah (berdasarkan tab aktif: Umum, TKA, TPA, TQA)
   const standings = useMemo(() => {
     const talliesMap: Record<string, RayonTally> = {};
 
@@ -149,9 +149,32 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
 
     const findTally = (kemName?: string): RayonTally | undefined => {
       if (!kemName) return undefined;
-      const clean = kemName.trim().toLowerCase().replace(/^kemantren\s+/i, '').replace(/^rayon\s+/i, '');
-      const key = Object.keys(talliesMap).find(k => k.toLowerCase() === clean || k.toLowerCase() === kemName.toLowerCase());
-      return key ? talliesMap[key] : undefined;
+      const raw = kemName.trim().toLowerCase();
+
+      // 1. Cek langsung kecocokan ID (e.g. 'kab-yk', 'kab-slm', dll.) atau kode (e.g. 'YK', 'SLM')
+      const byIdOrCode = Object.values(talliesMap).find(
+        (t) => t.kemantrenId.toLowerCase() === raw || t.kode.toLowerCase() === raw
+      );
+      if (byIdOrCode) return byIdOrCode;
+
+      // 2. Bersihkan awalan Kabupaten, Kab, Kota, Rayon, Kemantren
+      const cleanInput = raw
+        .replace(/^(kabupaten|kab\.?|kota|rayon|kemantren)\s+/i, '')
+        .trim();
+
+      // 3. Cocokkan dengan nama daerah yang juga dibersihkan awalannya
+      return Object.values(talliesMap).find((t) => {
+        const cleanName = t.nama
+          .toLowerCase()
+          .replace(/^(kabupaten|kab\.?|kota|rayon|kemantren)\s+/i, '')
+          .trim();
+        return (
+          t.nama.toLowerCase() === raw ||
+          cleanName === cleanInput ||
+          t.nama.toLowerCase().includes(cleanInput) ||
+          cleanInput.includes(cleanName)
+        );
+      });
     };
 
     validatedBeritaAcara.forEach(ba => {
@@ -224,7 +247,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </div>
             </div>
             <p className={`text-xs sm:text-sm ${theme.headerSubtext} max-w-2xl`}>
-              Rekapitulasi perolehan poin dan penetapan juara resmi FASI XIII Kota Yogyakarta.
+              Rekapitulasi perolehan poin dan penetapan juara resmi FASI XIII D.I. Yogyakarta.
               <br />
               <span className="text-amber-300 font-medium">
                 ★ Cabang Utama (Tartil & Tilawah): J1=7pt, J2=5pt, J3=3pt | Cabang Umum: J1=5pt, J2=3pt, J3=1pt.
@@ -325,7 +348,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </div>
               <div className="my-3">
                 <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                  Rayon {top2.nama}
+                  {top2.nama}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono">
                   Total <strong>{top2.totalPoin} Poin</strong>
@@ -364,7 +387,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </div>
               <div className="my-4">
                 <h3 className="text-2xl font-black text-slate-900 leading-tight">
-                  Rayon {top1.nama}
+                  {top1.nama}
                 </h3>
                 <p className="text-sm font-extrabold text-amber-700 font-mono mt-0.5">
                   Total {top1.totalPoin} Poin Kejuaraan
@@ -400,7 +423,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </div>
               <div className="my-3">
                 <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                  Rayon {top3.nama}
+                  {top3.nama}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono">
                   Total <strong>{top3.totalPoin} Poin</strong>
@@ -425,12 +448,12 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
 
         </div>
 
-        {/* Tabel Lengkap Perolehan Medali 14 Rayon */}
+        {/* Tabel Lengkap Perolehan Medali Daerah */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
-                Klasemen Resmi 14 Rayon ({activeTab === 'umum' ? 'Semua Jenjang' : `Jenjang ${activeTab.toUpperCase()}`})
+                Klasemen Resmi 5 Kabupaten / Kota ({activeTab === 'umum' ? 'Semua Jenjang' : `Jenjang ${activeTab.toUpperCase()}`})
               </h3>
               <p className="text-xs text-slate-500">
                 Diurutkan berdasarkan Total Poin akumulasi Berita Acara yang telah disahkan.
@@ -443,7 +466,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               <thead>
                 <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                   <th className="py-3.5 px-4 w-14 text-center">Rank</th>
-                  <th className="py-3.5 px-4">Kontingen Rayon</th>
+                  <th className="py-3.5 px-4">Kontingen Daerah</th>
                   <th className="py-3.5 px-4 text-center bg-amber-50/70 text-amber-950 font-bold w-24">🥇 Juara I</th>
                   <th className="py-3.5 px-4 text-center bg-slate-100/70 text-slate-800 font-bold w-24">🥈 Juara II</th>
                   <th className="py-3.5 px-4 text-center bg-amber-900/10 text-amber-950 font-bold w-24">🥉 Juara III</th>
@@ -476,7 +499,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                       )}
                     </td>
                     <td className="py-3 px-4 font-semibold text-slate-900">
-                      Rayon {tally.nama}
+                      {tally.nama}
                     </td>
                     <td className="py-3 px-4 text-center font-bold text-amber-700 bg-amber-50/30">
                       {tally.emas}

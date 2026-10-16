@@ -41,8 +41,8 @@ export function exportBranchToExcel({
   // Title rows for official letterhead in Excel
   const titleRows = [
     ['FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII'],
-    ['BADKO TKA-TPA KOTA YOGYAKARTA'],
-    ['Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525'],
+    ['BADKO TKA-TPA D.I. YOGYAKARTA'],
+    ['Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194'],
     [],
     ['REKAPITULASI PESERTA CABANG LOMBA'],
     [`Cabang Lomba : [${category.code}] ${category.name} (Tingkat ${category.level})`],
@@ -50,15 +50,14 @@ export function exportBranchToExcel({
     [],
   ];
 
-  // Header Columns: No, Undian, No Registrasi, Nama Lengkap, L/P, Rayon & Unit TPA, Juri I, Juri II, Total Nilai
+  // Header Columns: No, Undian, No Registrasi, Nama Lengkap, L/P, Kabupaten / Kota, Juri I, Juri II, Total Nilai
   const headers = [
     'No',
     'No. Undian',
     'No. Registrasi',
     'Nama Lengkap Santri',
     'L/P',
-    'Rayon (Kemantren)',
-    'Asal Unit TPA',
+    'Kabupaten / Kota',
     'Nilai Juri I',
     'Nilai Juri II',
     'Total Nilai',
@@ -81,8 +80,7 @@ export function exportBranchToExcel({
       p.registrationNumber || '-',
       p.fullName || '-',
       p.gender === 'L' ? 'L' : 'P',
-      `Kemantren ${kemName}`,
-      p.tpaUnitName || '-',
+      kemName,
       p.scoreJury1 != null ? p.scoreJury1 : '-',
       p.scoreJury2 != null ? p.scoreJury2 : '-',
       totalNilai,

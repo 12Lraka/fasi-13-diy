@@ -20,7 +20,7 @@ async function startServer() {
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',
-      service: 'FASI XIII Kota Yogyakarta API',
+      service: 'FASI XIII D.I. Yogyakarta API',
       timestamp: new Date().toISOString(),
     });
   });

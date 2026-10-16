@@ -411,7 +411,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
     if (found) {
       const existingCat = CATEGORIES_LIST.find((c) => c.id === found.categoryId);
       const existingKem = KEMANTREN_LIST.find((k) => k.id === found.kemantrenId);
-      const info = `Santri "${found.fullName}" (Lahir: ${found.birthDate}) SUDAH TERDAFTAR di FASI XIII pada cabang "${existingCat?.name || found.categoryId}" dari Rayon ${existingKem?.name || found.kemantrenId} (No. Reg: ${found.registrationNumber}). Sesuai aturan FASI, satu santri hanya dapat mengikuti 1 cabang lomba.`;
+      const info = `Santri "${found.fullName}" (Lahir: ${found.birthDate}) SUDAH TERDAFTAR di FASI XIII pada cabang "${existingCat?.name || found.categoryId}" dari Kontingen ${existingKem?.name || found.kemantrenId} (No. Reg: ${found.registrationNumber}). Sesuai aturan FASI, satu santri hanya dapat mengikuti 1 cabang lomba.`;
       return { isDuplicate: true, duplicateInfo: info, existingParticipant: found };
     }
 
@@ -705,7 +705,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
           isValid: true,
           levelEligible: null,
         },
-        tpaUnitName: draft.tpaUnitName || `TPA ${kemFallback?.name || 'Kemantren'}`,
+        tpaUnitName: draft.tpaUnitName || `Kontingen ${kemFallback?.name || 'Daerah'}`,
         kemantrenId: draft.kemantrenId,
         categoryId: draft.categoryId,
         lotteryNumber: null,
@@ -1400,14 +1400,14 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                         <Phone className="w-3.5 h-3.5" />
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">Kontak WhatsApp perwakilan official Rayon</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Kontak WhatsApp perwakilan official Kontingen</p>
                   </div>
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
                   <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                   <span>
-                    Berkas digital akta diunggah langsung ke <strong>Google Drive resmi masing-masing Rayon / Kemantren</strong> yang telah dikoordinasikan.
+                    Berkas digital akta dan dokumen pendukung dikoordinasikan langsung melalui <strong>Official Kontingen Kabupaten / Kota</strong> masing-masing.
                   </span>
                 </div>
               </div>
@@ -1629,7 +1629,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                     Status Kuota Cabang Lomba Kontingen
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Rayon {KEMANTREN_LIST.find((k) => k.id === kemantrenId)?.name || 'Semua'} • {missingCategoriesCount} cabang masih kosong / belum lengkap
+                    Kontingen {KEMANTREN_LIST.find((k) => k.id === kemantrenId)?.name || 'Semua'} • {missingCategoriesCount} cabang masih kosong / belum lengkap
                   </p>
                 </div>
               </div>

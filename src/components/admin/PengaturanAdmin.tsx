@@ -825,7 +825,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>Admin Kecamatan ({kemantrenList.length})</span>
+            <span>Admin Kabupaten / Kota ({kemantrenList.length})</span>
           </button>
 
           <button
@@ -1526,10 +1526,10 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                Manajemen Akun & Role Admin Kecamatan (14 Kemantren)
+                Manajemen Akun & Role Admin Kabupaten / Kota (5 Wilayah)
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Kelola hak akses login, PIN sandi khusus, nama koordinator/kontingen, dan tautan Google Drive berkas peserta.
+                Kelola hak akses login, PIN sandi khusus, dan nama koordinator kontingen daerah.
               </p>
             </div>
 
@@ -1553,7 +1553,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                 className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset 14 Kemantren</span>
+                <span>Reset Master Wilayah</span>
               </button>
 
               <button
@@ -1561,7 +1561,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                 className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-amber-400" />
-                <span>+ Tambah Kecamatan</span>
+                <span>+ Tambah Wilayah</span>
               </button>
             </div>
           </div>
@@ -1576,7 +1576,6 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                   <th className="py-2.5 px-3">Koordinator / Admin</th>
                   <th className="py-2.5 px-3">No. WhatsApp</th>
                   <th className="py-2.5 px-3">PIN / Password</th>
-                  <th className="py-2.5 px-3">Folder Drive</th>
                   <th className="py-2.5 px-3 text-center w-28">Aksi</th>
                 </tr>
               </thead>
@@ -1597,16 +1596,6 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     </td>
                     <td className="py-2 px-3 font-mono text-[11px] text-emerald-800 font-bold">
                       {kem.password || `${kem.name.toLowerCase().replace(/\s+/g, '')}123`}
-                    </td>
-                    <td className="py-2 px-3 max-w-[140px] truncate text-[11px] text-blue-600">
-                      {kem.driveFolderUrl ? (
-                        <a href={kem.driveFolderUrl} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
-                          <FolderOpen className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span className="truncate">Google Drive</span>
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
                     </td>
                     <td className="py-2 px-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
@@ -1763,7 +1752,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
               <div className="flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-amber-400" />
                 <h3 className="font-bold text-sm">
-                  {editingKemantren ? 'Edit Admin Kecamatan' : 'Tambah Kecamatan Baru'}
+                  {editingKemantren ? 'Edit Admin Kabupaten / Kota' : 'Tambah Kabupaten / Kota Baru'}
                 </h3>
               </div>
               <button
@@ -1777,24 +1766,24 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
             <form onSubmit={handleSaveKemantren} className="p-6 space-y-3.5">
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Kode (2 Huruf):</label>
+                  <label className="text-xs font-bold text-slate-700">Kode (2-3 Huruf):</label>
                   <input
                     type="text"
                     maxLength={3}
                     value={kemantrenForm.code}
                     onChange={(e) => setKemantrenForm({ ...kemantrenForm, code: e.target.value.toUpperCase() })}
-                    placeholder="KG"
+                    placeholder="SLM"
                     className="w-full p-2 text-xs font-mono font-bold bg-slate-50 border border-slate-300 rounded-xl uppercase"
                     required
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Nama Kemantren:</label>
+                  <label className="text-xs font-bold text-slate-700">Nama Kabupaten / Kota:</label>
                   <input
                     type="text"
                     value={kemantrenForm.name}
                     onChange={(e) => setKemantrenForm({ ...kemantrenForm, name: e.target.value })}
-                    placeholder="Kotagede"
+                    placeholder="Kabupaten Sleman"
                     className="w-full p-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
                     required
                   />
@@ -1831,22 +1820,11 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     type="text"
                     value={kemantrenForm.password}
                     onChange={(e) => setKemantrenForm({ ...kemantrenForm, password: e.target.value })}
-                    placeholder="kemantren123"
+                    placeholder="sleman123"
                     className="w-full p-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl"
                     required
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Link Folder Google Drive:</label>
-                <input
-                  type="url"
-                  value={kemantrenForm.driveFolderUrl}
-                  onChange={(e) => setKemantrenForm({ ...kemantrenForm, driveFolderUrl: e.target.value })}
-                  placeholder="https://drive.google.com/..."
-                  className="w-full p-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
-                />
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2">
@@ -2259,7 +2237,7 @@ CREATE POLICY "Public full access on id_card_committees" ON id_card_committees F
                 )}
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Maks. Santri/Kemantren:</label>
+                  <label className="text-xs font-bold text-slate-700">Maks. Santri/Kab-Kota:</label>
                   <input
                     type="number"
                     min={1}

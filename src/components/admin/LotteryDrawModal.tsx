@@ -179,7 +179,7 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
                         <span className="font-mono text-emerald-800 font-bold block">{p.registrationNumber}</span>
                         <span className="font-semibold text-slate-900">{p.fullName}</span>
                         <span className="text-slate-400 text-[11px] block">
-                          Kemantren {getKemantrenName(p.kemantrenId)} • {p.tpaUnitName}
+                          Kontingen {getKemantrenName(p.kemantrenId)}
                         </span>
                       </div>
                       <div className="text-right">

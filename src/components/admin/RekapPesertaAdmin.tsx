@@ -219,22 +219,22 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
         ? kemantrenList.find((k) => k.id === selectedKemantren)
         : null;
       const kemName = isKemantrenAdmin
-        ? currentKemantrenObj?.name || 'Kemantren'
+        ? currentKemantrenObj?.name || 'Daerah'
         : kemObj
         ? kemObj.name
-        : 'Semua_Rayon';
+        : 'Semua_Kab_Kota';
 
       const mainTitle = docType === 'daftar_hadir'
         ? 'DAFTAR HADIR PESERTA FASI XIII'
         : 'REKAPITULASI NOMINASI TETAP PESERTA LOMBA';
 
       const subTitle = isKemantrenAdmin
-        ? `KONTINGEN RAYON ${currentKemantrenObj?.name?.toUpperCase() || ''} (${filteredParticipants.length} SANTRI)`
+        ? `KONTINGEN ${currentKemantrenObj?.name?.toUpperCase() || ''} (${filteredParticipants.length} SANTRI)`
         : selectedKemantren !== 'ALL'
-        ? `KONTINGEN RAYON ${kemName.toUpperCase()} (${filteredParticipants.length} SANTRI)`
-        : `SEMUA KONTINGEN 14 RAYON (${filteredParticipants.length} SANTRI)`;
+        ? `KONTINGEN ${kemName.toUpperCase()} (${filteredParticipants.length} SANTRI)`
+        : `SEMUA KONTINGEN D.I. YOGYAKARTA (${filteredParticipants.length} SANTRI)`;
 
-      const filterInfo = `FASI XIII BADKO TKA-TPA Kota Yogyakarta • Dicetak pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+      const filterInfo = `FASI XIII BADKO TKA-TPA D.I. YOGYAKARTA • Dicetak pada ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 
       const fileName = docType === 'daftar_hadir'
         ? `Daftar_Hadir_Registrasi_${kemName}`
@@ -280,12 +280,12 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 font-extrabold text-[10px] uppercase tracking-wider rounded-md">
-                {isKemantrenAdmin ? `Wilayah Kemantren ${currentKemantrenObj?.name || ''}` : 'BADKO TKA-TPA KOTA YOGYAKARTA'}
+                {isKemantrenAdmin ? `Wilayah ${currentKemantrenObj?.name || ''}` : 'BADKO TKA-TPA D.I. YOGYAKARTA'}
               </span>
               <span className="text-xs text-slate-500 font-medium">Rekapitulasi Peserta</span>
             </div>
             <h2 className="text-xl font-extrabold text-slate-900 mt-1">
-              Daftar Peserta {isKemantrenAdmin ? `Kemantren ${currentKemantrenObj?.name || ''}` : 'FASI XIII'}
+              Daftar Peserta {isKemantrenAdmin ? `${currentKemantrenObj?.name || ''}` : 'FASI XIII DIY'}
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
               Pratinjau data nominasi peserta, cetak dokumen resmi ukuran A4, dan unduh rekapan Microsoft Excel (.xlsx).
@@ -386,7 +386,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
           <div className="pt-2 border-t border-slate-100">
             <div className="text-[11px] font-bold text-slate-500 mb-2 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Filter Cepat Rayon (14 Wilayah):</span>
+              <span>Filter Cepat Kabupaten / Kota (5 Wilayah):</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {kemantrenDistribution.map((k) => (
@@ -450,11 +450,11 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
             >
               {isKemantrenAdmin ? (
                 <option value={session.kemantrenId || ''}>
-                  Rayon {currentKemantrenObj?.name}
+                  {currentKemantrenObj?.name}
                 </option>
               ) : (
                 <>
-                  <option value="ALL">Semua Rayon (14)</option>
+                  <option value="ALL">Semua Kabupaten/Kota (5 Wilayah)</option>
                   {kemantrenList.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.name} ({k.code})
@@ -565,10 +565,10 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                 FESTIVAL ANAK SHOLEH INDONESIA XIII
               </h2>
               <h3 className="font-black text-xs sm:text-sm md:text-base text-emerald-950 uppercase tracking-wider leading-tight mt-0.5">
-                BADKO TKA-TPA KOTA YOGYAKARTA
+                BADKO TKA-TPA D.I. YOGYAKARTA
               </h3>
               <p className="text-[8.5px] sm:text-[10px] md:text-[11px] text-slate-700 font-medium leading-tight mt-1">
-                Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525
+                Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
               </p>
             </div>
 
@@ -598,10 +598,10 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
           </h4>
           <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mt-1">
             {isKemantrenAdmin
-              ? `KONTINGEN RAYON KEMANTREN ${currentKemantrenObj?.name?.toUpperCase() || ''}`
+              ? `KONTINGEN ${currentKemantrenObj?.name?.toUpperCase() || ''}`
               : selectedKemantren !== 'ALL'
-              ? `KONTINGEN RAYON ${getKem(selectedKemantren)?.name.toUpperCase()}`
-              : 'GABUNGAN SELURUH 14 RAYON KOTA YOGYAKARTA'}
+              ? `KONTINGEN ${getKem(selectedKemantren)?.name.toUpperCase()}`
+              : 'GABUNGAN SELURUH KONTINGEN D.I. YOGYAKARTA'}
           </p>
         </div>
 
@@ -616,7 +616,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                 <th className="py-2.5 px-2 border border-slate-300 w-28">No Registrasi</th>
                 <th className="py-2.5 px-3 border border-slate-300">Nama lengkap</th>
                 <th className="py-2.5 px-2 border border-slate-300 text-center w-12">L/P</th>
-                <th className="py-2.5 px-3 border border-slate-300">Rayon dan Asal TPA</th>
+                <th className="py-2.5 px-3 border border-slate-300">Kabupaten / Kota</th>
                 <th className="py-2.5 px-3 border border-slate-300">Cabang Lomba</th>
                 <th className="py-2.5 px-2 border border-slate-300 text-center w-20">Kehadiran</th>
                 {docType === 'daftar_hadir' && (
@@ -659,8 +659,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                         </span>
                       </td>
                       <td className="py-2 px-3 border border-slate-300 text-slate-800">
-                        <div className="font-bold text-slate-900">Rayon {kem?.name || p.kemantrenId}</div>
-                        <div className="text-[10px] text-slate-600 font-medium">{p.tpaUnitName || '-'}</div>
+                        <div className="font-bold text-slate-900">{kem?.name || p.kemantrenId}</div>
                       </td>
                       <td className="py-2 px-3 border border-slate-300">
                         <span className="font-semibold text-emerald-950">{cat?.name || p.categoryId}</span>
@@ -707,7 +706,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                 <th className="py-1.5 px-2 border border-slate-400 w-24">No Reg</th>
                 <th className="py-1.5 px-2 border border-slate-400">Nama Lengkap Santri</th>
                 <th className="py-1.5 px-1 border border-slate-400 text-center w-8">L/P</th>
-                <th className="py-1.5 px-2 border border-slate-400">Rayon dan Asal TPA</th>
+                <th className="py-1.5 px-2 border border-slate-400">Kabupaten / Kota</th>
                 <th className="py-1.5 px-2 border border-slate-400">Cabang Lomba</th>
                 <th className="py-1.5 px-2 border border-slate-400 text-center w-16">Status</th>
                 {docType === 'daftar_hadir' && (
@@ -743,8 +742,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                         {p.gender}
                       </td>
                       <td className="py-1 px-2 border border-slate-400">
-                        <span className="font-bold">Rayon {kem?.name || p.kemantrenId}</span>
-                        {p.tpaUnitName && <span className="text-[8pt] text-slate-700 block">{p.tpaUnitName}</span>}
+                        <span className="font-bold">{kem?.name || p.kemantrenId}</span>
                       </td>
                       <td className="py-1 px-2 border border-slate-400">
                         <span className="font-semibold">{cat?.name || p.categoryId}</span>
@@ -805,11 +803,11 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
             </>
           ) : (
             <>
-              {/* Kiri: Ketua Umum BADKO TKA-TPA Kota */}
+              {/* Kiri: Ketua Umum BADKO TKA-TPA DIY */}
               <div className="flex flex-col items-center justify-between min-h-[100px]">
                 <div>
                   <p className="text-slate-600 font-medium">Mengetahui,</p>
-                  <p className="font-bold text-slate-900 mt-0.5">Ketua Umum BADKO TKA-TPA Kota</p>
+                  <p className="font-bold text-slate-900 mt-0.5">Ketua Umum BADKO TKA-TPA DIY</p>
                 </div>
                 <div className="mt-14">
                   <p className="font-extrabold text-slate-950 underline tracking-wide text-xs sm:text-sm">

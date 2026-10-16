@@ -773,7 +773,7 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari santri, no regis, atau kemantren..."
+                  placeholder="Cari santri, no regis, atau kontingen..."
                   className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
@@ -871,7 +871,7 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
                       <th className="py-3 px-4 w-12 text-center">No</th>
                       <th className="py-3 px-4">No. Registrasi</th>
                       <th className="py-3 px-4">Nama Lengkap Santri</th>
-                      <th className="py-3 px-4">Rayon & Unit TPA</th>
+                      <th className="py-3 px-4">Kontingen Daerah</th>
                       <th className="py-3 px-4 text-center">Nomor Undian</th>
                       <th className="py-3 px-4 text-center">Status</th>
                     </tr>
@@ -883,7 +883,7 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
                           <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                           <p className="font-semibold">Belum ada peserta terdaftar pada cabang lomba ini.</p>
                           <p className="text-[11px] mt-0.5">
-                            Gunakan menu pendaftaran santri untuk mengisi utusan kemantren.
+                            Gunakan menu pendaftaran santri untuk mendaftarkan peserta kontingen daerah.
                           </p>
                         </td>
                       </tr>
@@ -914,8 +914,7 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
                               </div>
                             </td>
                             <td className="py-3.5 px-4">
-                              <div className="font-semibold text-slate-800">Rayon {kem}</div>
-                              <div className="text-[11px] text-slate-500">{p.tpaUnitName}</div>
+                              <div className="font-semibold text-slate-800">{kem}</div>
                             </td>
                             <td className="py-3.5 px-4 text-center">
                               {hasNumber ? (
@@ -955,7 +954,7 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
                 Hasil undian resmi ini akan otomatis tercantum pada ID Card Santri dan Sistem Dewan Hakim.
               </span>
               <span className="font-mono text-[11px] text-slate-400">
-                BADKO TKA-TPA Kota Yogyakarta 2026
+                BADKO TKA-TPA D.I. Yogyakarta 2026
               </span>
             </div>
           </div>

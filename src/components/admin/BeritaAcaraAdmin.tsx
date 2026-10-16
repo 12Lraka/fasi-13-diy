@@ -293,7 +293,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
         return;
       }
       if (!juara1.nama || !juara1.kemantren) {
-        showToast('warning', 'Minimal Juara I harus diisi nama dan asal kemantren sebelum disahkan.');
+        showToast('warning', 'Minimal Juara I harus diisi nama dan asal kontingen daerah sebelum disahkan.');
         return;
       }
     }
@@ -446,13 +446,13 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
               BADAN KOORDINASI LEMBAGA PENDIDIKAN DAN PENGEMBANGAN AL-QUR'AN
             </h3>
             <h3 className="text-xs font-bold font-sans tracking-wide uppercase">
-              BADKO TKA-TPA KOTA YOGYAKARTA
+              BADKO TKA-TPA D.I. YOGYAKARTA
             </h3>
             <h2 className="text-base font-black font-sans tracking-wider uppercase mt-0.5">
               FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII
             </h2>
             <p className="text-[10px] font-sans text-slate-700">
-              Sekretariat: Kompleks Masjid Pangeran Diponegoro Balaikota Yogyakarta, Jl. Kenari No. 56
+              Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
             </p>
           </div>
           <img src={LOGO_FASI_URL} alt="FASI XIII" className="h-16 w-auto object-contain" />
@@ -470,7 +470,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
 
         {/* Narasi Pembuka */}
         <p className="text-xs leading-relaxed text-justify mb-4 font-sans">
-          Pada hari ini, tanggal <strong>{tanggalPenetapan}</strong>, bertempat di lokasi pelaksanaan FASI XIII Kota Yogyakarta, Dewan Juri Cabang Lomba <strong>{currentCategory.name} (Jenjang {currentCategory.level})</strong> telah melaksanakan penilaian dan menetapkan para pemenang kejuaraan sebagai berikut:
+          Pada hari ini, tanggal <strong>{tanggalPenetapan}</strong>, bertempat di lokasi pelaksanaan FASI XIII D.I. Yogyakarta, Dewan Juri Cabang Lomba <strong>{currentCategory.name} (Jenjang {currentCategory.level})</strong> telah melaksanakan penilaian dan menetapkan para pemenang kejuaraan sebagai berikut:
         </p>
 
         {/* Tabel Pemenang */}
@@ -479,7 +479,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
             <tr className="bg-slate-100">
               <th className="border border-black px-2 py-1.5 text-center w-24">Peringkat</th>
               <th className="border border-black px-2 py-1.5 text-left">Nama Santri / Regu</th>
-              <th className="border border-black px-2 py-1.5 text-left w-40">Rayon / Kemantren</th>
+              <th className="border border-black px-2 py-1.5 text-left w-40">Kabupaten / Kota</th>
               <th className="border border-black px-2 py-1.5 text-left w-40">Unit TPA</th>
               <th className="border border-black px-2 py-1.5 text-center w-20">Total Nilai</th>
             </tr>
@@ -807,7 +807,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
                     <span>Lomba Kategori Beregu (3 Orang per Regu):</span>
                   </div>
                   <p className="text-[11px] text-purple-800 leading-relaxed">
-                    Setiap rayon mengirimkan 1 atau beberapa regu (masing-masing 3 santri). Anda dapat memilih langsung nama Regu dari menu dropdown di bawah, yang akan otomatis mengisi nama regu beserta nama ke-3 santri anggotanya, asal rayon, dan unit TPA.
+                    Setiap kontingen mengirimkan 1 atau beberapa regu (masing-masing 3 santri). Anda dapat memilih langsung nama Regu dari menu dropdown di bawah untuk mengisi otomatis nama regu, anggota, dan kontingen asal.
                   </p>
                 </div>
               ) : (
@@ -818,7 +818,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
                       <span>Autofill dari Peserta Terdaftar ({categoryParticipants.length} Santri):</span>
                     </div>
                     <p className="text-[11px] text-emerald-700">
-                      Gunakan pemilih di bawah masing-masing baris juara untuk mengisi otomatis nama santri, rayon, dan unit TPA.
+                      Gunakan pemilih di bawah masing-masing baris juara untuk mengisi otomatis nama santri dan asal daerah.
                     </p>
                   </div>
                 )
@@ -994,7 +994,7 @@ const WinnerRow: React.FC<WinnerRowProps> = ({
                 <option value="">-- Pilih Regu Terdaftar --</option>
                 {availableGroups.map((g) => (
                   <option key={g.groupId} value={g.groupId}>
-                    Rayon {g.kemantrenName} ({g.memberNames.join(', ')})
+                    {g.kemantrenName} ({g.memberNames.join(', ')})
                   </option>
                 ))}
               </select>
@@ -1019,7 +1019,7 @@ const WinnerRow: React.FC<WinnerRowProps> = ({
                   const kem = KEMANTREN_LIST.find((k) => k.id === p.kemantrenId);
                   return (
                     <option key={p.id} value={p.id}>
-                      {p.fullName} (Rayon {kem ? kem.name : p.kemantrenId})
+                      {p.fullName} ({kem ? kem.name : p.kemantrenId})
                     </option>
                   );
                 })}
@@ -1038,22 +1038,22 @@ const WinnerRow: React.FC<WinnerRowProps> = ({
           </label>
           <input
             type="text"
-            placeholder={isGroupCategory ? 'Contoh: Regu Rayon Danurejan (Ahmad, Budi, Citra)' : 'Nama lengkap santri'}
+            placeholder={isGroupCategory ? 'Contoh: Regu Sleman (Ahmad, Budi, Citra)' : 'Nama lengkap santri'}
             value={slot.nama}
             onChange={(e) => onChange({ ...slot, nama: e.target.value })}
             className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
           />
         </div>
 
-        {/* Asal Kemantren / Rayon */}
+        {/* Asal Kabupaten / Kota */}
         <div className="sm:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Rayon</label>
+          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Kabupaten / Kota</label>
           <select
             value={slot.kemantren}
             onChange={(e) => onChange({ ...slot, kemantren: e.target.value })}
             className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
           >
-            <option value="">-- Pilih Rayon --</option>
+            <option value="">-- Pilih Kabupaten / Kota --</option>
             {KEMANTREN_LIST.map((k) => (
               <option key={k.id} value={k.name}>
                 {k.name}

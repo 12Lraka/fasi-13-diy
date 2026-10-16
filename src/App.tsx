@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  * 
- * Sistem Informasi FASI XIII Kota Yogyakarta
- * BADKO TKA-TPA Kota Yogyakarta
+ * Sistem Informasi FASI XIII D.I. Yogyakarta
+ * BADKO TKA-TPA D.I. YOGYAKARTA
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -239,11 +239,6 @@ export default function App() {
       fetchKemantrenFromSupabase().then((remoteKemantren) => {
         if (remoteKemantren && remoteKemantren.length > 0) {
           saveKemantren(remoteKemantren);
-          // Jika ada kemantren di remote DB yang kolom link drive-nya masih null/kosong, sinkronkan master
-          const hasEmptyDriveUrls = remoteKemantren.some((k) => !k.driveFolderUrl);
-          if (hasEmptyDriveUrls) {
-            syncKemantrenToSupabase(getStoredKemantren());
-          }
         } else {
           syncKemantrenToSupabase(getStoredKemantren());
         }

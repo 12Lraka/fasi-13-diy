@@ -36,14 +36,12 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
   const rawLevel = category?.level || (participant.categoryId.includes('tka') ? 'TKA' : participant.categoryId.includes('tqa') ? 'TQA' : 'TPA');
   const levelText = rawLevel.toUpperCase().trim();
 
-  // Format Asal TPA & Rayon
+  // Format Kontingen Asal (Tanpa Rayon)
   const rawKemantren = kemantrenName || (participant as any).kemantren || (participant as any).kemantrenName || '';
   const kemantrenClean = rawKemantren ? rawKemantren.replace(/^Kemantren\s*/i, '').replace(/^Rayon\s*/i, '').trim() : '';
-  let displayTpaKemantren = participant.tpaUnitName || 'TPA Kontingen';
+  let displayTpaKemantren = kemantrenClean || 'D.I. Yogyakarta';
   if (participant.tpaUnitName && kemantrenClean) {
-    displayTpaKemantren = `${participant.tpaUnitName}, Rayon ${kemantrenClean}`;
-  } else if (kemantrenClean) {
-    displayTpaKemantren = `Rayon ${kemantrenClean}`;
+    displayTpaKemantren = `${participant.tpaUnitName} • ${kemantrenClean}`;
   }
 
   // Format Gender / Grup
@@ -126,7 +124,7 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
             PANITIA FASI XIII
           </p>
           <p className="font-bold text-[6.5px] tracking-wider uppercase text-slate-800 m-0">
-            KOTA YOGYAKARTA 2026
+            D.I. YOGYAKARTA 2026
           </p>
         </div>
       </div>
@@ -218,9 +216,9 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
           “{customTagline}”
         </p>
 
-        {/* Tulisan Badko TKA-TPA Kota Yogyakarta */}
+        {/* Tulisan Badko TKA-TPA D.I. Yogyakarta */}
         <p className="text-[5.5px] font-extrabold text-slate-700 uppercase tracking-wider m-0">
-          BADKO TKA-TPA KOTA YOGYAKARTA
+          BADKO TKA-TPA D.I. YOGYAKARTA
         </p>
       </div>
     </div>

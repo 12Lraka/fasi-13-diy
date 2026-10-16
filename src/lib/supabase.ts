@@ -598,8 +598,9 @@ export function subscribeToParticipantsRealtime(
   try {
     let debounceTimer: any = null;
 
+    const uniqueChannelName = `realtime_participants_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const channel = client
-      .channel('realtime_participants_changes')
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'participants' },
@@ -648,8 +649,9 @@ export function subscribeToBeritaAcaraRealtime(
   if (!client) return null;
 
   try {
+    const uniqueChannelName = `realtime_berita_acara_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const channel = client
-      .channel('realtime_berita_acara_changes')
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'berita_acara_kejuaraan' },
@@ -847,7 +849,6 @@ export async function syncKemantrenToSupabase(kemantrenList: Kemantren[]): Promi
       name: k.name,
       admin_name: k.adminName,
       password_hash: k.password || `${k.name.toLowerCase().replace(/\s+/g, '')}123`,
-      drive_folder_url: k.driveFolderUrl || null,
     }));
     const { error } = await client.from('kemantren').upsert(payloads, { onConflict: 'id' });
     if (error) throw error;
@@ -883,7 +884,7 @@ export async function fetchKemantrenFromSupabase(): Promise<Kemantren[] | null> 
         adminName: row.admin_name || fallback?.adminName || `Admin ${row.name}`,
         contactPerson: fallback?.contactPerson || '',
         password: row.password_hash || row.password || fallback?.password || '',
-        driveFolderUrl: row.drive_folder_url || fallback?.driveFolderUrl || '',
+        driveFolderUrl: '',
       };
     });
   } catch (error: any) {
@@ -900,8 +901,9 @@ export function subscribeToKemantrenRealtime(callback: (kemantren: Kemantren[]) 
   if (!client) return null;
 
   try {
+    const uniqueChannelName = `realtime_kemantren_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const channel = client
-      .channel('public:kemantren')
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'kemantren' },
@@ -1039,8 +1041,9 @@ export function subscribeToSettingsRealtime(callback: (settings: AppSettings) =>
   if (!client) return null;
 
   try {
+    const uniqueChannelName = `realtime_app_settings_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const channel = client
-      .channel('public:app_settings')
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'app_settings' },

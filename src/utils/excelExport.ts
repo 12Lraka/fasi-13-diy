@@ -76,23 +76,22 @@ export function exportParticipantsToExcel(
   // Title rows for official letterhead in Excel
   const titleRows = [
     ['FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII'],
-    ['BADKO TKA-TPA KOTA YOGYAKARTA'],
-    ['Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525'],
+    ['BADKO TKA-TPA D.I. YOGYAKARTA'],
+    ['Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194'],
     [],
     ['REKAPITULASI NOMINASI TETAP PESERTA LOMBA'],
     [`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} | Total Peserta: ${sortedParticipants.length} Santri`],
     [],
   ];
 
-  // Header Columns: Rayon & Unit TPA
+  // Header Columns: Kabupaten / Kota
   const headers = [
     'No',
     'No. Registrasi',
     'Nama Lengkap Santri',
     'L/P',
     'Tgl Lahir / Usia',
-    'Rayon (Kemantren)',
-    'Asal Unit TPA',
+    'Kabupaten / Kota',
     'Cabang Lomba',
     'Jenjang',
     'No. Undian',
@@ -121,8 +120,7 @@ export function exportParticipantsToExcel(
       p.fullName || '-',
       p.gender === 'L' ? 'L' : 'P',
       birthAndAge,
-      `Kemantren ${kemName}`,
-      p.tpaUnitName || '-',
+      kemName,
       cat ? cat.name : p.categoryId,
       cat?.level || 'FASI',
       p.lotteryNumber ? String(p.lotteryNumber).padStart(2, '0') : '-',
@@ -142,7 +140,7 @@ export function exportParticipantsToExcel(
     [],
     ['', '', '', '', '', '', '', '', '', '', '', 'Yogyakarta, ' + dateStrId],
     ['Mengetahui,', '', '', '', '', '', '', '', '', '', '', 'Ketua Panitia FASI XIII'],
-    ['Ketua Umum BADKO TKA-TPA Kota', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Ketua Umum BADKO TKA-TPA DIY', '', '', '', '', '', '', '', '', '', '', ''],
     [],
     [],
     [],
@@ -198,10 +196,10 @@ export function exportMasterTpaToExcel(
 
   const titleRows = [
     ['FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII'],
-    ['BADKO TKA-TPA KOTA YOGYAKARTA'],
-    ['Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551'],
+    ['BADKO TKA-TPA D.I. YOGYAKARTA'],
+    ['Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194'],
     [],
-    ['MASTER DATA LEMBAGA TKA / TPA KOTA YOGYAKARTA'],
+    ['MASTER DATA LEMBAGA TKA / TPA D.I. YOGYAKARTA'],
     [`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} | Total Lembaga: ${tpaList.length} Unit TPA`],
     [],
   ];

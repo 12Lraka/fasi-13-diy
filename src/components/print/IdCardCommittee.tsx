@@ -101,7 +101,7 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({
             PANITIA FASI XIII
           </p>
           <p className="font-bold text-[6.5px] tracking-wider uppercase text-slate-800 m-0">
-            KOTA YOGYAKARTA 2026
+            D.I. YOGYAKARTA 2026
           </p>
         </div>
       </div>
@@ -194,7 +194,7 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({
         </p>
 
         <p className="text-[5.5px] font-extrabold text-slate-700 uppercase tracking-wider m-0">
-          BADKO TKA-TPA KOTA YOGYAKARTA
+          BADKO TKA-TPA D.I. YOGYAKARTA
         </p>
       </div>
     </div>

@@ -89,13 +89,13 @@ export async function renderLotteryToPdfPage({
 
   pdfDoc.setFontSize(12);
   pdfDoc.setTextColor(6, 78, 59); // emerald-900
-  pdfDoc.text('BADKO TKA-TPA KOTA YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  pdfDoc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
 
   pdfDoc.setFont('helvetica', 'normal');
   pdfDoc.setFontSize(7.5);
   pdfDoc.setTextColor(71, 85, 105); // slate-600
   pdfDoc.text(
-    'Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525',
+    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
     pageWidth / 2,
     topY + 14,
     { align: 'center' }
@@ -159,19 +159,18 @@ export async function renderLotteryToPdfPage({
   );
 
   // 3. TABEL DATA DAFTAR NOMOR TAMPIL
-  // Kolom: No, No. Undian, No Registrasi, Nama Lengkap / Regu, L/P, Rayon (Kemantren), Asal Unit TPA
+  // Kolom: No, No. Undian, No Registrasi, Nama Lengkap / Regu, L/P, Kabupaten / Kota
   const tableHeaders = [
     'No',
     'No. Undian',
     'No Registrasi',
     'Nama Lengkap Peserta / Regu',
     'L/P',
-    'Rayon (Kemantren)',
-    'Asal Unit TPA',
+    'Kabupaten / Kota',
   ];
 
   const tableBody = inCat.length === 0
-    ? [['-', '-', '-', 'Belum ada santri terdaftar pada cabang lomba ini.', '-', '-', '-']]
+    ? [['-', '-', '-', 'Belum ada santri terdaftar pada cabang lomba ini.', '-', '-']]
     : inCat.map((p, index) => {
         const kemName = getKemName(p.kemantrenId);
         const undianStr = p.lotteryNumber != null && p.lotteryNumber > 0
@@ -184,8 +183,7 @@ export async function renderLotteryToPdfPage({
           p.registrationNumber || '-',
           p.fullName || '-',
           p.gender || '-',
-          `Kem. ${kemName}`,
-          p.tpaUnitName || '-',
+          kemName,
         ];
       });
 
@@ -215,13 +213,12 @@ export async function renderLotteryToPdfPage({
       valign: 'middle',
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },                           // No
-      1: { halign: 'center', cellWidth: 22, fontStyle: 'bold' },        // No. Undian
-      2: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },        // No Registrasi
-      3: { halign: 'left', cellWidth: 54, fontStyle: 'bold' },          // Nama Lengkap
-      4: { halign: 'center', cellWidth: 10 },                          // L/P
-      5: { halign: 'left', cellWidth: 32 },                            // Rayon
-      6: { halign: 'left', cellWidth: 34 },                            // Unit TPA
+      0: { halign: 'center', cellWidth: 10 },                          // No
+      1: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },        // No. Undian
+      2: { halign: 'center', cellWidth: 32, fontStyle: 'bold' },        // No Registrasi
+      3: { halign: 'left', fontStyle: 'bold' },                         // Nama Lengkap
+      4: { halign: 'center', cellWidth: 12 },                           // L/P
+      5: { halign: 'left', cellWidth: 48 },                             // Kabupaten / Kota
     },
     alternateRowStyles: {
       fillColor: [240, 253, 244], // emerald-50
@@ -284,7 +281,7 @@ export async function renderLotteryToPdfPage({
   pdfDoc.setFont('helvetica', 'bold');
   pdfDoc.setFontSize(8);
   pdfDoc.text('Panitia Pelaksana FASI XIII', authCenterX, footerY + 9, { align: 'center' });
-  pdfDoc.text('BADKO TKA-TPA Kota Yogyakarta', authCenterX, footerY + 13, { align: 'center' });
+  pdfDoc.text('BADKO TKA-TPA D.I. Yogyakarta', authCenterX, footerY + 13, { align: 'center' });
 
   pdfDoc.setFont('helvetica', 'italic');
   pdfDoc.setFontSize(7);

@@ -30,11 +30,9 @@ export const IdCardOfficial: React.FC<IdCardOfficialProps> = ({
   theme = ID_CARD_THEMES.navy,
   customTagline = 'Santri Hebat, Hebat Prestasi, Hebat Mengaji, & Berakhlakul Karimah.',
 }) => {
-  const displayRayon = data.kemantrenName
-    ? data.kemantrenName.toUpperCase().startsWith('RAYON')
-      ? data.kemantrenName.toUpperCase()
-      : `RAYON ${data.kemantrenName.replace(/^Kemantren\s*/i, '').toUpperCase()}`
-    : 'RAYON KOTA YOGYAKARTA';
+  const displayKontingen = data.kemantrenName
+    ? data.kemantrenName.replace(/^Kemantren\s*/i, '').replace(/^Rayon\s*/i, '').trim().toUpperCase()
+    : 'D.I. YOGYAKARTA';
 
   // Dynamic font sizing
   const nameLength = (data.name || '').trim().length;
@@ -90,12 +88,12 @@ export const IdCardOfficial: React.FC<IdCardOfficialProps> = ({
             PANITIA FASI XIII
           </p>
           <p className="font-bold text-[6.5px] tracking-wider uppercase text-slate-800 m-0">
-            KOTA YOGYAKARTA 2026
+            D.I. YOGYAKARTA 2026
           </p>
         </div>
       </div>
 
-      {/* 2. Middle Content: Tulisan OFFICIAL & Info Rayon & Nama Lengkap */}
+      {/* 2. Middle Content: Tulisan OFFICIAL & Info Kontingen & Nama Lengkap */}
       <div className="relative z-10 my-auto py-1 text-center flex flex-col items-center justify-center space-y-1.5">
         {/* Badge Official: Cukup OFFICIAL besar & jelas */}
         <div
@@ -108,16 +106,16 @@ export const IdCardOfficial: React.FC<IdCardOfficialProps> = ({
           <span>OFFICIAL</span>
         </div>
 
-        {/* Info Rayon Asal */}
+        {/* Info Kontingen Asal */}
         <div className="w-full pt-0.5">
           <span className="text-[5.5px] uppercase font-extrabold text-slate-500 block tracking-widest mb-0.5">
-            KONTINGEN RAYON
+            KONTINGEN DAERAH
           </span>
           <h3
             className="font-black text-[11px] uppercase tracking-tight leading-tight m-0"
             style={{ color: theme.primaryColor }}
           >
-            {displayRayon}
+            {displayKontingen}
           </h3>
         </div>
 
@@ -151,7 +149,7 @@ export const IdCardOfficial: React.FC<IdCardOfficialProps> = ({
         </div>
       </div>
 
-      {/* 3. Bottom Footer: Tagline & BADKO TKA-TPA KOTA YOGYAKARTA */}
+      {/* 3. Bottom Footer: Tagline & BADKO TKA-TPA D.I. YOGYAKARTA */}
       <div className="relative z-10 pt-0.5 text-center flex flex-col items-center justify-end space-y-0.5 shrink-0">
         <p
           className="text-[5px] italic leading-tight font-serif px-1 line-clamp-1 m-0"
@@ -161,7 +159,7 @@ export const IdCardOfficial: React.FC<IdCardOfficialProps> = ({
         </p>
 
         <p className="text-[5.5px] font-extrabold text-slate-700 uppercase tracking-wider m-0">
-          BADKO TKA-TPA KOTA YOGYAKARTA
+          BADKO TKA-TPA D.I. YOGYAKARTA
         </p>
       </div>
     </div>

@@ -304,21 +304,21 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
             id: `off-blanko-${k.id}-${i}`,
             name: '',
             role: i === 1 ? 'Ketua Kontingen' : 'Official Pendamping',
-            kemantrenName: `Rayon ${k.name}`,
+            kemantrenName: k.name,
             kemantrenCode: k.code,
           });
         }
       });
       return list;
     }
-    // Auto Rayon Mode (Mengambil data nama Admin Rayon dari master)
+    // Auto Mode (Mengambil data nama Admin dari master)
     const list: OfficialCardData[] = [];
     targetRayonList.forEach((k) => {
       list.push({
         id: `off-auto-1-${k.id}`,
         name: k.adminName || `Ketua Kontingen ${k.name}`,
         role: 'Ketua Kontingen',
-        kemantrenName: `Rayon ${k.name}`,
+        kemantrenName: k.name,
         kemantrenCode: k.code,
       });
       if (officialsPerKemantren >= 2) {
@@ -326,7 +326,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
           id: `off-auto-2-${k.id}`,
           name: `Official Pendamping ${k.name}`,
           role: 'Official Pendamping',
-          kemantrenName: `Rayon ${k.name}`,
+          kemantrenName: k.name,
           kemantrenCode: k.code,
         });
       }
@@ -335,7 +335,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
           id: `off-auto-3-${k.id}`,
           name: `Koordinator Lomba ${k.name}`,
           role: 'Koordinator Lomba',
-          kemantrenName: `Rayon ${k.name}`,
+          kemantrenName: k.name,
           kemantrenCode: k.code,
         });
       }
@@ -344,7 +344,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
           id: `off-auto-4-${k.id}`,
           name: `Official Medis & Logistik`,
           role: 'Official Medis & Logistik',
-          kemantrenName: `Rayon ${k.name}`,
+          kemantrenName: k.name,
           kemantrenCode: k.code,
         });
       }
@@ -495,7 +495,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
       id: `off-c-${Date.now()}`,
       name: newOffName.trim(),
       role: newOffRole,
-      kemantrenName: kem ? `Rayon ${kem.name}` : 'Rayon Kota Yogyakarta',
+      kemantrenName: kem ? kem.name : 'D.I. Yogyakarta',
       kemantrenCode: kem?.code,
     };
     await persistOfficial(newOff);
@@ -706,7 +706,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
               Standar Portrait 5.5cm × 8.8cm (9 Kartu / Lembar A4). Format PNG Satuan / ZIP & Cetak Dokumen.
               {isAdminRayon && currentAdminRayon && (
                 <span className="ml-1.5 font-bold text-blue-700">
-                  (Akses Rayon {currentAdminRayon.name})
+                  (Akses {currentAdminRayon.name})
                 </span>
               )}
             </p>
@@ -848,10 +848,10 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
               }`}
               title={
                 !canAccessOfficial
-                  ? 'Hanya dapat diakses oleh Super Admin dan Admin Rayon'
+                  ? 'Hanya dapat diakses oleh Super Admin dan Admin Kabupaten/Kota'
                   : isAdminRayon
-                  ? `Cetak ID Card Official Rayon ${currentAdminRayon?.name || ''}`
-                  : 'Cetak ID Card Official Seluruh Kontingen Rayon'
+                  ? `Cetak ID Card Official ${currentAdminRayon?.name || ''}`
+                  : 'Cetak ID Card Official Seluruh Kontingen (5 Wilayah)'
               }
             >
               <Shield className="w-4 h-4 text-blue-700" />
@@ -984,7 +984,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
               {/* 3. Filter Rayon */}
               <div>
                 <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
-                  Rayon / Kontingen:
+                  Kabupaten / Kota:
                 </label>
                 <select
                   value={selectedKemantrenFilter}
@@ -994,10 +994,10 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                     !isSuperAdmin ? 'bg-slate-100 cursor-not-allowed' : ''
                   }`}
                 >
-                  {isSuperAdmin && <option value="ALL">Semua Rayon (14 Wilayah)</option>}
+                  {isSuperAdmin && <option value="ALL">Semua Kabupaten/Kota (5 Wilayah)</option>}
                   {kemantrenList.map((k) => (
                     <option key={k.id} value={k.id}>
-                      Rayon {k.name}
+                      {k.name}
                     </option>
                   ))}
                 </select>
@@ -1048,14 +1048,14 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                   <Shield className="w-3.5 h-3.5 text-blue-700" />
                   <span>
                     {isAdminRayon
-                      ? `Sistem Generator Kartu Official Rayon ${currentAdminRayon?.name || ''}`
-                      : 'Sistem Generator Kartu Official Kontingen Rayon'}
+                      ? `Sistem Generator Kartu Official ${currentAdminRayon?.name || ''}`
+                      : 'Sistem Generator Kartu Official Kontingen'}
                   </span>
                 </span>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   {isAdminRayon
-                    ? `Admin Rayon ${currentAdminRayon?.name} dapat mencetak ID Card Ketua Kontingen dan Official pendamping rayon.`
-                    : 'Cetak kartu official untuk 14 Rayon Kota Yogyakarta (Ketua Kontingen, Official, Medis & Logistik).'}
+                    ? `Admin ${currentAdminRayon?.name} dapat mencetak ID Card Ketua Kontingen dan Official pendamping.`
+                    : 'Cetak kartu official untuk seluruh kontingen D.I. Yogyakarta (Ketua Kontingen, Official, Medis & Logistik).'}
                 </p>
               </div>
 
@@ -1067,7 +1067,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                     officialMode === 'auto_kemantren' ? 'bg-blue-900 text-white' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  ⚡ {isAdminRayon ? `Auto Rayon ${currentAdminRayon?.name || ''}` : 'Auto 14 Rayon'}
+                  ⚡ {isAdminRayon ? `Auto ${currentAdminRayon?.name || ''}` : 'Auto 5 Kab/Kota'}
                 </button>
                 <button
                   onClick={() => setOfficialMode('custom')}
@@ -1083,17 +1083,17 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                     officialMode === 'blanko' ? 'bg-blue-900 text-white' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  📝 {isAdminRayon ? 'Blanko Rayon Ini' : 'Blanko per Rayon'}
+                  📝 {isAdminRayon ? 'Blanko Daerah Ini' : 'Blanko per Daerah'}
                 </button>
               </div>
             </div>
 
-            {/* Sub Controls Auto Rayon & Filter Rayon untuk Superadmin */}
+            {/* Sub Controls Auto & Filter untuk Superadmin */}
             {(officialMode === 'auto_kemantren' || officialMode === 'blanko') && (
               <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-blue-100">
                 <div className="flex items-center gap-4">
                   <label className="text-xs font-bold text-slate-700">
-                    Jumlah Kartu per Rayon:
+                    Jumlah Kartu per Daerah:
                   </label>
                   <div className="flex items-center gap-2">
                     {[1, 2, 3, 4].map((num) => (
@@ -1114,16 +1114,16 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
 
                 {isSuperAdmin && (
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold text-slate-700">Pilih Rayon:</label>
+                    <label className="text-xs font-bold text-slate-700">Pilih Daerah:</label>
                     <select
                       value={selectedOfficialRayonFilter}
                       onChange={(e) => setSelectedOfficialRayonFilter(e.target.value)}
                       className="text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg p-1.5"
                     >
-                      <option value="ALL">Semua 14 Rayon</option>
+                      <option value="ALL">Semua 5 Kabupaten/Kota</option>
                       {kemantrenList.map((k) => (
                         <option key={k.id} value={k.id}>
-                          Rayon {k.name}
+                          {k.name}
                         </option>
                       ))}
                     </select>
@@ -1162,13 +1162,13 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                     >
                       {kemantrenList.map((k) => (
                         <option key={k.id} value={k.id}>
-                          Rayon {k.name}
+                          {k.name}
                         </option>
                       ))}
                     </select>
                   ) : (
                     <span className="text-xs font-bold text-blue-900 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                      Rayon {currentAdminRayon?.name || ''}
+                      {currentAdminRayon?.name || ''}
                     </span>
                   )}
 
@@ -1513,7 +1513,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
               Tidak Ada Kartu yang Sesuai Filter
             </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Silakan sesuaikan pilihan jenjang kategori, cabang lomba, rayon, atau kata kunci pencarian Anda.
+              Silakan sesuaikan pilihan jenjang kategori, cabang lomba, kabupaten/kota, atau kata kunci pencarian Anda.
             </p>
           </div>
         ) : (
@@ -1689,7 +1689,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                     }}
                   >
                     <div className="no-print flex items-center justify-between border-b border-slate-100 pb-2 mb-3 text-[11px] text-slate-400 font-mono">
-                      <span className="font-semibold text-blue-800">ID Card Official Kontingen Rayon FASI XIII</span>
+                      <span className="font-semibold text-blue-800">ID Card Official Kontingen FASI XIII</span>
                       <span>Lembar {pageIdx + 1} dari {officialPages.length} ({pageItems.length} Kartu)</span>
                     </div>
                     <div

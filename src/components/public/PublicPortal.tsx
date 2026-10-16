@@ -77,7 +77,7 @@ export const PublicPortal: React.FC<PublicPortalProps> = ({
           </h1>
 
           <p className={`text-sm sm:text-base ${theme.headerSubtext} leading-relaxed font-light`}>
-            {settings?.eventSubtitle || 'Portal resmi pendaftaran santri, validasi otomatis batas usia, pengacakan nomor undian tampil, dan publikasi live score klasemen 14 Rayon se-Kota Yogyakarta.'}
+            {settings?.eventSubtitle || 'Portal resmi pendaftaran santri, validasi otomatis batas usia, pengacakan nomor undian tampil, dan publikasi live score klasemen kontingen se-D.I. Yogyakarta.'}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-3">
@@ -149,11 +149,11 @@ export const PublicPortal: React.FC<PublicPortalProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex items-center gap-3.5">
           <div className={`w-12 h-12 rounded-xl ${theme.accentBg} ${theme.primaryText} flex items-center justify-center font-bold text-xl shrink-0`}>
-            14
+            5
           </div>
           <div>
             <span className="text-xs text-slate-500 font-medium">Kontingen</span>
-            <h4 className="font-bold text-slate-900 text-sm sm:text-base">14 Rayon</h4>
+            <h4 className="font-bold text-slate-900 text-sm sm:text-base">5 Kab / Kota</h4>
           </div>
         </div>
 
@@ -194,17 +194,17 @@ export const PublicPortal: React.FC<PublicPortalProps> = ({
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <BookOpen className={`w-5 h-5 ${theme.primaryText}`} />
-            <h3 className="font-bold text-slate-900 text-base">Sambutan {settings?.eventOrganizer || 'BADKO TKA-TPA Kota Yogyakarta'}</h3>
+            <h3 className="font-bold text-slate-900 text-base">Sambutan {settings?.eventOrganizer || 'BADKO TKA-TPA D.I. Yogyakarta'}</h3>
           </div>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Festival Anak Sholeh Indonesia (FASI) XIII merupakan momentum akbar pembinaan dan evaluasi kualitas santri Al-Qur’an di Kota Yogyakarta. Melalui sistem pendaftaran digital terpadu ini, kami berkomitmen menyelenggarakan kompetisi yang jujur, transparan, dan akuntabel, mulai dari validasi batas usia berstandar baku hingga penjurian real-time.
+            Festival Anak Sholeh Indonesia (FASI) XIII merupakan momentum akbar pembinaan dan evaluasi kualitas santri Al-Qur’an di Daerah Istimewa Yogyakarta. Melalui sistem pendaftaran digital terpadu ini, kami berkomitmen menyelenggarakan kompetisi yang jujur, transparan, dan akuntabel, mulai dari validasi batas usia berstandar baku hingga penjurian real-time.
           </p>
 
           <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
               <span className="font-bold text-slate-800 block">Akun Pendaftaran Mandiri</span>
               <p className="text-slate-500 text-[11px]">
-                14 Admin Rayon mengelola pendaftaran peserta kontingen wilayahnya secara aman.
+                Admin Kabupaten/Kota mengelola pendaftaran peserta kontingen daerahnya secara aman.
               </p>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">

@@ -81,13 +81,13 @@ export async function renderBranchToPdfPage({
 
   pdfDoc.setFontSize(12);
   pdfDoc.setTextColor(6, 78, 59); // emerald-900
-  pdfDoc.text('BADKO TKA-TPA KOTA YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  pdfDoc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
 
   pdfDoc.setFont('helvetica', 'normal');
   pdfDoc.setFontSize(7.5);
   pdfDoc.setTextColor(71, 85, 105); // slate-600
   pdfDoc.text(
-    'Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525',
+    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
     pageWidth / 2,
     topY + 14,
     { align: 'center' }
@@ -377,13 +377,13 @@ export async function renderAttendanceToPdfPage({
 
   pdfDoc.setFontSize(12);
   pdfDoc.setTextColor(6, 78, 59); // emerald-900
-  pdfDoc.text('BADKO TKA-TPA KOTA YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  pdfDoc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
 
   pdfDoc.setFont('helvetica', 'normal');
   pdfDoc.setFontSize(7.5);
   pdfDoc.setTextColor(71, 85, 105); // slate-600
   pdfDoc.text(
-    'Sekretariat : Jln. Kenari No. 56 Muja Muju, Umbulharjo, Kota Yogyakarta | Telp. 085179928551 / 085647392525',
+    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
     pageWidth / 2,
     topY + 14,
     { align: 'center' }
