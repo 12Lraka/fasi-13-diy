@@ -157,10 +157,13 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
           const chunk = tpaParts.slice(i, i + memberCountPerGroup);
           const firstLotteryNum = chunk.find((m) => m.lotteryNumber != null)?.lotteryNumber ?? null;
           const displayTpa = chunk[0]?.tpaUnitName || `Kontingen ${kemName}`;
+          const groupLabel = displayTpa.toLowerCase().includes('regu')
+            ? displayTpa
+            : `Regu ${reguCounter} - ${displayTpa} (${kemName})`;
 
           groups.push({
             groupId: `${kemId}-${tpaKey.replace(/[^a-z0-9]/g, '_')}-${reguCounter}`,
-            groupLabel: `Regu ${reguCounter} - ${displayTpa} (${kemName})`,
+            groupLabel,
             kemantrenId: kemId,
             kemantrenName: kemName,
             tpaUnitName: displayTpa,

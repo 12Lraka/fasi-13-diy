@@ -115,6 +115,8 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
   const [selectedTpaId, setSelectedTpaId] = useState<string>('');
   const [masterTpaList, setMasterTpaList] = useState<MasterTpa[]>(() => getStoredMasterTpa());
   const [categoryId, setCategoryId] = useState<string>('');
+  const [groupRegu, setGroupRegu] = useState<string>('Regu 1');
+  const [customGroupRegu, setCustomGroupRegu] = useState<string>('');
   const [pjName, setPjName] = useState<string>('');
   const [whatsappNumber, setWhatsappNumber] = useState<string>('');
   const [honeypot, setHoneypot] = useState<string>('');
@@ -179,6 +181,23 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
       setPjName(editingParticipant.pjName || '');
       setWhatsappNumber(editingParticipant.whatsappNumber || '');
 
+      // Pulihkan pilihan regu jika ada
+      if (editingParticipant.tpaUnitName) {
+        const u = editingParticipant.tpaUnitName;
+        if (u.includes('Regu 1')) setGroupRegu('Regu 1');
+        else if (u.includes('Regu 2')) setGroupRegu('Regu 2');
+        else if (u.includes('Regu 3')) setGroupRegu('Regu 3');
+        else if (u.includes('Regu 4')) setGroupRegu('Regu 4');
+        else if (u.includes('Regu 5')) setGroupRegu('Regu 5');
+        else if (u.includes(' - ')) {
+          const parts = u.split(' - ');
+          if (parts[1]) {
+            setGroupRegu('CUSTOM');
+            setCustomGroupRegu(parts[1].trim());
+          }
+        }
+      }
+
       // Cari apakah tpaUnitName ada di master
       const matched = masterTpaList.find(
         (t) => t.namaTpa.toLowerCase() === (editingParticipant.tpaUnitName || '').toLowerCase()
@@ -199,6 +218,8 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
       setTpaUnitName(`Kontingen ${targetKem?.name || 'Daerah'}`);
       setSelectedTpaId('');
       setCategoryId('');
+      setGroupRegu('Regu 1');
+      setCustomGroupRegu('');
 
       // Ambil PJ default dari data Kontingen Kabupaten/Kota
       const kemantrenList = getStoredKemantren();
@@ -295,6 +316,36 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
   const currentCategoryObj = useMemo(() => {
     return CATEGORIES_LIST.find((c) => c.id === categoryId);
   }, [categoryId]);
+
+  // Helper menghasilkan nama kontingen & regu untuk cabang beregu / perorangan
+  const getResolvedTpaUnitName = () => {
+    const kemName = getKemantrenName(kemantrenId);
+    if (!currentCategoryObj?.isGroup) {
+      return `Kontingen ${kemName}`;
+    }
+    const reguLabel = groupRegu === 'CUSTOM' ? (customGroupRegu.trim() || 'Regu 1') : groupRegu;
+    return `Kontingen ${kemName} - ${reguLabel}`;
+  };
+
+  // Status santri yang sudah terdaftar di regu ini
+  const reguMembersStatus = useMemo(() => {
+    if (!currentCategoryObj?.isGroup || !categoryId) return null;
+    const targetReguName = getResolvedTpaUnitName();
+    const members = (allParticipants || []).filter(
+      (p) =>
+        p.kemantrenId === kemantrenId &&
+        p.categoryId === categoryId &&
+        (p.tpaUnitName || '').toLowerCase() === targetReguName.toLowerCase() &&
+        p.id !== editingParticipant?.id
+    );
+    const maxCount = currentCategoryObj.groupMemberCount || 3;
+    return {
+      currentCount: members.length,
+      maxCount,
+      members,
+      isFull: members.length >= maxCount,
+    };
+  }, [allParticipants, kemantrenId, categoryId, groupRegu, customGroupRegu, currentCategoryObj, editingParticipant]);
 
   // Analisis Cabang Lomba yang Terisi vs Belum Terisi untuk Kontingen Ini
   const categoryStatusAnalysis = useMemo(() => {
@@ -508,7 +559,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
         isValid: ageEvaluation.isEligible ?? false,
         levelEligible: ageEvaluation.eligibleLevel ?? null,
       },
-      tpaUnitName: (tpaUnitName && tpaUnitName.trim()) ? formatTpaName(sanitizeInput(tpaUnitName)) : `Kontingen ${getKemantrenName(kemantrenId)}`,
+      tpaUnitName: getResolvedTpaUnitName(),
       kemantrenId,
       categoryId,
       documentUrl: editingParticipant?.documentUrl || undefined,
@@ -591,7 +642,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
         isValid: ageEvaluation.isEligible ?? false,
         levelEligible: ageEvaluation.eligibleLevel ?? null,
       },
-      tpaUnitName: (tpaUnitName && tpaUnitName.trim()) ? formatTpaName(sanitizeInput(tpaUnitName)) : `Kontingen ${getKemantrenName(kemantrenId)}`,
+      tpaUnitName: getResolvedTpaUnitName(),
       kemantrenId,
       categoryId,
       pjName: sanitizeInput(pjName),
@@ -626,6 +677,21 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
     setBirthDate(draft.birthDate);
     setKemantrenId(draft.kemantrenId);
     setTpaUnitName(draft.tpaUnitName);
+    if (draft.tpaUnitName) {
+      const u = draft.tpaUnitName;
+      if (u.includes('Regu 1')) setGroupRegu('Regu 1');
+      else if (u.includes('Regu 2')) setGroupRegu('Regu 2');
+      else if (u.includes('Regu 3')) setGroupRegu('Regu 3');
+      else if (u.includes('Regu 4')) setGroupRegu('Regu 4');
+      else if (u.includes('Regu 5')) setGroupRegu('Regu 5');
+      else if (u.includes(' - ')) {
+        const parts = u.split(' - ');
+        if (parts[1]) {
+          setGroupRegu('CUSTOM');
+          setCustomGroupRegu(parts[1].trim());
+        }
+      }
+    }
     setCategoryId(draft.categoryId);
     setPjName(draft.pjName || '');
     setWhatsappNumber(draft.whatsappNumber || '');
@@ -1287,14 +1353,92 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                   </select>
 
                   {currentCategoryObj?.isGroup && (
-                    <div className="mt-2 p-3 bg-amber-50 border border-amber-300 rounded-xl text-[11px] text-amber-950 space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                        <span>SOP Input Cabang Beregu:</span>
+                    <div className="mt-3 p-4 bg-amber-50/80 border-2 border-amber-300 rounded-2xl text-xs space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                        <div className="flex items-center gap-2 font-bold text-amber-950">
+                          <Users2 className="w-4 h-4 text-amber-700" />
+                          <span>Pilihan Kelompok / Regu Santri:</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
+                          Maks {currentCategoryObj.groupMemberCount || 3} Santri / Regu
+                        </span>
                       </div>
-                      <p className="leading-relaxed">
-                        Pastikan seluruh data {currentCategoryObj.groupMemberCount || 3} santri sudah siap sebelum disimpan.
-                        Gunakan nama Unit TKA/TPA yang <strong>sama persis</strong> agar nomor undian beregu digabungkan otomatis.
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-amber-900 mb-1">
+                          Pilih Regu Utusan ({getKemantrenName(kemantrenId)}):
+                        </label>
+                        <select
+                          value={groupRegu}
+                          onChange={(e) => setGroupRegu(e.target.value)}
+                          className="w-full px-3 py-2 text-xs bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold text-slate-900 cursor-pointer"
+                        >
+                          <option value="Regu 1">Regu 1 (Utusan Utama / Juara I Kab/Kota)</option>
+                          <option value="Regu 2">Regu 2 (Juara II Kab/Kota)</option>
+                          <option value="Regu 3">Regu 3 (Juara III Kab/Kota)</option>
+                          <option value="Regu 4">Regu 4 (Harapan I Kab/Kota)</option>
+                          <option value="Regu 5">Regu 5 (Harapan II Kab/Kota)</option>
+                          <option value="CUSTOM">Nama Regu Lainnya (Tulis Manual)...</option>
+                        </select>
+                      </div>
+
+                      {groupRegu === 'CUSTOM' && (
+                        <div>
+                          <label className="block text-[10px] font-bold text-amber-900 mb-1">
+                            Ketik Nama / Kode Regu:
+                          </label>
+                          <input
+                            type="text"
+                            value={customGroupRegu}
+                            onChange={(e) => setCustomGroupRegu(e.target.value)}
+                            placeholder="Contoh: Regu A, Tim B, dll."
+                            className="w-full px-3 py-2 text-xs bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-900"
+                          />
+                        </div>
+                      )}
+
+                      {/* Status Anggota di Regu Terpilih */}
+                      {reguMembersStatus && (
+                        <div className="p-2.5 rounded-xl bg-white border border-amber-200 text-[11px] space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-700">
+                              Anggota Terdaftar di {groupRegu === 'CUSTOM' ? (customGroupRegu || 'Regu') : groupRegu}:
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full font-extrabold text-[10px] ${
+                                reguMembersStatus.isFull
+                                  ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                  : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              }`}
+                            >
+                              {reguMembersStatus.currentCount} / {reguMembersStatus.maxCount} Santri
+                            </span>
+                          </div>
+
+                          {reguMembersStatus.members.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {reguMembersStatus.members.map((m, idx) => (
+                                <span
+                                  key={m.id}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100/70 text-amber-950 font-medium text-[10px] border border-amber-200"
+                                >
+                                  <span className="w-3.5 h-3.5 rounded-full bg-amber-400 text-slate-900 font-bold inline-flex items-center justify-center text-[9px]">
+                                    {idx + 1}
+                                  </span>
+                                  {m.fullName}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-slate-500 italic">
+                              Belum ada santri terdaftar di regu ini. Santri ini akan menjadi anggota ke-1.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-amber-900/80 leading-relaxed">
+                        💡 <strong>Info Undian:</strong> Seluruh santri yang memilih regu yang sama otomatis digabungkan ke dalam 1 nomor undian tampil bersama di halaman <em>Undian Nomor Tampil</em>.
                       </p>
                     </div>
                   )}
@@ -1331,7 +1475,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                       Kafilah Utusan:
                     </span>
                     <span className="text-xs font-extrabold text-slate-900">
-                      Kontingen {getKemantrenName(kemantrenId)}
+                      {getResolvedTpaUnitName()}
                     </span>
                   </div>
                   <div className="text-right">

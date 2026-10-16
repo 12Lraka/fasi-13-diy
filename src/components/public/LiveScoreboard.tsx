@@ -32,9 +32,12 @@ interface RayonTally {
   kemantrenId: string;
   kode: string;
   nama: string;
-  emas: number; // Juara 1
-  perak: number; // Juara 2
-  perunggu: number; // Juara 3
+  emas: number; // Juara 1 (jumlah piala)
+  perak: number; // Juara 2 (jumlah piala)
+  perunggu: number; // Juara 3 (jumlah piala)
+  poinEmas: number; // Akumulasi poin dari Juara 1
+  poinPerak: number; // Akumulasi poin dari Juara 2
+  poinPerunggu: number; // Akumulasi poin dari Juara 3
   totalPoin: number;
   rank: number;
 }
@@ -142,6 +145,9 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
         emas: 0,
         perak: 0,
         perunggu: 0,
+        poinEmas: 0,
+        poinPerak: 0,
+        poinPerunggu: 0,
         totalPoin: 0,
         rank: 1,
       };
@@ -192,18 +198,21 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
       const t1 = findTally(p.juara1?.kemantren);
       if (t1) {
         t1.emas += 1;
+        t1.poinEmas += p1;
         t1.totalPoin += p1;
       }
 
       const t2 = findTally(p.juara2?.kemantren);
       if (t2) {
         t2.perak += 1;
+        t2.poinPerak += p2;
         t2.totalPoin += p2;
       }
 
       const t3 = findTally(p.juara3?.kemantren);
       if (t3) {
         t3.perunggu += 1;
+        t3.poinPerunggu += p3;
         t3.totalPoin += p3;
       }
     });
@@ -358,14 +367,17 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                 <div>
                   <span className="text-slate-400 block text-[10px]">Juara I</span>
                   <strong className="text-amber-600 font-bold text-sm">{top2.emas}</strong>
+                  <span className="text-[10px] text-slate-500 font-medium block">({top2.poinEmas} pt)</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Juara II</span>
                   <strong className="text-slate-600 font-bold text-sm">{top2.perak}</strong>
+                  <span className="text-[10px] text-slate-500 font-medium block">({top2.poinPerak} pt)</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Juara III</span>
                   <strong className="text-amber-800 font-bold text-sm">{top2.perunggu}</strong>
+                  <span className="text-[10px] text-slate-500 font-medium block">({top2.poinPerunggu} pt)</span>
                 </div>
               </div>
             </div>
@@ -397,14 +409,17 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                 <div>
                   <span className="text-amber-900 block text-[10px] font-bold">Juara I</span>
                   <strong className="text-amber-700 font-black text-base">{top1.emas}</strong>
+                  <span className="text-[10px] text-amber-900/80 font-bold block">({top1.poinEmas} pt)</span>
                 </div>
                 <div>
                   <span className="text-slate-700 block text-[10px] font-bold">Juara II</span>
                   <strong className="text-slate-800 font-black text-base">{top1.perak}</strong>
+                  <span className="text-[10px] text-slate-700/80 font-bold block">({top1.poinPerak} pt)</span>
                 </div>
                 <div>
                   <span className="text-amber-950 block text-[10px] font-bold">Juara III</span>
                   <strong className="text-amber-950 font-black text-base">{top1.perunggu}</strong>
+                  <span className="text-[10px] text-amber-950/80 font-bold block">({top1.poinPerunggu} pt)</span>
                 </div>
               </div>
             </div>
@@ -433,14 +448,17 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                 <div>
                   <span className="text-slate-400 block text-[10px]">Juara I</span>
                   <strong className="text-amber-600 font-bold text-sm">{top3.emas}</strong>
+                  <span className="text-[10px] text-slate-500 font-medium block">({top3.poinEmas} pt)</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Juara II</span>
                   <strong className="text-slate-600 font-bold text-sm">{top3.perak}</strong>
+                  <span className="text-[10px] text-slate-500 font-medium block">({top3.poinPerak} pt)</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Juara III</span>
                   <strong className="text-amber-800 font-bold text-sm">{top3.perunggu}</strong>
+                  <span className="text-[10px] text-slate-500 font-medium block">({top3.poinPerunggu} pt)</span>
                 </div>
               </div>
             </div>
@@ -456,7 +474,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                 Klasemen Resmi 5 Kabupaten / Kota ({activeTab === 'umum' ? 'Semua Jenjang' : `Jenjang ${activeTab.toUpperCase()}`})
               </h3>
               <p className="text-xs text-slate-500">
-                Diurutkan berdasarkan Total Poin akumulasi Berita Acara yang telah disahkan.
+                Diurutkan berdasarkan Total Poin akumulasi Berita Acara yang telah disahkan. Menampilkan jumlah piala dan rincian poin per peringkat.
               </p>
             </div>
           </div>
@@ -467,10 +485,22 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                 <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                   <th className="py-3.5 px-4 w-14 text-center">Rank</th>
                   <th className="py-3.5 px-4">Kontingen Daerah</th>
-                  <th className="py-3.5 px-4 text-center bg-amber-50/70 text-amber-950 font-bold w-24">🥇 Juara I</th>
-                  <th className="py-3.5 px-4 text-center bg-slate-100/70 text-slate-800 font-bold w-24">🥈 Juara II</th>
-                  <th className="py-3.5 px-4 text-center bg-amber-900/10 text-amber-950 font-bold w-24">🥉 Juara III</th>
-                  <th className="py-3.5 px-4 text-center font-black bg-amber-100 text-slate-950 w-28">Total Poin</th>
+                  <th className="py-3.5 px-4 text-center bg-amber-50/70 text-amber-950 font-bold min-w-[95px]">
+                    <div>🥇 Juara I</div>
+                    <div className="text-[10px] font-normal text-amber-800/80">(Piala & Poin)</div>
+                  </th>
+                  <th className="py-3.5 px-4 text-center bg-slate-100/70 text-slate-800 font-bold min-w-[95px]">
+                    <div>🥈 Juara II</div>
+                    <div className="text-[10px] font-normal text-slate-600/80">(Piala & Poin)</div>
+                  </th>
+                  <th className="py-3.5 px-4 text-center bg-amber-900/10 text-amber-950 font-bold min-w-[95px]">
+                    <div>🥉 Juara III</div>
+                    <div className="text-[10px] font-normal text-amber-900/80">(Piala & Poin)</div>
+                  </th>
+                  <th className="py-3.5 px-4 text-center font-black bg-amber-100 text-slate-950 min-w-[95px]">
+                    <div>Total Poin</div>
+                    <div className="text-[10px] font-normal text-slate-700">(Akumulasi)</div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -501,14 +531,29 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                     <td className="py-3 px-4 font-semibold text-slate-900">
                       {tally.nama}
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-amber-700 bg-amber-50/30">
-                      {tally.emas}
+                    <td className="py-3 px-4 text-center bg-amber-50/30">
+                      <div className="font-bold text-amber-700 text-sm leading-tight">
+                        {tally.emas}
+                      </div>
+                      <div className="text-[10px] font-semibold text-amber-900/80">
+                        ({tally.poinEmas} pt)
+                      </div>
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-slate-700 bg-slate-100/30">
-                      {tally.perak}
+                    <td className="py-3 px-4 text-center bg-slate-100/30">
+                      <div className="font-bold text-slate-700 text-sm leading-tight">
+                        {tally.perak}
+                      </div>
+                      <div className="text-[10px] font-semibold text-slate-600/80">
+                        ({tally.poinPerak} pt)
+                      </div>
                     </td>
-                    <td className="py-3 px-4 text-center font-bold text-amber-900 bg-amber-900/5">
-                      {tally.perunggu}
+                    <td className="py-3 px-4 text-center bg-amber-900/5">
+                      <div className="font-bold text-amber-900 text-sm leading-tight">
+                        {tally.perunggu}
+                      </div>
+                      <div className="text-[10px] font-semibold text-amber-950/80">
+                        ({tally.poinPerunggu} pt)
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-center font-mono font-black text-slate-950 bg-amber-50 text-sm">
                       {tally.totalPoin}
