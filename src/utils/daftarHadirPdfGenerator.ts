@@ -29,10 +29,10 @@ export interface ExportDaftarHadirPdfOptions {
 }
 
 /**
- * Format tanggal Indonesia resmi pelaksanaan FASI XIII: 11 Oktober 2026
+ * Format tanggal Indonesia resmi pelaksanaan FASI XIII: 08 November 2026
  */
 function getIndonesianDate(): string {
-  return '11 Oktober 2026';
+  return '08 November 2026';
 }
 
 /**
@@ -173,8 +173,8 @@ async function renderSingleCategorySheet(
   pdfDoc.setFontSize(8);
   pdfDoc.setTextColor(30, 41, 59);
 
-  const eventDateText = options.eventDate || 'Minggu, 28 Maret 2026';
-  const venueText = options.venueName || 'SMP Negeri 1 Yogyakarta';
+  const eventDateText = options.eventDate || 'Ahad, 08 November 2026';
+  const venueText = options.venueName || 'SMK Muhammadiyah 3 Yogyakarta';
 
   pdfDoc.text('Hari / Tanggal :', marginX + 3, metaBoxY + 4.2);
   pdfDoc.setFont('helvetica', 'normal');
@@ -293,7 +293,7 @@ async function renderSingleCategorySheet(
 
   // Kanan: Titimangsa Yogyakarta & Penanggung Jawab Kategori
   pdfDoc.setFont('helvetica', 'normal');
-  pdfDoc.text('Yogyakarta, 11 Oktober 2026', rightSignX, signatureY);
+  pdfDoc.text('Yogyakarta, 08 November 2026', rightSignX, signatureY);
   pdfDoc.setFont('helvetica', 'bold');
   pdfDoc.text(meta.signatoryRightRole, rightSignX, signatureY + 4);
 
@@ -301,7 +301,7 @@ async function renderSingleCategorySheet(
   const nameY = signatureY + 22;
 
   // Nama Pengesah Kiri
-  const ketuaName = options.ketuaPanitiaName || 'Andry Sunny, S.E';
+  const ketuaName = options.ketuaPanitiaName || 'Endro Suwarno, S.E.';
   pdfDoc.setFont('helvetica', 'bold');
   pdfDoc.setFontSize(8.5);
   pdfDoc.setTextColor(15, 23, 42);

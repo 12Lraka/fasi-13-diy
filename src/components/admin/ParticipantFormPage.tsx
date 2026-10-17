@@ -505,6 +505,11 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
       return dupCheck.duplicateInfo || 'Santri sudah terdaftar di cabang lomba lain.';
     }
 
+    // Validasi Kapasitas Maksimal Regu Beregu
+    if (currentCategoryObj?.isGroup && reguMembersStatus && reguMembersStatus.isFull) {
+      return `Regu ini sudah terisi penuh (${reguMembersStatus.maxCount} santri). Silakan pilih nomor Regu lain (misal Regu 2 atau Regu 3) untuk anggota kelompok berikutnya.`;
+    }
+
     return null;
   };
 

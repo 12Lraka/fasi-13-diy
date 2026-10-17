@@ -523,7 +523,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
 
         {/* Titimangsa Tempat & Tanggal */}
         <div className="text-right text-xs font-sans mb-3 font-semibold text-slate-800 pr-4">
-          Yogyakarta, 11 Oktober 2026
+          Yogyakarta, 08 November 2026
         </div>
 
         {/* Tanda Tangan Juri I & Juri II */}

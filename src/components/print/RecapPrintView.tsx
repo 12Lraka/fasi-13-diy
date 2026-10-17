@@ -602,7 +602,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
           <div className="flex flex-col items-center justify-between min-h-[105px]">
             <div>
               <p className="text-slate-600 font-medium">
-                Yogyakarta, 11 Oktober 2026
+                Yogyakarta, 08 November 2026
               </p>
               <p className="font-bold text-slate-900 mt-0.5">Koordinator Kesekretariatan</p>
             </div>

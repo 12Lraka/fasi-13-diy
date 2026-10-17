@@ -134,7 +134,7 @@ export function exportParticipantsToExcel(
   });
 
   // Footer signature rows in Excel
-  const dateStrId = '11 Oktober 2026';
+  const dateStrId = '08 November 2026';
   const footerRows = [
     [],
     [],
@@ -144,7 +144,7 @@ export function exportParticipantsToExcel(
     [],
     [],
     [],
-    ['Dicky Artanto, S.Pd., M.Pd.', '', '', '', '', '', '', '', '', '', '', 'Andry Sunny, S.E.'],
+    ['H. Suprapto, S.Ag., M.A', '', '', '', '', '', '', '', '', '', '', 'Endro Suwarno, S.E.'],
   ];
 
   // Combine title, headers, data, and signatures

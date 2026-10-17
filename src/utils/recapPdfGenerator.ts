@@ -290,7 +290,7 @@ export async function renderRecapToPdfPage({
   pdfDoc.setFontSize(8.5);
   pdfDoc.setTextColor(71, 85, 105);
 
-  const dateStr = 'Yogyakarta, 11 Oktober 2026';
+  const dateStr = 'Yogyakarta, 08 November 2026';
 
   if (isDaftarHadir) {
     // Kiri: Mengetahui, Koordinator Registrasi / Kesekretariatan

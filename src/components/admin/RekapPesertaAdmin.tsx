@@ -790,7 +790,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
               <div className="flex flex-col items-center justify-between min-h-[100px]">
                 <div>
                   <p className="text-slate-600 font-medium">
-                    Yogyakarta, 11 Oktober 2026
+                    Yogyakarta, 08 November 2026
                   </p>
                   <p className="font-bold text-slate-900 mt-0.5">Petugas Meja Registrasi</p>
                 </div>
@@ -811,7 +811,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                 </div>
                 <div className="mt-14">
                   <p className="font-extrabold text-slate-950 underline tracking-wide text-xs sm:text-sm">
-                    Dicky Artanto, S.Pd., M.Pd.
+                    H. Suprapto, S.Ag., M.A
                   </p>
                 </div>
               </div>
@@ -820,13 +820,13 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
               <div className="flex flex-col items-center justify-between min-h-[100px]">
                 <div>
                   <p className="text-slate-600 font-medium">
-                    Yogyakarta, 11 Oktober 2026
+                    Yogyakarta, 08 November 2026
                   </p>
-                  <p className="font-bold text-slate-900 mt-0.5">Ketua Panitia FASI XIII</p>
+                  <p className="font-bold text-slate-900 mt-0.5">Ketua Panitia</p>
                 </div>
                 <div className="mt-14">
                   <p className="font-extrabold text-slate-950 underline tracking-wide text-xs sm:text-sm">
-                    Andry Sunny, S.E.
+                    Endro Suwarno, S.E.
                   </p>
                 </div>
               </div>
