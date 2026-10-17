@@ -11,7 +11,7 @@ import { ShieldCheck, MapPin, Calendar, CheckCircle2 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
+    <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 pb-20 lg:pb-0">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-6 border-b border-slate-800">
           {/* Kolom 1: Profil */}

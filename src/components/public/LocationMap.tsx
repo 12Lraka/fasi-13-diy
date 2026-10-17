@@ -2,12 +2,12 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  * 
- * Sistem Informasi FASI XIII Kota Yogyakarta
- * Info Lokasi & Jadwal Pelaksanaan (SMP Negeri 1 Yogyakarta)
+ * Sistem Informasi FASI XIII D.I. Yogyakarta
+ * Info Lokasi & Jadwal Pelaksanaan (SMK Muhammadiyah 3 Yogyakarta)
  */
 
 import React from 'react';
-import { MapPin, Calendar, Clock, Navigation, Phone, ExternalLink, Building2, CheckCircle2 } from 'lucide-react';
+import { MapPin, Calendar, Clock, Navigation, Phone, ExternalLink, Building2 } from 'lucide-react';
 
 export const LocationMap: React.FC = () => {
   return (
@@ -17,19 +17,19 @@ export const LocationMap: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
           <div>
             <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 uppercase tracking-wider">
-              VENUE RESMI FASI XIII
+              VENUE RESMI FASI XIII DIY
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2">
-              SMP Negeri 1 Yogyakarta
+              SMK Muhammadiyah 3 Yogyakarta
             </h2>
             <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-              Jl. Cik Di Tiro No.29, Terban, Kec. Gondokusuman, Kota Yogyakarta, D.I. Yogyakarta 55223
+              Jl. Pramuka No.62, Giwangan, Kec. Umbulharjo, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55163
             </p>
           </div>
 
           <a
-            href="https://maps.google.com/?q=SMP+Negeri+1+Yogyakarta"
+            href="https://maps.google.com/?q=SMK+Muhammadiyah+3+Yogyakarta"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
@@ -47,7 +47,7 @@ export const LocationMap: React.FC = () => {
               <Calendar className="w-4 h-4" />
               <span>Hari & Tanggal</span>
             </div>
-            <p className="font-semibold text-slate-900 text-sm">Ahad (Minggu), 11 Oktober 2026</p>
+            <p className="font-semibold text-slate-900 text-sm">Ahad, 8 November 2026</p>
             <p className="text-slate-500 text-[11px]">Waktu: 07.00 WIB s.d. Selesai</p>
           </div>
 
@@ -78,48 +78,16 @@ export const LocationMap: React.FC = () => {
           <h3 className="font-bold text-slate-900 text-base">Rundown Pelaksanaan Hari-H</h3>
         </div>
 
-        <div className="relative pl-6 border-l-2 border-emerald-500/30 space-y-5 text-xs">
-          <div className="relative">
-            <div className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-600 border-2 border-white"></div>
-            <div className="font-bold text-slate-900">06.30 - 07.30 WIB</div>
-            <div className="text-slate-700 font-semibold">Registrasi Ulang, Check-in QR Kontingen 14 Rayon & PRA ACARA</div>
-            <p className="text-slate-500 text-[11px]">Verifikasi ID Card & PRA ACARA.</p>
+        <div className="p-8 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-center space-y-2">
+          <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mx-auto">
+            <Clock className="w-5 h-5" />
           </div>
-
-          <div className="relative">
-            <div className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-600 border-2 border-white"></div>
-            <div className="font-bold text-slate-900">07.30 - 08.50 WIB</div>
-            <div className="text-slate-700 font-semibold">Upacara Pembukaan & Defile Kontingen</div>
-            <p className="text-slate-500 text-[11px]">Sambutan Walikota Yogyakarta & Ketua Umum Badko TPA D.I. Yogyakarta.</p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white"></div>
-            <div className="font-bold text-amber-900 font-mono">08.50 - 11.30 WIB</div>
-            <div className="text-slate-900 font-semibold">Pelaksanaan 18 Cabang Lomba (TKA, TPA, TQA)</div>
-            <p className="text-slate-500 text-[11px]">Sesuai nomor urut undian tampil di masing-masing panggung dan ruang penjurian.</p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-600 border-2 border-white"></div>
-            <div className="font-bold text-slate-900">11.30 - 12.30 WIB</div>
-            <div className="text-slate-700 font-semibold">Ishoma (Istirahat, Sholat Dzuhur Berjamaah, & Makan Siang)</div>
-            <p className="text-slate-500 text-[11px]">Masjid SMP Negeri 1 Yogyakarta.</p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-600 border-2 border-white"></div>
-            <div className="font-bold text-slate-900">12.30 - 14.15 WIB</div>
-            <div className="text-slate-700 font-semibold">Lanjutan Lomba & Rekapitulasi Nilai Dewan Hakim</div>
-            <p className="text-slate-500 text-[11px]">Input digital nilai 3 juri & penentuan Juara 1, 2, 3 per cabang.</p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -left-[31px] top-0.5 w-3.5 h-3.5 rounded-full bg-amber-500 border-2 border-white"></div>
-            <div className="font-bold text-amber-900 font-mono">14.15 - 15.00 WIB</div>
-            <div className="text-slate-900 font-semibold">Pengumuman Pemenang, Penyerahan Piala & Juara Umum FASI XIII</div>
-            <p className="text-slate-500 text-[11px]">Penetapan Juara Umum FASI XIII Kota Yogyakarta.</p>
-          </div>
+          <p className="text-slate-800 font-bold text-xs">
+            Rundown Definitif Belum Dirilis
+          </p>
+          <p className="text-slate-500 text-[11px] max-w-md mx-auto leading-relaxed">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Susunan jadwal dan rundown resmi Hari-H akan diperbarui oleh Panitia Pelaksana mendekati waktu pelaksanaan.
+          </p>
         </div>
       </div>
     </div>
