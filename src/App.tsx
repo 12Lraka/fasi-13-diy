@@ -63,10 +63,34 @@ import { getThemeConfig } from './utils/theme';
 import { AppSettings } from './types/fasi';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<AppRoute>('beranda');
+  const [session, setSession] = useState<UserSession | null>(() => getStoredSession());
+
+  const [activeTab, setActiveTab] = useState<AppRoute>(() => {
+    const initial = getCurrentRouteFromURL();
+    const curSession = getStoredSession();
+    if (initial === 'kalkulator' || initial === 'login' || initial === 'presensi') {
+      return 'beranda';
+    }
+    const isProtected = [
+      'admin', 'admin-dashboard', 'admin-data-peserta', 'admin-form-peserta',
+      'admin-rekap-peserta', 'admin-rekapcbg-lomba', 'hasil-cabang', 'berita-acara',
+      'master-tpa', 'panitia-juri', 'pengaturan', 'log', 'superadmin', 'adminkecamatan',
+      'undian', 'rekapitulasi'
+    ].includes(initial);
+
+    if (isProtected) {
+      if (!curSession) return 'beranda';
+      const isSuperOnly = [
+        'admin-rekapcbg-lomba', 'hasil-cabang', 'berita-acara',
+        'panitia-juri', 'pengaturan', 'log'
+      ].includes(initial);
+      if (isSuperOnly && curSession.role !== 'super_admin') return 'admin-dashboard';
+      return (initial === 'admin' || initial === 'superadmin' || initial === 'adminkecamatan') ? 'admin-dashboard' : initial;
+    }
+    return initial;
+  });
 
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [session, setSession] = useState<UserSession | null>(null);
   const [settings, setSettings] = useState<AppSettings>(getStoredSettings());
 
   // Modals
@@ -82,7 +106,8 @@ export default function App() {
 
   // Handler Buka Presensi QR (Bypass PIN fasi132026 untuk Petugas Lapangan)
   const handleOpenPresensi = () => {
-    if (session && session.role === 'super_admin') {
+    const currentSession = session || getStoredSession();
+    if (currentSession && currentSession.role === 'super_admin') {
       setIsQrScannerOpen(true);
       return;
     }
@@ -96,7 +121,9 @@ export default function App() {
   // Print Queue
   const [printQueue, setPrintQueue] = useState<Participant[]>([]);
 
-  const applyRoute = (route: AppRoute, updateHistory: boolean = true) => {
+  const applyRoute = (route: AppRoute, updateHistory: boolean = true, activeSession?: UserSession | null) => {
+    const effectiveSession = activeSession !== undefined ? activeSession : (session || getStoredSession());
+
     if (updateHistory) {
       navigateToRoute(route);
     }
@@ -109,12 +136,12 @@ export default function App() {
 
     if (route === 'login') {
       setIsLoginOpen(true);
-      setActiveTab(session ? 'admin' : 'beranda');
+      setActiveTab(effectiveSession ? 'admin-dashboard' : 'beranda');
       return;
     }
 
     if (route === 'undian') {
-      if (session) {
+      if (effectiveSession) {
         setActiveTab('undian');
       } else {
         setIsLoginOpen(true);
@@ -144,7 +171,7 @@ export default function App() {
       route === 'superadmin' ||
       route === 'adminkecamatan'
     ) {
-      if (!session) {
+      if (!effectiveSession) {
         setIsLoginOpen(true);
         setActiveTab('beranda');
       } else {
@@ -156,7 +183,7 @@ export default function App() {
           route === 'panitia-juri' ||
           route === 'pengaturan' ||
           route === 'log';
-        if (isSuperOnly && session.role !== 'super_admin') {
+        if (isSuperOnly && effectiveSession.role !== 'super_admin') {
           setActiveTab('admin-dashboard');
         } else {
           setActiveTab(route === 'admin' || route === 'superadmin' || route === 'adminkecamatan' ? 'admin-dashboard' : route);
@@ -166,7 +193,7 @@ export default function App() {
     }
 
     if (route === 'rekapitulasi') {
-      if (session) {
+      if (effectiveSession) {
         setActiveTab('rekapitulasi');
       } else {
         setIsLoginOpen(true);
@@ -283,7 +310,7 @@ export default function App() {
 
     // Initial URL Routing sync
     const initialRoute = getCurrentRouteFromURL();
-    applyRoute(initialRoute, false);
+    applyRoute(initialRoute, false, storedSession);
 
     // Browser navigation event listeners
     const handlePopState = () => {
