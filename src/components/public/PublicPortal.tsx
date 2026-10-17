@@ -27,8 +27,8 @@ export const PublicPortal: React.FC<PublicPortalProps> = ({
   onNavigateTab,
 }) => {
   const theme = getThemeConfig(settings?.themeColor);
-  // Target Tanggal Acara: Ahad, 11 Oktober 2026 07:00:00 WIB
-  const targetDate = new Date('2026-10-11T07:00:00+07:00').getTime();
+  // Target Tanggal Acara: Ahad, 8 November 2026 07:00:00 WIB
+  const targetDate = new Date('2026-11-08T07:00:00+07:00').getTime();
 
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
@@ -105,7 +105,7 @@ export const PublicPortal: React.FC<PublicPortalProps> = ({
         <div className={`mt-8 pt-6 border-t ${theme.headerBorder} relative z-10`}>
           <div className="text-xs font-bold text-amber-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <Calendar className="w-4 h-4" />
-            <span>Hitung Mundur Menuju Hari-H Pelaksanaan ({settings?.eventDate || 'Ahad, 11 Oktober 2026'}):</span>
+            <span>Hitung Mundur Menuju Hari-H Pelaksanaan ({settings?.eventDate || 'Ahad, 8 November 2026'}):</span>
           </div>
 
           <div className="grid grid-cols-4 gap-2 sm:gap-4 max-w-lg">
