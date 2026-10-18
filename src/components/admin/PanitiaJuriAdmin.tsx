@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  * 
- * Sistem Informasi FASI XIII Kota Yogyakarta
+ * Sistem Informasi FASI XIII D.I. Yogyakarta
  * Panel Manajemen Data Panitia, Panitera & Dewan Hakim (Superadmin Only)
  * Terhubung langsung ke Studio Cetak ID Card dan Generator PDF Daftar Hadir
  */
@@ -29,13 +29,16 @@ import {
   X,
   Check,
   ChevronDown,
+  FileSpreadsheet,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { IdCardCommitteeData, UserSession } from '../../types/fasi';
 import {
   getStoredCommittees,
   saveCommitteesList,
   persistCommittee,
   removeCommittee,
+  clearStoredCommittees,
   syncCommitteesFromCloud,
   getStoredSettings,
   logAuditEvent,
@@ -61,6 +64,7 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
   const [selectedAccessLevel, setSelectedAccessLevel] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
 
   // Form Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -287,6 +291,33 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
     showToast('info', `Data ${item.name} telah dihapus.`);
   };
 
+  // Handle Kosongkan Semua Data Perangkat
+  const handleClearAllCommittees = async () => {
+    if (committees.length === 0) {
+      showToast('info', 'Data perangkat sudah dalam keadaan bersih/kosong.');
+      return;
+    }
+
+    const confirmed = await showConfirmDialog(
+      'Kosongkan Semua Data Perangkat?',
+      `Perhatian: Seluruh data panitia, panitera, dan dewan hakim (${committees.length} orang) akan dibersihkan dari penyimpanan lokal (Local Storage). Tindakan ini tidak dapat dibatalkan.`,
+      'Ya, Kosongkan Semua'
+    );
+
+    if (!confirmed) return;
+
+    clearStoredCommittees();
+    setCommittees([]);
+
+    logAuditEvent(
+      session.name,
+      'KOSONGKAN_SEMUA_PANITIA_HAKIM',
+      `Mengosongkan seluruh data perangkat panitia, panitera, dan dewan hakim dari sistem.`
+    );
+
+    showToast('success', 'Seluruh data perangkat berhasil dikosongkan!');
+  };
+
   // Handle Download PDF Daftar Hadir
   const handleDownloadPdf = async (type: 'dewan_hakim' | 'panitera' | 'panitia' | 'all') => {
     setIsGeneratingPdf(true);
@@ -305,6 +336,167 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
       showToast('error', 'Gagal membuat dokumen PDF Daftar Hadir.');
     } finally {
       setIsGeneratingPdf(false);
+    }
+  };
+
+  // Handle Download Excel (.xlsx) Resmi
+  const handleDownloadExcel = (targetCategory?: 'dewan_hakim' | 'panitera' | 'panitia' | 'all') => {
+    setIsExportingExcel(true);
+    try {
+      const catToUse = targetCategory !== undefined ? targetCategory : selectedCategory;
+      let dataToExport = [...committees];
+
+      if (catToUse !== 'all') {
+        dataToExport = dataToExport.filter((item) => (item.cardCategory || 'panitia') === catToUse);
+      } else if (searchQuery.trim() || selectedAccessLevel !== 'all') {
+        dataToExport = [...filteredList];
+      }
+
+      if (dataToExport.length === 0) {
+        showToast('warning', 'Tidak ada data personel untuk diekspor ke format Excel.');
+        setIsExportingExcel(false);
+        return;
+      }
+
+      // Urutkan data secara rapi: Kategori (Dewan Hakim -> Panitera -> Panitia) -> Jabatan / Penugasan -> Nama
+      const CATEGORY_ORDER: Record<string, number> = {
+        dewan_hakim: 1,
+        panitera: 2,
+        panitia: 3,
+      };
+
+      const sortedData = [...dataToExport].sort((a, b) => {
+        const catA = a.cardCategory || 'panitia';
+        const catB = b.cardCategory || 'panitia';
+        const rankA = CATEGORY_ORDER[catA] || 99;
+        const rankB = CATEGORY_ORDER[catB] || 99;
+        if (rankA !== rankB) return rankA - rankB;
+
+        const divA = a.division || '';
+        const divB = b.division || '';
+        const divComp = divA.localeCompare(divB, 'id');
+        if (divComp !== 0) return divComp;
+
+        return (a.name || '').localeCompare(b.name || '', 'id');
+      });
+
+      // Label kategori untuk judul kop dokumen Excel
+      const categoryLabel =
+        catToUse === 'dewan_hakim'
+          ? 'DEWAN HAKIM & JURI'
+          : catToUse === 'panitera'
+          ? 'PANITERA LOMBA'
+          : catToUse === 'panitia'
+          ? 'PANITIA PELAKSANA'
+          : 'PANITIA, PANITERA & DEWAN HAKIM';
+
+      // Baris Kop Surat Resmi
+      const titleRows = [
+        ['FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII'],
+        ['BADKO TKA-TPA D.I. YOGYAKARTA'],
+        ['Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194'],
+        [],
+        [`DAFTAR DATA ${categoryLabel}`],
+        [
+          `Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })} | Total Personel: ${sortedData.length} Orang`,
+        ],
+        [],
+      ];
+
+      // Header Kolom Tabel
+      const headers = [
+        'No',
+        'Kategori Perangkat',
+        'Nama Lengkap & Gelar',
+        'Jabatan / Penugasan Cabang Lomba',
+        'Hak Akses Ruang / Arena',
+        'Badge Kartu ID',
+        'ID Personel',
+      ];
+
+      // Baris Data
+      const dataRows = sortedData.map((item, index) => {
+        const cat = item.cardCategory || 'panitia';
+        const categoryText =
+          cat === 'dewan_hakim'
+            ? 'Dewan Hakim / Juri'
+            : cat === 'panitera'
+            ? 'Panitera Lomba'
+            : 'Panitia Pelaksana';
+
+        return [
+          index + 1,
+          categoryText,
+          item.name || '-',
+          item.division || '-',
+          item.accessLevel || 'ALL ACCESS',
+          item.customBadge || (cat === 'dewan_hakim' ? 'DEWAN HAKIM' : cat === 'panitera' ? 'PANITERA' : 'PANITIA'),
+          item.id || '-',
+        ];
+      });
+
+      // Tanda Tangan Resmi di Bawah
+      const dateStrId = '08 November 2026';
+      const footerRows = [
+        [],
+        [],
+        ['', '', '', '', 'Yogyakarta, ' + dateStrId],
+        ['Mengetahui,', '', '', '', 'Ketua Panitia FASI XIII'],
+        ['Ketua Umum BADKO TKA-TPA DIY', '', '', '', ''],
+        [],
+        [],
+        [],
+        ['H. Suprapto, S.Ag., M.A', '', '', '', 'Endro Suwarno, S.E.'],
+      ];
+
+      const sheetData = [...titleRows, headers, ...dataRows, ...footerRows];
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Lebar Kolom
+      ws['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 24 }, // Kategori Perangkat
+        { wch: 36 }, // Nama Lengkap & Gelar
+        { wch: 36 }, // Jabatan / Penugasan
+        { wch: 28 }, // Hak Akses Ruang
+        { wch: 20 }, // Badge Kartu ID
+        { wch: 20 }, // ID Personel
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const sheetName =
+        catToUse === 'dewan_hakim'
+          ? 'Dewan Hakim'
+          : catToUse === 'panitera'
+          ? 'Panitera'
+          : catToUse === 'panitia'
+          ? 'Panitia'
+          : 'Data Perangkat';
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const catFileName =
+        catToUse === 'all'
+          ? 'Panitia_Panitera_Hakim'
+          : catToUse === 'dewan_hakim'
+          ? 'Dewan_Hakim_Juri'
+          : catToUse === 'panitera'
+          ? 'Panitera_Lomba'
+          : 'Panitia_Pelaksana';
+      const fullFileName = `Data_${catFileName}_FASI_XIII_DIY_${dateStr}.xlsx`;
+
+      // Simpan sebagai file Excel (.xlsx) asli
+      XLSX.writeFile(wb, fullFileName);
+      showToast('success', `File Excel (${fullFileName}) berhasil diunduh!`);
+    } catch (err: any) {
+      console.error('Gagal export Excel panitia & juri:', err);
+      showToast('error', 'Gagal membuat file Excel perangkat.');
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -335,9 +527,6 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
             <Scale className="w-6 h-6 text-amber-400" />
             <span>Data Panitia, Panitera & Dewan Hakim</span>
           </h2>
-          <p className="text-xs sm:text-sm text-emerald-200 mt-1 max-w-2xl leading-relaxed">
-            Pusat administrasi resmi perangkat lomba FASI XIII. Terhubung otomatis dengan sistem Cetak ID Card dan Lembar Presensi / Daftar Hadir ber-KOP BADKO Kota Yogyakarta.
-          </p>
         </div>
 
         {/* Action Header Buttons */}
@@ -353,6 +542,17 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
               <span>Cetak ID Card</span>
             </button>
           )}
+
+          {/* Tombol Download Excel (.xlsx) */}
+          <button
+            onClick={() => handleDownloadExcel()}
+            disabled={isExportingExcel}
+            className="px-3.5 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs border border-emerald-600/50 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap disabled:opacity-60"
+            title="Unduh Data Panitia, Panitera & Dewan Hakim format Microsoft Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+            <span>{isExportingExcel ? 'Membuat Excel...' : 'Download Excel (.xlsx)'}</span>
+          </button>
 
           {/* Tombol Download PDF Presensi Dropdown */}
           <div className="relative">
@@ -401,9 +601,32 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                   <Download className="w-4 h-4 text-slate-700 shrink-0" />
                   <span>Unduh Semua Paket Lengkap (3 Lembar)</span>
                 </button>
+                <div className="border-t border-slate-100 my-1"></div>
+                <button
+                  onClick={() => {
+                    setShowDownloadMenu(false);
+                    handleDownloadExcel(selectedCategory);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-950 bg-emerald-50 hover:bg-emerald-100 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Download File Excel (.xlsx)</span>
+                </button>
               </div>
             )}
           </div>
+
+          {/* Tombol Kosongkan Semua Data */}
+          {committees.length > 0 && (
+            <button
+              onClick={handleClearAllCommittees}
+              className="px-3.5 py-2.5 bg-rose-900/80 hover:bg-rose-800 text-rose-100 hover:text-white font-bold text-xs rounded-xl shadow-xs border border-rose-700/50 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+              title="Kosongkan seluruh data personel perangkat dari penyimpanan lokal"
+            >
+              <Trash2 className="w-4 h-4 text-rose-300" />
+              <span>Kosongkan Data</span>
+            </button>
+          )}
 
           {/* Tombol Tambah Personel */}
           <button
@@ -631,7 +854,7 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
             )}
           </div>
           <span className="text-[11px] text-slate-500 font-medium">
-            Format Resmi FASI XIII BADKO Kota Yogyakarta
+            Format Resmi FASI XIII BADKO TKA-TPA D.I. YOGYAKARTA
           </span>
         </div>
 

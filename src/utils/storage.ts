@@ -756,30 +756,39 @@ export async function syncOfficialsFromCloud(): Promise<IdCardOfficialData[]> {
  * ============================================================================
  */
 
-export const DEFAULT_COMMITTEES: IdCardCommitteeData[] = [
-  { id: 'com-1', name: 'Dr. H. Muhammad Asrori, M.Ag', division: 'Ketua Panitia FASI XIII', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
-  { id: 'com-2', name: 'Ustadz Ridwan Hakim, S.T', division: 'Sekretaris Panitia', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
-  { id: 'com-3', name: 'Ustadzah Hj. Maryam, S.E', division: 'Bendahara Panitia', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
-  { id: 'com-4', name: 'Ustadz Farhan Al-Ghifari, S.Pd', division: 'Koordinator Sie Acara & Lomba', accessLevel: 'STAGE & LOMBA', cardCategory: 'panitia', customBadge: 'PANITIA' },
-  { id: 'com-5', name: 'Ustadz Ilham Ramadhan, S.Kom', division: 'Koordinator Sie IT & Registrasi', accessLevel: 'ALL ACCESS', cardCategory: 'panitia', customBadge: 'PANITIA' },
-  { id: 'com-6', name: 'K.H. Ahmad Syukri, M.S.I', division: 'Koordinator Dewan Hakim', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
-  { id: 'com-7', name: 'Ustadz M. Qasim, S.Th.I', division: 'Sekretaris Dewan Hakim', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
-  { id: 'com-8', name: 'Dewan Hakim Tilawah Al-Qur\'an', division: 'Cabang Tilawah (TKA, TPA, TQA)', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
-  { id: 'com-9', name: 'Dewan Hakim Tahfidz Juz \'Amma', division: 'Cabang Tahfidz (TPA & TQA)', accessLevel: 'RUANG HAKIM & JURI', cardCategory: 'dewan_hakim', customBadge: 'DEWAN HAKIM' },
-  { id: 'com-10', name: 'Panitera Cabang Tilawah Al-Qur\'an', division: 'Panitera Arena Tilawah', accessLevel: 'ARENA LOMBA & MEJA PANITERA', cardCategory: 'panitera', customBadge: 'PANITERA' },
-  { id: 'com-11', name: 'Panitera Cabang Tahfidz Juz \'Amma', division: 'Panitera Arena Tahfidz', accessLevel: 'ARENA LOMBA & MEJA PANITERA', cardCategory: 'panitera', customBadge: 'PANITERA' },
-  { id: 'com-12', name: 'Panitera Cerdas Cermat Al-Qur\'an', division: 'Panitera Arena CCQ', accessLevel: 'ARENA LOMBA & MEJA PANITERA', cardCategory: 'panitera', customBadge: 'PANITERA' },
-];
+export const DEFAULT_COMMITTEES: IdCardCommitteeData[] = [];
 
 export function getStoredCommittees(): IdCardCommitteeData[] {
   try {
     const raw = localStorage.getItem(COMMITTEES_KEY);
-    if (!raw) return DEFAULT_COMMITTEES;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_COMMITTEES;
+    if (!Array.isArray(parsed)) return [];
+
+    // Jika data di local storage masih merupakan 12 data dummy bawaan lama, otomatis bersihkan
+    const isOldDummyData =
+      parsed.length === 12 &&
+      parsed.some((p: IdCardCommitteeData) => p.name === 'Dr. H. Muhammad Asrori, M.Ag');
+    if (isOldDummyData) {
+      localStorage.setItem(COMMITTEES_KEY, JSON.stringify([]));
+      return [];
+    }
+
+    return parsed;
   } catch (err) {
     console.error('Gagal mengambil data stored committees:', err);
-    return DEFAULT_COMMITTEES;
+    return [];
+  }
+}
+
+export function clearStoredCommittees(): void {
+  try {
+    localStorage.setItem(COMMITTEES_KEY, JSON.stringify([]));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasi_committees_updated', { detail: [] }));
+    }
+  } catch (err) {
+    console.error('Gagal mengosongkan data committees:', err);
   }
 }
 

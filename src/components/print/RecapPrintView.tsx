@@ -28,7 +28,7 @@ import { exportParticipantsToExcel } from '../../utils/excelExport';
 import { showToast } from '../../utils/sweetalert';
 import { downloadSingleRecapPdf, downloadAllKemantrenRecapPdf } from '../../utils/recapPdfGenerator';
 
-const LOGO_BADKO_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logobadko.png';
+const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
 const LOGO_FASI_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png';
 
 interface RecapPrintViewProps {
