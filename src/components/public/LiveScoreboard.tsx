@@ -341,7 +341,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </div>
               <div>
                 <span className="text-[11px] font-extrabold text-amber-300 uppercase tracking-widest block">
-                  PORTAL PUBLIKASI RESMI FASI XIII D.I. YOGYAKARTA
+                  PORTAL PUBLIKASI FASI XIII D.I. YOGYAKARTA
                 </span>
                 <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight">
                   Live Scoreboard & Klasemen Jenjang
@@ -349,14 +349,10 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </div>
             </div>
             <p className={`text-xs sm:text-sm ${theme.headerSubtext} max-w-2xl leading-relaxed`}>
-              Rekapitulasi perolehan poin resmi per jenjang kejuaraan FASI XIII D.I. Yogyakarta.
+              Rekapitulasi perolehan poin per jenjang kejuaraan FASI XIII D.I. Yogyakarta.
               <br />
               <span className="text-amber-300 font-semibold">
                 ★ Cabang Utama (Tartil & Tilawah): J1=7pt, J2=5pt, J3=3pt | Cabang Umum: J1=5pt, J2=3pt, J3=1pt.
-              </span>
-              <br />
-              <span className="text-emerald-200 text-xs italic">
-                * Catatan: Klasemen Juara Umum D.I. Yogyakarta akan diumumkan secara resmi pada Malam Penganugerahan Akbar.
               </span>
             </p>
           </div>
@@ -457,7 +453,7 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
               </h3>
             </div>
             <p className="text-xs text-slate-500">
-              Pantauan progres penilaian dewan hakim di arena majelis {getJenjangLabel(activeTab)}. Nama pemenang dirahasiakan hingga Pengumuman Akbar.
+              Pantauan progres hasil {getJenjangLabel(activeTab)}.
             </p>
           </div>
 
@@ -549,9 +545,6 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                           </span>
                         )}
                       </h4>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                        {cat.description}
-                      </p>
                     </div>
                   </div>
 
