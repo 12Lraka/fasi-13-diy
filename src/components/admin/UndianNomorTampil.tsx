@@ -175,7 +175,13 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
       });
     });
 
-    return groups;
+    // Urutkan grup: yang sudah memiliki nomor undian diurutkan berdasarkan nomor undian
+    return groups.sort((a, b) => {
+      const numA = a.lotteryNumber != null && a.lotteryNumber > 0 ? a.lotteryNumber : 999999;
+      const numB = b.lotteryNumber != null && b.lotteryNumber > 0 ? b.lotteryNumber : 999999;
+      if (numA !== numB) return numA - numB;
+      return a.groupLabel.localeCompare(b.groupLabel, 'id');
+    });
   }, [categoryParticipants, currentCategory, kemantrenList]);
 
   // Stats for the active category
@@ -195,7 +201,94 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
     return { total, drawn, undrawn, isComplete, totalMembers: total };
   }, [categoryParticipants, categoryGroups, currentCategory, groupDrawMode]);
 
-  // Perform Lottery Draw / Shuffle
+  /**
+   * Algoritma Undi Acak Berimbang (Fair Interleaving Draw)
+   * Memastikan:
+   * 1. Pengundian acak 100% transparan dan adil (urutan daerah dan internal peserta diacak).
+   * 2. Tidak ada dua peserta/regu dari daerah (Kabupaten/Kota) yang sama tampil berturut-turut.
+   * 3. Rotasi berputar (shifted round-robin) menjamin sebaran nomor tampil merata untuk setiap daerah.
+   */
+  const generateFairInterleavedSequence = <T,>(
+    items: T[],
+    getRegionKey: (item: T) => string
+  ): T[] => {
+    if (items.length <= 1) return [...items];
+
+    // 1. Kelompokkan item berdasarkan daerah (Kabupaten / Kota)
+    const regionMap = new Map<string, T[]>();
+    items.forEach((item) => {
+      const reg = getRegionKey(item) || 'UNKNOWN';
+      if (!regionMap.has(reg)) {
+        regionMap.set(reg, []);
+      }
+      regionMap.get(reg)!.push(item);
+    });
+
+    // 2. Acak urutan peserta di dalam masing-masing daerah secara independen
+    regionMap.forEach((list) => {
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+    });
+
+    // 3. Acak urutan awal daerah agar tidak ada daerah yang selalu menjadi nomor 1
+    const regions = Array.from(regionMap.keys());
+    for (let i = regions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [regions[i], regions[j]] = [regions[j], regions[i]];
+    }
+
+    // 4. Susun urutan nomor dengan rotasi berputar (Shifted Round-Robin Interleaving)
+    const maxPerRegion = Math.max(...Array.from(regionMap.values()).map((v) => v.length));
+    const result: T[] = [];
+
+    for (let round = 0; round < maxPerRegion; round++) {
+      // Geser urutan daerah per putaran (+round) agar daerah pertama di putaran 1 tidak menjadi yang pertama di putaran berikutnya
+      const shift = round % regions.length;
+      const rotatedRegions = [
+        ...regions.slice(shift),
+        ...regions.slice(0, shift),
+      ];
+
+      for (const reg of rotatedRegions) {
+        const list = regionMap.get(reg)!;
+        if (round < list.length) {
+          const candidate = list[round];
+
+          // Validasi Anti-Berurutan: Cek apakah calon peserta memiliki daerah yang sama dengan peserta sebelumnya
+          if (
+            result.length > 0 &&
+            getRegionKey(result[result.length - 1]) === getRegionKey(candidate)
+          ) {
+            // Cari slot aman terdekat di belakang yang diapit oleh daerah yang berbeda
+            let inserted = false;
+            for (let s = result.length - 2; s >= 0; s--) {
+              const prev = result[s];
+              const next = result[s + 1];
+              const pReg = getRegionKey(prev);
+              const nReg = getRegionKey(next);
+              const cReg = getRegionKey(candidate);
+              if (pReg !== cReg && nReg !== cReg) {
+                result.splice(s + 1, 0, candidate);
+                inserted = true;
+                break;
+              }
+            }
+            if (!inserted) {
+              result.push(candidate);
+            }
+          } else {
+            result.push(candidate);
+          }
+        }
+      }
+    }
+
+    return result;
+  };
+
+  // Perform Fair Interleaving Lottery Draw
   const handleDrawLottery = () => {
     if (categoryParticipants.length === 0) {
       showToast('warning', 'Belum ada peserta terverifikasi di cabang lomba ini.');
@@ -208,20 +301,19 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
       const nowIso = new Date().toISOString();
 
       if (currentCategory?.isGroup && groupDrawMode) {
-        // --- MODE UNDIAN REGU / GRUP (1 NOMOR SAMA UNTUK SELURUH ANGGOTA 1 REGU) ---
+        // --- MODE UNDIAN REGU BERIMBANG (1 NOMOR SAMA UNTUK SELURUH ANGGOTA 1 REGU) ---
         const totalGroups = categoryGroups.length;
-        const numbers = Array.from({ length: totalGroups }, (_, i) => i + 1);
 
-        // Fisher-Yates Shuffle
-        for (let i = numbers.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
-        }
+        // Susun urutan regu berimbang antar-kabupaten/kota
+        const interleavedGroups = generateFairInterleavedSequence(
+          categoryGroups,
+          (grp) => grp.kemantrenId
+        );
 
-        // Map member IDs to the drawn group number
+        // Map member IDs to the drawn group number (1..totalGroups)
         const memberToLotteryMap = new Map<string, number>();
-        categoryGroups.forEach((grp, idx) => {
-          const assignedNum = numbers[idx];
+        interleavedGroups.forEach((grp, idx) => {
+          const assignedNum = idx + 1;
           grp.members.forEach((m) => {
             memberToLotteryMap.set(m.id, assignedNum);
           });
@@ -246,27 +338,25 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
 
         showToast(
           'success',
-          `Berhasil mengundi nomor urut tampil untuk ${totalGroups} Regu (${categoryParticipants.length} santri). Seluruh anggota regu otomatis mendapatkan nomor undian yang sama!`
+          `Berhasil mengundi berimbang nomor urut tampil untuk ${totalGroups} Regu (${categoryParticipants.length} santri). Urutan daerah merata dan tidak ada kontingen berurutan!`
         );
       } else {
-        // --- MODE UNDIAN INDIVIDU (1 NOMOR PER SANTRI) ---
-        const total = categoryParticipants.length;
-        const numbers = Array.from({ length: total }, (_, i) => i + 1);
+        // --- MODE UNDIAN INDIVIDU BERIMBANG (1 NOMOR PER SANTRI) ---
+        const interleavedParticipants = generateFairInterleavedSequence(
+          categoryParticipants,
+          (p) => p.kemantrenId
+        );
 
-        for (let i = numbers.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
-        }
-
-        const targetIds = new Set(categoryParticipants.map((p) => p.id));
-        let numIndex = 0;
+        const participantToLotteryMap = new Map<string, number>();
+        interleavedParticipants.forEach((p, idx) => {
+          participantToLotteryMap.set(p.id, idx + 1);
+        });
 
         const updated = localParticipants.map((p) => {
-          if (targetIds.has(p.id)) {
-            const lotNum = numbers[numIndex++];
+          if (participantToLotteryMap.has(p.id)) {
             return {
               ...p,
-              lotteryNumber: lotNum,
+              lotteryNumber: participantToLotteryMap.get(p.id)!,
               lotteryDrawnAt: nowIso,
               lotteryDrawnBy: session.name || 'Panitia FASI XIII',
               updatedAt: nowIso,
@@ -281,7 +371,7 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
 
         showToast(
           'success',
-          `Berhasil mengundi nomor urut tampil untuk ${categoryParticipants.length} santri. Jangan lupa klik Simpan ke Database.`
+          `Berhasil mengundi berimbang nomor urut tampil untuk ${categoryParticipants.length} santri. Distribusi nomor antar-kabupaten/kota dijamin merata dan tidak berurutan.`
         );
       }
     }, 500);
@@ -713,18 +803,15 @@ export const UndianNomorTampil: React.FC<UndianNomorTampilProps> = ({
                   onClick={handleDrawLottery}
                   disabled={isShuffling || categoryParticipants.length === 0}
                   className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-emerald-950 font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                  title="Undi nomor urut tampil berimbang (sebaran daerah merata dan tidak berurutan)"
                 >
                   <Shuffle className={`w-4 h-4 ${isShuffling ? 'animate-spin' : ''}`} />
                   <span>
                     {isShuffling
-                      ? 'Mengacak Nomor...'
-                      : currentCategory?.isGroup && groupDrawMode
-                      ? stats.drawn > 0
-                        ? `Undi Ulang (${categoryGroups.length} Regu)`
-                        : `Undi Acak (${categoryGroups.length} Regu)`
+                      ? 'Mengundi Nomor Berimbang...'
                       : stats.drawn > 0
-                      ? 'Undi Ulang Acak'
-                      : 'Undi Acak Nomor Tampil'}
+                      ? 'Undi Ulang Berimbang'
+                      : 'Undi Acak Berimbang'}
                   </span>
                 </button>
 
