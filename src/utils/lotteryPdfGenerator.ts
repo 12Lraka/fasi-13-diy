@@ -13,7 +13,7 @@ import { Participant, CompetitionCategory, Kemantren } from '../types/fasi';
 import { fetchImageAsBase64 } from './idCardPngGenerator';
 
 const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png';
+const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
 
 interface ExportLotteryPdfOptions {
   category: CompetitionCategory;
@@ -78,8 +78,13 @@ export async function renderLotteryToPdfPage({
 
   if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
     try {
-      pdfDoc.addImage(logoFasiBase64, 'PNG', pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {}
+      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      pdfDoc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+    } catch {
+      try {
+        pdfDoc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+      } catch {}
+    }
   }
 
   pdfDoc.setFont('helvetica', 'bold');
@@ -270,7 +275,7 @@ export async function renderLotteryToPdfPage({
   pdfDoc.setTextColor(71, 85, 105);
   pdfDoc.text('1. Peserta wajib hadir di arena lomba 15 menit sebelum nomor urut dipanggil.', noteBoxX + 3, footerY + 9);
   pdfDoc.text('2. Pemanggilan peserta dilakukan maksimal 3 (tiga) kali berturut-turut oleh panitera.', noteBoxX + 3, footerY + 13.5);
-  pdfDoc.text('3. Daftar nomor undian ini resmi diterbitkan oleh Panitia FASI XIII Kota Yogyakarta.', noteBoxX + 3, footerY + 18);
+  pdfDoc.text('3. Daftar nomor undian ini resmi diterbitkan oleh Panitia FASI XIII D.I. Yogyakarta.', noteBoxX + 3, footerY + 18);
 
   // Pengesahan Panitia Pelaksana (Sisi Kanan)
   const authBoxX = marginX + noteBoxWidth + 5;
@@ -288,9 +293,9 @@ export async function renderLotteryToPdfPage({
   pdfDoc.text('BADKO TKA-TPA D.I. Yogyakarta', authCenterX, footerY + 13, { align: 'center' });
 
   pdfDoc.setFont('helvetica', 'italic');
-  pdfDoc.setFontSize(7);
+  pdfDoc.setFontSize(7.5);
   pdfDoc.setTextColor(4, 120, 87);
-  pdfDoc.text('( Bidang Lomba & Kesekretariatan )', authCenterX, footerY + 22, { align: 'center' });
+  pdfDoc.text('( Sie Lomba )', authCenterX, footerY + 22, { align: 'center' });
 
   return pdfDoc;
 }

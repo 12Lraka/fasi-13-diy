@@ -7,12 +7,16 @@
  */
 
 import React, { useState } from 'react';
-import { X, Dices, Sparkles, CheckCircle2, Lock, Shuffle, AlertCircle } from 'lucide-react';
+import { X, Dices, Sparkles, CheckCircle2, Lock, Shuffle, AlertCircle, Download } from 'lucide-react';
 import { Participant, UserSession } from '../../types/fasi';
 import { CATEGORIES_LIST, KEMANTREN_LIST } from '../../data/fasiMasterData';
-import { shuffleLotteryNumbers, logAuditEvent } from '../../utils/storage';
+import { shuffleLotteryNumbers, logAuditEvent, getStoredKemantren } from '../../utils/storage';
 import { bulkSyncParticipantsToSupabase, isSupabaseConfigured } from '../../lib/supabase';
 import { showSuccessAlert, showToast } from '../../utils/sweetalert';
+import { downloadSingleLotteryPdf } from '../../utils/lotteryPdfGenerator';
+
+const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
+const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
 
 interface LotteryDrawModalProps {
   isOpen: boolean;
@@ -31,6 +35,7 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
 }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(CATEGORIES_LIST[0].id);
   const [isShuffling, setIsShuffling] = useState<boolean>(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   if (!isOpen) return null;
@@ -41,6 +46,21 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
   );
 
   const isAlreadyDrawn = categoryParticipants.length > 0 && categoryParticipants.every((p) => p.lotteryNumber != null);
+
+  const handleDownloadPdf = async () => {
+    if (!currentCategory) return;
+    try {
+      setIsDownloadingPdf(true);
+      const kemList = getStoredKemantren();
+      await downloadSingleLotteryPdf(currentCategory, participants, kemList);
+      showToast('success', `PDF nomor undian ${currentCategory.name} berhasil diunduh.`);
+    } catch (err) {
+      console.error('Gagal download PDF undian:', err);
+      showToast('error', 'Gagal memproses file PDF.');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   const handleExecuteShuffle = () => {
     if (categoryParticipants.length === 0) return;
@@ -142,14 +162,26 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
               </p>
             </div>
 
-            <button
-              onClick={handleExecuteShuffle}
-              disabled={isShuffling || categoryParticipants.length === 0}
-              className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-emerald-950 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap"
-            >
-              <Shuffle className={`w-4 h-4 ${isShuffling ? 'animate-spin' : ''}`} />
-              <span>{isShuffling ? 'Mengacak Undian...' : isAlreadyDrawn ? 'Undi Ulang Acak' : 'Acak Nomor Tampil'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf || categoryParticipants.length === 0}
+                className="px-4 py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+                title="Unduh Daftar Nomor Undian Tampil (PDF A4)"
+              >
+                <Download className="w-4 h-4 text-rose-100" />
+                <span>{isDownloadingPdf ? 'Mengunduh...' : 'Download PDF'}</span>
+              </button>
+
+              <button
+                onClick={handleExecuteShuffle}
+                disabled={isShuffling || categoryParticipants.length === 0}
+                className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-emerald-950 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap"
+              >
+                <Shuffle className={`w-4 h-4 ${isShuffling ? 'animate-spin' : ''}`} />
+                <span>{isShuffling ? 'Mengacak Undian...' : isAlreadyDrawn ? 'Undi Ulang Acak' : 'Acak Nomor Tampil'}</span>
+              </button>
+            </div>
           </div>
 
           {successMessage && (
@@ -203,12 +235,24 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
           <span className="text-[11px] text-slate-400">
             Hasil undian otomatis tercatat ke kartu peserta & sistem dewan juri.
           </span>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-semibold"
-          >
-            Selesai
-          </button>
+          <div className="flex items-center gap-2">
+            {currentCategory && (
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf || categoryParticipants.length === 0}
+                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF Undian'}</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-semibold cursor-pointer"
+            >
+              Selesai
+            </button>
+          </div>
         </div>
       </div>
     </div>
