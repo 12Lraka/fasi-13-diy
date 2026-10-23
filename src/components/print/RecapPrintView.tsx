@@ -583,28 +583,14 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
           </table>
         </div>
 
-        {/* BLOK TANDA TANGAN RESMI DI BAGIAN BAWAH DOKUMEN (OPSI A: 2 Pihak yang Memverifikasi) */}
-        <div className="mt-10 pt-4 grid grid-cols-2 gap-8 text-center text-xs break-inside-avoid">
-          {/* Sisi Kiri: Koordinator Sie Lomba */}
-          <div className="flex flex-col items-center justify-between min-h-[105px]">
-            <div>
-              <p className="text-slate-600 font-medium">Mengetahui,</p>
-              <p className="font-bold text-slate-900 mt-0.5">Koordinator Sie Lomba</p>
-            </div>
-            <div className="mt-14">
-              <p className="font-semibold text-slate-800 tracking-wide text-xs">
-                ( .................................................. )
-              </p>
-            </div>
-          </div>
-
-          {/* Sisi Kanan: Koordinator Kesekretariatan */}
-          <div className="flex flex-col items-center justify-between min-h-[105px]">
+        {/* BLOK TANDA TANGAN RESMI DI BAGIAN BAWAH DOKUMEN: Koordinator Sie Lomba */}
+        <div className="mt-10 pt-4 flex justify-end text-center text-xs break-inside-avoid">
+          <div className="flex flex-col items-center justify-between min-h-[105px] w-64 mr-4">
             <div>
               <p className="text-slate-600 font-medium">
                 Yogyakarta, 08 November 2026
               </p>
-              <p className="font-bold text-slate-900 mt-0.5">Koordinator Kesekretariatan</p>
+              <p className="font-bold text-slate-900 mt-0.5">Koordinator Sie Lomba</p>
             </div>
             <div className="mt-14">
               <p className="font-semibold text-slate-800 tracking-wide text-xs">

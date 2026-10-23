@@ -315,27 +315,19 @@ export async function renderRecapToPdfPage({
     pdfDoc.text('( .................................................. )', colLeftX, lineSignY, { align: 'center' });
     pdfDoc.text('( .................................................. )', colRightX, lineSignY, { align: 'center' });
   } else {
-    // OPSI A: 2 Pihak yang Memverifikasi Data (Sie Lomba & Kesekretariatan)
-    // Kiri: Mengetahui, Koordinator Sie Lomba
-    pdfDoc.text('Mengetahui,', colLeftX, signatureY, { align: 'center' });
-    pdfDoc.setFont('helvetica', 'bold');
-    pdfDoc.setTextColor(15, 23, 42);
-    pdfDoc.text('Koordinator Sie Lomba', colLeftX, signatureY + 4.5, { align: 'center' });
-
-    // Kanan: Tanggal & Koordinator Kesekretariatan
+    // Tanda Tangan Tunggal: Koordinator Sie Lomba
     pdfDoc.setFont('helvetica', 'normal');
     pdfDoc.setTextColor(71, 85, 105);
     pdfDoc.text(dateStr, colRightX, signatureY, { align: 'center' });
     pdfDoc.setFont('helvetica', 'bold');
     pdfDoc.setTextColor(15, 23, 42);
-    pdfDoc.text('Koordinator Kesekretariatan', colRightX, signatureY + 4.5, { align: 'center' });
+    pdfDoc.text('Koordinator Sie Lomba', colRightX, signatureY + 4.5, { align: 'center' });
 
     // Garis tanda tangan / nama
     const lineSignY = signatureY + 24;
     pdfDoc.setFont('helvetica', 'normal');
     pdfDoc.setFontSize(8.5);
     pdfDoc.setTextColor(71, 85, 105);
-    pdfDoc.text('( .................................................. )', colLeftX, lineSignY, { align: 'center' });
     pdfDoc.text('( .................................................. )', colRightX, lineSignY, { align: 'center' });
   }
 
