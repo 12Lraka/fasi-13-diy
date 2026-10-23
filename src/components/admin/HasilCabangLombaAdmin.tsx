@@ -153,7 +153,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
   const handleExportPdf = async () => {
     try {
       setIsExportingPdf(true);
-      await exportPemenangToPdf(CATEGORIES_LIST, beritaAcaraMap, 'Hasil_Pemenang_FASI_XIII_Kota_Yogyakarta', false);
+      await exportPemenangToPdf(CATEGORIES_LIST, beritaAcaraMap, 'Hasil_Pemenang_FASI_XIII_DIY', false);
       showToast('success', 'Dokumen PDF daftar pemenang berhasil diunduh.');
     } catch (err) {
       console.error('Gagal ekspor PDF:', err);

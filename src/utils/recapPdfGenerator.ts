@@ -13,7 +13,7 @@ import { Participant, CompetitionCategory, Kemantren } from '../types/fasi';
 import { fetchImageAsBase64 } from './idCardPngGenerator';
 
 const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png';
+const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
 
 interface ExportRecapPdfOptions {
   titleSubtitle: {
@@ -81,8 +81,13 @@ export async function renderRecapToPdfPage({
 
   if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
     try {
-      pdfDoc.addImage(logoFasiBase64, 'PNG', pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {}
+      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      pdfDoc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+    } catch {
+      try {
+        pdfDoc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+      } catch {}
+    }
   }
 
   pdfDoc.setFont('helvetica', 'bold');

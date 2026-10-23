@@ -34,7 +34,7 @@ import { downloadSingleRecapPdf } from '../../utils/recapPdfGenerator';
 import { showToast } from '../../utils/sweetalert';
 
 const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png';
+const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
 
 interface RekapPesertaAdminProps {
   session: UserSession;

@@ -13,7 +13,7 @@ import { BeritaAcaraKejuaraan, CompetitionCategory, WinnerSlot } from '../types/
 import { fetchImageAsBase64 } from './idCardPngGenerator';
 
 const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png';
+const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
 
 export interface WinnerRow {
   no: number;
@@ -24,6 +24,7 @@ export interface WinnerRow {
   isCabangUtama: boolean;
   peringkat: string; // Juara I, II, III
   namaPemenang: string;
+  kontingenDaerah: string;
   rayon: string;
   unitTpa: string;
   totalNilai: number | string;
@@ -82,6 +83,10 @@ export function extractWinnerRows(
 
     const checkAndAdd = (peringkat: string, slot?: WinnerSlot) => {
       if (slot && (slot.nama?.trim() || slot.totalNilai > 0)) {
+        const cleanKontingen = slot.kemantren
+          ? slot.kemantren.replace(/^Rayon\s+/i, '').replace(/^Kem\.\s+/i, '').trim()
+          : (slot.unitTpa || '-');
+
         rows.push({
           no: no++,
           cabangKode: cat.code,
@@ -91,7 +96,8 @@ export function extractWinnerRows(
           isCabangUtama: isUtama,
           peringkat,
           namaPemenang: slot.nama || '-',
-          rayon: slot.kemantren ? `Rayon ${slot.kemantren}` : '-',
+          kontingenDaerah: cleanKontingen || '-',
+          rayon: cleanKontingen || '-',
           unitTpa: slot.unitTpa || '-',
           totalNilai: slot.totalNilai || 0,
           tanggalPenetapan: tgl,
@@ -116,7 +122,7 @@ export function extractWinnerRows(
 export function exportPemenangToExcel(
   categories: CompetitionCategory[],
   beritaAcaraMap: Map<string, BeritaAcaraKejuaraan>,
-  fileNamePrefix: string = 'Hasil_Pemenang_FASI_XIII_Kota_Yogyakarta'
+  fileNamePrefix: string = 'Hasil_Pemenang_FASI_XIII_DIY'
 ) {
   const winnerRows = extractWinnerRows(categories, beritaAcaraMap, false);
 
@@ -144,8 +150,7 @@ export function exportPemenangToExcel(
     'Kategori',
     'Peringkat / Juara',
     'Nama Lengkap Pemenang',
-    'Wilayah Rayon / Kontingen',
-    'Asal Unit TKA / TPA',
+    'Kontingen / Kab. Kota',
     'Total Skor / Nilai',
     'Tanggal Penetapan',
     'Keterangan Bobot',
@@ -159,8 +164,7 @@ export function exportPemenangToExcel(
     r.kategoriGender,
     r.peringkat,
     r.namaPemenang,
-    r.rayon,
-    r.unitTpa,
+    r.kontingenDaerah,
     r.totalNilai,
     r.tanggalPenetapan,
     r.isCabangUtama ? 'Cabang Utama (7-5-3)' : 'Cabang Reguler (5-3-1)',
@@ -200,7 +204,7 @@ export function exportPemenangToExcel(
 export async function exportPemenangToPdf(
   categories: CompetitionCategory[],
   beritaAcaraMap: Map<string, BeritaAcaraKejuaraan>,
-  fileNamePrefix: string = 'Hasil_Pemenang_FASI_XIII_Kota_Yogyakarta',
+  fileNamePrefix: string = 'Hasil_Pemenang_FASI_XIII_DIY',
   onlyDisahkan: boolean = false
 ) {
   const winnerRows = extractWinnerRows(categories, beritaAcaraMap, onlyDisahkan);
@@ -238,8 +242,13 @@ export async function exportPemenangToPdf(
 
   if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
     try {
-      doc.addImage(logoFasiBase64, 'PNG', pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {}
+      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+    } catch {
+      try {
+        doc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+      } catch {}
+    }
   }
 
   doc.setFont('helvetica', 'bold');
@@ -294,13 +303,12 @@ export async function exportPemenangToPdf(
     'Jenjang',
     'Peringkat',
     'Nama Pemenang',
-    'Rayon / Kontingen',
-    'Unit TKA/TPA',
+    'Kontingen / Kab. Kota',
     'Nilai',
   ];
 
   const tableBody = winnerRows.length === 0
-    ? [['-', '-', 'Belum ada data pemenang yang disahkan.', '-', '-', '-', '-', '-', '-']]
+    ? [['-', '-', 'Belum ada data pemenang yang disahkan.', '-', '-', '-', '-', '-']]
     : winnerRows.map((r) => [
         r.no,
         r.cabangKode,
@@ -308,8 +316,7 @@ export async function exportPemenangToPdf(
         r.jenjang,
         r.peringkat,
         r.namaPemenang,
-        r.rayon,
-        r.unitTpa,
+        r.kontingenDaerah,
         r.totalNilai,
       ]);
 
@@ -335,13 +342,12 @@ export async function exportPemenangToPdf(
     columnStyles: {
       0: { halign: 'center', cellWidth: 10 },
       1: { halign: 'center', cellWidth: 16, fontStyle: 'bold' },
-      2: { cellWidth: 54 },
+      2: { cellWidth: 58 },
       3: { halign: 'center', cellWidth: 16 },
-      4: { halign: 'center', cellWidth: 24, fontStyle: 'bold' },
-      5: { cellWidth: 58, fontStyle: 'bold' },
-      6: { cellWidth: 36 },
-      7: { cellWidth: 40 },
-      8: { halign: 'center', cellWidth: 15, fontStyle: 'bold' },
+      4: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },
+      5: { cellWidth: 68, fontStyle: 'bold' },
+      6: { cellWidth: 56 },
+      7: { halign: 'center', cellWidth: 19, fontStyle: 'bold' },
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252],
@@ -354,7 +360,7 @@ export async function exportPemenangToPdf(
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        `FASI XIII Kota Yogyakarta — Hasil Pemenang Resmi • Halaman ${currentPage} dari ${pageCount}`,
+        `FASI XIII D.I. Yogyakarta — Hasil Pemenang Resmi • Halaman ${currentPage} dari ${pageCount}`,
         pageWidth / 2,
         pageHeight - 6,
         { align: 'center' }
@@ -401,8 +407,13 @@ export async function exportSingleCabangPdf(
 
   if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
     try {
-      doc.addImage(logoFasiBase64, 'PNG', pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {}
+      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+    } catch {
+      try {
+        doc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
+      } catch {}
+    }
   }
 
   doc.setFont('helvetica', 'bold');
@@ -454,25 +465,30 @@ export async function exportSingleCabangPdf(
   );
 
   const p = beritaAcara?.pemenang;
+  const getKontingenText = (slot?: WinnerSlot) => {
+    if (!slot) return '-';
+    const raw = slot.kemantren ? slot.kemantren.replace(/^Rayon\s+/i, '').replace(/^Kem\.\s+/i, '').trim() : (slot.unitTpa || '-');
+    return raw || '-';
+  };
+
   const tableData = [
-    ['Juara I', p?.juara1?.nama || '-', p?.juara1?.kemantren ? `Kem. ${p?.juara1?.kemantren}` : '-', p?.juara1?.unitTpa || '-', p?.juara1?.totalNilai || '-'],
-    ['Juara II', p?.juara2?.nama || '-', p?.juara2?.kemantren ? `Kem. ${p?.juara2?.kemantren}` : '-', p?.juara2?.unitTpa || '-', p?.juara2?.totalNilai || '-'],
-    ['Juara III', p?.juara3?.nama || '-', p?.juara3?.kemantren ? `Kem. ${p?.juara3?.kemantren}` : '-', p?.juara3?.unitTpa || '-', p?.juara3?.totalNilai || '-'],
+    ['Juara I', p?.juara1?.nama || '-', getKontingenText(p?.juara1), p?.juara1?.totalNilai || '-'],
+    ['Juara II', p?.juara2?.nama || '-', getKontingenText(p?.juara2), p?.juara2?.totalNilai || '-'],
+    ['Juara III', p?.juara3?.nama || '-', getKontingenText(p?.juara3), p?.juara3?.totalNilai || '-'],
   ];
 
   autoTable(doc, {
-    head: [['Peringkat', 'Nama Juara', 'Rayon / Kemantren', 'Asal Unit TPA', 'Total Nilai']],
+    head: [['Peringkat', 'Nama Juara', 'Kontingen / Kab. Kota', 'Total Nilai']],
     body: tableData,
     startY: titleY + 15,
     margin: { left: marginX, right: marginX },
-    styles: { fontSize: 8, cellPadding: 3 },
+    styles: { fontSize: 8.5, cellPadding: 3 },
     headStyles: { fillColor: [6, 78, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
     columnStyles: {
-      0: { cellWidth: 28, fontStyle: 'bold' },
-      1: { cellWidth: 50, fontStyle: 'bold' },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 45 },
-      4: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 32, fontStyle: 'bold' },
+      1: { cellWidth: 70, fontStyle: 'bold' },
+      2: { cellWidth: 54 },
+      3: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
     },
   });
 
