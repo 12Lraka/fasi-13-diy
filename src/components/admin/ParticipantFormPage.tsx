@@ -993,7 +993,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
             ⚡ Superadmin Bypass
           </span>
           <p className="text-slate-800">
-            Sistem saat ini berstatus <strong>{effectiveRegStatus === 'closed' ? 'Tutup Daftar Baru' : 'Kunci Total (Lockdown TM)'}</strong> bagi seluruh rayon. Khusus akun Superadmin tetap diberikan hak akses input/edit darurat atas instruksi pimpinan.
+            Sistem saat ini berstatus <strong>{effectiveRegStatus === 'closed' ? 'Tutup Daftar Baru' : 'Kunci Total (Lockdown TM)'}</strong> bagi seluruh kabupaten/kota. Khusus akun Superadmin tetap diberikan hak akses input/edit darurat atas instruksi pimpinan.
           </p>
         </div>
       )}
@@ -1501,8 +1501,8 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                     <Phone className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm text-slate-900">4. Kontak Penanggung Jawab Rayon (PJ Kontingen)</h3>
-                    <p className="text-[11px] text-slate-500">Official / Ustadz penanggung jawab dari Rayon (seragam untuk semua santri di rayon ini).</p>
+                    <h3 className="font-bold text-sm text-slate-900">4. Kontak Penanggung Jawab (PJ Kontingen)</h3>
+                    <p className="text-[11px] text-slate-500">Official / Ustadz penanggung jawab dari Daerah (seragam untuk semua santri di kab/kota ini).</p>
                   </div>
                 </div>
 
@@ -1511,10 +1511,10 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        Nama PJ / Official Rayon <span className="text-rose-600">*</span>
+                        Nama PJ / Official Kab/Kota <span className="text-rose-600">*</span>
                       </label>
                       <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-1.5 py-0.5 rounded">
-                        PJ Kontingen Rayon
+                        PJ Kontingen Kab/Kota
                       </span>
                     </div>
                     <input
@@ -1525,14 +1525,14 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
                       placeholder="Ust. Hasan Basri"
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none text-slate-900"
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">Otomatis terisi data official Rayon & dapat disesuaikan.</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Otomatis terisi data official Kab/Kota & dapat disesuaikan.</p>
                   </div>
 
                   {/* Nomor WA PJ */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        No. WhatsApp PJ Rayon <span className="text-rose-600">*</span>
+                        No. WhatsApp PJ <span className="text-rose-600">*</span>
                       </label>
                       <span className="text-[10px] text-slate-400">Aktif WA</span>
                     </div>
