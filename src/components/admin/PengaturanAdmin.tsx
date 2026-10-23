@@ -61,6 +61,7 @@ import {
 } from '../../utils/storage';
 import {
   isSupabaseConfigured,
+  saveSettingsToSupabase,
   syncCategoriesToSupabase,
   syncKemantrenToSupabase,
   bulkSyncParticipantsToSupabase,
@@ -97,15 +98,22 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
   // Registration Control State (Buka/Tutup & Lockdown)
   const [regStatus, setRegStatus] = useState<'open' | 'closed' | 'lockdown'>(settings.registrationStatus || 'open');
   const [allowBypass, setAllowBypass] = useState<boolean>(settings.allowSuperAdminBypass ?? true);
-  const [deadlineDate, setDeadlineDate] = useState<string>(settings.registrationDeadlineDate || '2026-10-05');
-  const [deadlineTime, setDeadlineTime] = useState<string>(settings.registrationDeadlineTime || '12:00');
+  const [deadlineDate, setDeadlineDate] = useState<string>(
+    settings.registrationDeadlineDate && settings.registrationDeadlineDate !== '2026-10-05'
+      ? settings.registrationDeadlineDate
+      : '2026-10-28'
+  );
+  const [deadlineTime, setDeadlineTime] = useState<string>(
+    settings.registrationDeadlineDate === '2026-10-05' ? '23:59' : (settings.registrationDeadlineTime || '23:59')
+  );
   const [autoClose, setAutoClose] = useState<boolean>(!!settings.registrationAutoClose);
   const [closedMsg, setClosedMsg] = useState<string>(
-    settings.registrationClosedMessage ||
-      'Pendaftaran santri baru resmi ditutup pada 5 Oktober 2026 pukul 12.00 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang Technical Meeting (TM).'
+    !settings.registrationClosedMessage || settings.registrationClosedMessage.includes('5 Oktober')
+      ? 'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.'
+      : settings.registrationClosedMessage
   );
 
-  const handleSaveRegistrationSettings = (e?: React.FormEvent) => {
+  const handleSaveRegistrationSettings = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const updated: AppSettings = {
       ...settings,
@@ -118,12 +126,22 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
     };
     setSettings(updated);
     saveSettings(updated);
+
+    // Langsung sinkronkan ke Supabase Cloud agar tidak tertimpa data lama saat direfresh
+    if (isSupabaseConfigured()) {
+      try {
+        await saveSettingsToSupabase(updated);
+      } catch (err) {
+        console.warn('Gagal sinkronisasi pengaturan pendaftaran ke Supabase:', err);
+      }
+    }
+
     logAuditEvent(
       session.name,
       'UPDATE_REGISTRATION_STATUS',
-      `Memperbarui status pendaftaran menjadi: ${regStatus.toUpperCase()} (Bypass Superadmin: ${allowBypass ? 'Ya' : 'Tidak'}).`
+      `Memperbarui status pendaftaran menjadi: ${regStatus.toUpperCase()} (Batas: ${deadlineDate} ${deadlineTime} WIB, Auto-Close: ${autoClose ? 'Aktif' : 'Nonaktif'}, Bypass Superadmin: ${allowBypass ? 'Ya' : 'Tidak'}).`
     );
-    showToast('success', 'Pengaturan status pendaftaran berhasil disimpan.');
+    showToast('success', 'Pengaturan status pendaftaran & batas waktu WIB berhasil disimpan dan disinkronkan ke Cloud!');
     onSettingsChanged?.();
   };
 
@@ -883,10 +901,10 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 mt-1">
-                  Kontrol Buka / Tutup Pendaftaran & Kunci Data FASI XIII
+                  Kontrol Buka / Tutup Pendaftaran & Kunci Data FASI XIII D.I. Yogyakarta
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
-                  Atur hak akses input santri baru bagi 14 Admin Rayon, batas waktu penutupan (rencana 5 Oktober 2026 pukul 12.00 WIB), dan penguncian total menjelang Technical Meeting (TM 5 Oktober 19.30 WIB).
+                  Atur hak akses input santri baru bagi 5 Admin Kabupaten/Kota, batas waktu penutupan (28 Oktober 2026 pukul 23.59 WIB), dan penguncian total menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.
                 </p>
               </div>
 
@@ -926,7 +944,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     </div>
                     <h4 className="text-sm font-bold text-slate-900 mt-2">1. Buka Penuh (Open)</h4>
                     <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      14 Admin Rayon bebas mendaftarkan santri baru, mengubah anggota regu, dan mengoreksi data kapan saja.
+                      5 Admin Kabupaten/Kota bebas mendaftarkan santri baru, mengubah anggota regu, dan mengoreksi data kapan saja.
                     </p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-emerald-200/60 flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
@@ -948,12 +966,12 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <span className="w-3 h-3 rounded-full bg-amber-500"></span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
-                        5 Okt, 12.00 Siang
+                        28 Okt, 23.59 WIB
                       </span>
                     </div>
                     <h4 className="text-sm font-bold text-slate-900 mt-2">2. Tutup Daftar Baru</h4>
                     <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Tombol pendaftaran baru dikunci untuk rayon. Rayon <strong>hanya boleh mengedit/memperbaiki</strong> data santri yang sudah terdaftar hingga TM.
+                      Tombol pendaftaran baru dikunci untuk kontingen daerah. Admin kontingen <strong>hanya boleh mengedit/memperbaiki</strong> data santri yang sudah terdaftar hingga batas akhir verifikasi.
                     </p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-amber-200/60 flex items-center gap-1.5 text-xs font-semibold text-amber-900">
@@ -975,12 +993,12 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <span className="w-3 h-3 rounded-full bg-rose-500"></span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-200 text-rose-900">
-                        5 Okt, 19.30 (Saat TM)
+                        Jelang Lomba (8 Nov 2026)
                       </span>
                     </div>
                     <h4 className="text-sm font-bold text-slate-900 mt-2">3. Kunci Total (Lockdown)</h4>
                     <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Seluruh data terkunci beku (Read-Only) bagi rayon. Rayon tidak bisa menambah, mengedit, ataupun menghapus. Siap untuk undian dan cetak dewan hakim.
+                      Seluruh data terkunci beku (Read-Only) bagi kontingen daerah. Kontingen tidak bisa menambah, mengedit, ataupun menghapus. Siap untuk undian dan cetak berkas dewan hakim.
                     </p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-rose-200/60 flex items-center gap-1.5 text-xs font-semibold text-rose-900">
@@ -1008,7 +1026,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     </span>
                   </span>
                   <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                    Memberikan wewenang khusus bagi Panitia Pusat (Superadmin) untuk menangani kasus khusus saat TM atau hari-H (seperti pergantian santri sakit dengan surat dokter atau instruksi ketua panitia) tanpa harus membuka kunci pendaftaran bagi seluruh 14 rayon.
+                    Memberikan wewenang khusus bagi Panitia Pusat (Superadmin) untuk menangani kasus khusus saat verifikasi atau hari-H (seperti pergantian santri sakit dengan surat dokter atau instruksi ketua panitia) tanpa harus membuka kunci pendaftaran bagi seluruh 5 kabupaten/kota.
                   </p>
                 </div>
               </label>
@@ -1025,11 +1043,11 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     className="w-4 h-4 text-emerald-800 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
                   />
                   <span className="text-xs font-bold text-slate-900">
-                    Aktifkan Penutupan Otomatis Berdasarkan Waktu Deadline (Timer)
+                    Aktifkan Penutupan Otomatis Berdasarkan Waktu Deadline (Timer WIB)
                   </span>
                 </label>
-                <span className="text-[11px] text-slate-500 italic">
-                  Otomatis beralih ke &quot;Tutup Daftar Baru&quot; saat waktu tiba
+                <span className="text-[11px] text-emerald-800 font-medium bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  Standar Waktu: Waktu Indonesia Barat (WIB / UTC+7)
                 </span>
               </div>
 
@@ -1065,11 +1083,11 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
               </div>
             </div>
 
-            {/* Pesan Pengumuman untuk Admin Rayon */}
+            {/* Pesan Pengumuman untuk Admin Kontingen */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Pesan Pengumuman Penutupan untuk Admin Rayon:</span>
+                <span>Pesan Pengumuman Penutupan untuk Admin Kontingen Daerah:</span>
               </label>
               <textarea
                 rows={2}
@@ -1079,7 +1097,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                 className="w-full p-3 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none"
               />
               <p className="text-[11px] text-slate-400">
-                Pesan ini akan ditampilkan di banner dashboard dan formulir pendaftaran saat admin rayon membuka aplikasi.
+                Pesan ini akan ditampilkan di banner dashboard dan formulir pendaftaran saat admin kontingen kabupaten/kota membuka aplikasi.
               </p>
             </div>
 

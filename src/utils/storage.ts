@@ -66,10 +66,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   superAdminSecondaryPassword: 'BadkoDIY2026!',
   registrationStatus: 'open',
   allowSuperAdminBypass: true,
-  registrationDeadlineDate: '2026-10-05',
-  registrationDeadlineTime: '12:00',
+  registrationDeadlineDate: '2026-10-28',
+  registrationDeadlineTime: '23:59',
   registrationAutoClose: false,
-  registrationClosedMessage: 'Pendaftaran santri baru resmi ditutup pada 5 Oktober 2026 pukul 12.00 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang Technical Meeting (TM).',
+  registrationClosedMessage: 'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.',
   presensiPin: 'fasi132026',
 };
 
@@ -95,6 +95,7 @@ export function setPresensiAuthorized(): void {
 
 /**
  * Mendapatkan status pendaftaran aktif (memperhitungkan waktu deadline otomatis jika diaktifkan)
+ * Mengunci patokan zona waktu ke Waktu Indonesia Barat (WIB / UTC+7) dan menghitung hingga detik ke-59.999
  */
 export function getEffectiveRegistrationStatus(settings?: AppSettings): 'open' | 'closed' | 'lockdown' {
   const s = settings || getStoredSettings();
@@ -106,9 +107,15 @@ export function getEffectiveRegistrationStatus(settings?: AppSettings): 'open' |
   // Cek apakah fitur auto-close aktif dan telah melewati deadline
   if (s.registrationAutoClose && s.registrationDeadlineDate) {
     try {
-      const timeStr = s.registrationDeadlineTime || '12:00';
-      const deadlineDate = new Date(`${s.registrationDeadlineDate}T${timeStr}:00`);
-      if (!isNaN(deadlineDate.getTime()) && Date.now() >= deadlineDate.getTime()) {
+      const rawTime = (s.registrationDeadlineTime || '23:59').trim();
+      const [h, m] = rawTime.split(':');
+      const hour = (h || '23').padStart(2, '0');
+      const min = (m || '59').padStart(2, '0');
+      const dateStr = s.registrationDeadlineDate.trim();
+
+      // Format ISO dengan offset +07:00 (WIB) dan detik :59.999 agar full 1 menit 23.59 tetap bisa digunakan
+      const deadlineDate = new Date(`${dateStr}T${hour}:${min}:59.999+07:00`);
+      if (!isNaN(deadlineDate.getTime()) && Date.now() > deadlineDate.getTime()) {
         return 'closed';
       }
     } catch (e) {
@@ -129,7 +136,18 @@ export function getStoredSettings(): AppSettings {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
       return DEFAULT_SETTINGS;
     }
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    const merged: AppSettings = { ...DEFAULT_SETTINGS, ...parsed };
+
+    // Auto-migrasi jika local storage masih tersimpan tanggal default lama (5 Oktober 2026)
+    if (merged.registrationDeadlineDate === '2026-10-05') {
+      merged.registrationDeadlineDate = '2026-10-28';
+      merged.registrationDeadlineTime = '23:59';
+      merged.registrationClosedMessage = DEFAULT_SETTINGS.registrationClosedMessage;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+    }
+
+    return merged;
   } catch {
     return DEFAULT_SETTINGS;
   }

@@ -861,7 +861,7 @@ export const ParticipantFormPage: React.FC<ParticipantFormPageProps> = ({
               {effectiveRegStatus === 'lockdown'
                 ? 'Seluruh data peserta FASI XIII telah dikunci total untuk persiapan pengundian nomor tampil dan pencetakan Berita Acara Dewan Hakim pada tahap Technical Meeting (TM).'
                 : settings.registrationClosedMessage ||
-                  'Pendaftaran santri baru resmi ditutup pada 5 Oktober 2026 pukul 12.00 WIB. Saat ini hanya tahap perbaikan data santri yang sudah terdaftar menjelang Technical Meeting (TM).'}
+                  'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.'}
             </p>
           </div>
 

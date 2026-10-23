@@ -965,12 +965,12 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
       publishResultsToRayon: extraSettings.publishResultsToRayon ?? false,
       registrationStatus: extraSettings.registrationStatus || 'open',
       allowSuperAdminBypass: extraSettings.allowSuperAdminBypass ?? true,
-      registrationDeadlineDate: extraSettings.registrationDeadlineDate || '2026-10-05',
-      registrationDeadlineTime: extraSettings.registrationDeadlineTime || '12:00',
+      registrationDeadlineDate: extraSettings.registrationDeadlineDate || '2026-10-28',
+      registrationDeadlineTime: extraSettings.registrationDeadlineTime || '23:59',
       registrationAutoClose: Boolean(extraSettings.registrationAutoClose),
       registrationClosedMessage:
         extraSettings.registrationClosedMessage ||
-        'Pendaftaran santri baru resmi ditutup pada 5 Oktober 2026 pukul 12.00 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang Technical Meeting (TM).',
+        'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.',
     };
   } catch (error: any) {
     console.error('Gagal mengambil data pengaturan dari Supabase:', error);
@@ -1001,8 +1001,8 @@ export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ s
     const extraConfig = {
       registrationStatus: settings.registrationStatus || 'open',
       allowSuperAdminBypass: settings.allowSuperAdminBypass ?? true,
-      registrationDeadlineDate: settings.registrationDeadlineDate || '2026-10-05',
-      registrationDeadlineTime: settings.registrationDeadlineTime || '12:00',
+      registrationDeadlineDate: settings.registrationDeadlineDate || '2026-10-28',
+      registrationDeadlineTime: settings.registrationDeadlineTime || '23:59',
       registrationAutoClose: Boolean(settings.registrationAutoClose),
       registrationClosedMessage: settings.registrationClosedMessage || '',
       publishResultsToRayon: Boolean(settings.publishResultsToRayon),
