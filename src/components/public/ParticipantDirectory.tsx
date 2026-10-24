@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Search, Users, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import { Search, Users, MapPin } from 'lucide-react';
 import { Participant } from '../../types/fasi';
 import { KEMANTREN_LIST, CATEGORIES_LIST } from '../../data/fasiMasterData';
 
@@ -84,9 +84,14 @@ export const ParticipantDirectory: React.FC<ParticipantDirectoryProps> = ({
               Daftar resmi santri peserta FASI XIII dari seluruh Kabupaten / Kota se-D.I. Yogyakarta.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Total Hadir: {participants.filter((p) => p.attendance === 'hadir').length} / {participants.length} Santri</span>
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
+            <Users className="w-4 h-4 text-emerald-600" />
+            <span>
+              Total Peserta:{' '}
+              {filteredParticipants.length === participants.length
+                ? `${participants.length} Santri`
+                : `${filteredParticipants.length} dari ${participants.length} Santri`}
+            </span>
           </div>
         </div>
 
@@ -177,13 +182,12 @@ export const ParticipantDirectory: React.FC<ParticipantDirectoryProps> = ({
                 <th className="py-3 px-4">Kontingen Daerah</th>
                 <th className="py-3 px-4">Cabang Lomba</th>
                 <th className="py-3 px-4 text-center">No. Undian</th>
-                <th className="py-3 px-4 text-center">Kehadiran</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {displayedParticipants.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     Tidak ada santri yang sesuai dengan kriteria pencarian / filter.
                   </td>
                 </tr>
@@ -242,19 +246,6 @@ export const ParticipantDirectory: React.FC<ParticipantDirectoryProps> = ({
                           </span>
                         ) : (
                           <span className="text-slate-400 text-[11px] italic">Belum Diundi</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        {p.attendance === 'hadir' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Hadir
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            Belum Hadir
-                          </span>
                         )}
                       </td>
                     </tr>
