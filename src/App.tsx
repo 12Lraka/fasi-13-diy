@@ -75,14 +75,14 @@ export default function App() {
       'admin', 'admin-dashboard', 'admin-data-peserta', 'admin-form-peserta',
       'admin-rekap-peserta', 'admin-rekapcbg-lomba', 'hasil-cabang', 'berita-acara',
       'master-tpa', 'panitia-juri', 'pengaturan', 'log', 'superadmin', 'adminkecamatan',
-      'undian', 'rekapitulasi'
+      'undian', 'rekapitulasi', 'cetak'
     ].includes(initial);
 
     if (isProtected) {
       if (!curSession) return 'beranda';
       const isSuperOnly = [
         'admin-rekapcbg-lomba', 'hasil-cabang', 'berita-acara',
-        'panitia-juri', 'pengaturan', 'log'
+        'panitia-juri', 'pengaturan', 'log', 'cetak'
       ].includes(initial);
       if (isSuperOnly && curSession.role !== 'super_admin') return 'admin-dashboard';
       return (initial === 'admin' || initial === 'superadmin' || initial === 'adminkecamatan') ? 'admin-dashboard' : initial;
@@ -189,6 +189,22 @@ export default function App() {
           setActiveTab(route === 'admin' || route === 'superadmin' || route === 'adminkecamatan' ? 'admin-dashboard' : route);
         }
       }
+      return;
+    }
+
+    if (route === 'cetak') {
+      if (!effectiveSession) {
+        setIsLoginOpen(true);
+        setActiveTab('beranda');
+        return;
+      }
+      if (effectiveSession.role !== 'super_admin') {
+        showToast('warning', 'Fitur Cetak ID Card dinonaktifkan untuk Admin Kab/Kota.');
+        setActiveTab('admin-dashboard');
+        navigateToRoute('admin-dashboard');
+        return;
+      }
+      setActiveTab('cetak');
       return;
     }
 
@@ -473,17 +489,20 @@ export default function App() {
   }, []);
 
   const handleViewSingleCard = (p: Participant) => {
+    if (session?.role !== 'super_admin') {
+      showToast('warning', 'Fitur Cetak ID Card dinonaktifkan untuk Admin Kab/Kota.');
+      return;
+    }
     setPrintQueue([p]);
     handleNavigate('cetak');
   };
 
   const handlePrintAllCards = () => {
-    // Open print studio with all verified participants for rich filtering
-    const queue =
-      session?.role === 'kemantren_admin' && session.kemantrenId
-        ? participants.filter((p) => p.kemantrenId === session.kemantrenId && p.status === 'verified')
-        : participants.filter((p) => p.status === 'verified');
-
+    if (session?.role !== 'super_admin') {
+      showToast('warning', 'Fitur Cetak ID Card dinonaktifkan untuk Admin Kab/Kota.');
+      return;
+    }
+    const queue = participants.filter((p) => p.status === 'verified');
     setPrintQueue(queue);
     handleNavigate('cetak');
   };
@@ -588,11 +607,11 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'cetak' && (
+        {activeTab === 'cetak' && session && session.role === 'super_admin' && (
           <IdCardPrintView
             participants={printQueue.length > 0 ? printQueue : participants.filter((p) => p.status === 'verified')}
             session={session}
-            onBack={() => handleNavigate(session ? 'admin' : 'peserta')}
+            onBack={() => handleNavigate('admin')}
           />
         )}
 

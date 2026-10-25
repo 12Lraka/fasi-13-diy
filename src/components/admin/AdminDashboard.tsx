@@ -22,7 +22,6 @@ import {
   XCircle,
   FolderOpen,
   ExternalLink,
-  Eye,
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
@@ -706,18 +705,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             Dokumen & Cetak
           </div>
 
-          <button
-            onClick={onOpenPrintCards}
-            className="w-full px-3 py-2 text-slate-700 hover:text-emerald-900 hover:bg-slate-100 font-semibold rounded-xl flex items-center justify-between transition-colors cursor-pointer text-left"
-          >
-            <div className="flex items-center gap-2">
-              <Printer className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>Studio Cetak ID Card</span>
-            </div>
-            <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-900 text-[9px] font-bold rounded">
-              85x55mm
-            </span>
-          </button>
+          {session.role === 'super_admin' ? (
+            <button
+              onClick={onOpenPrintCards}
+              className="w-full px-3 py-2 text-slate-700 hover:text-emerald-900 hover:bg-slate-100 font-semibold rounded-xl flex items-center justify-between transition-colors cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Printer className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>Studio Cetak ID Card</span>
+              </div>
+              <span className="px-1.5 py-0.2 bg-amber-400 text-emerald-950 text-[9px] font-extrabold rounded">
+                Super
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                showToast('info', 'Fitur Cetak ID Card tidak digunakan pada tingkat DIY.');
+              }}
+              className="w-full px-3 py-2 text-slate-400 bg-slate-50 font-medium rounded-xl flex items-center justify-between transition-colors cursor-not-allowed text-left opacity-70 border border-slate-200"
+              title="ID Card tidak digunakan pada tingkat DIY"
+            >
+              <div className="flex items-center gap-2">
+                <Printer className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-slate-400">Studio Cetak ID Card</span>
+              </div>
+              <span className="px-1.5 py-0.2 bg-slate-200 text-slate-500 text-[9px] font-bold rounded">
+                Nonaktif
+              </span>
+            </button>
+          )}
 
           {/* Rekapitulasi PDF (Superadmin Only) */}
           {session.role === 'super_admin' && (
@@ -1314,14 +1332,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <div className="flex items-center gap-1 shrink-0">
                                               <button
                                                 type="button"
-                                                onClick={() => onViewSingleCard(member)}
-                                                title="Lihat Kartu Santri"
-                                                className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors cursor-pointer"
-                                              >
-                                                <Eye className="w-3.5 h-3.5" />
-                                              </button>
-                                              <button
-                                                type="button"
                                                 onClick={() => {
                                                   if (!canEditParticipant) {
                                                     showToast('warning', 'Data santri telah dikunci total oleh Panitia Pusat (Tahap Final TM).');
@@ -1412,7 +1422,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <th className="py-3 px-3">Cabang Lomba</th>
                         <th className="py-3 px-3 text-center">No. Undian</th>
                         <th className="py-3 px-3 text-center">Kehadiran</th>
-                        <th className="py-3 px-3 text-center w-36">Aksi</th>
+                        <th className="py-3 px-3 text-center w-24">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -1513,13 +1523,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {/* Action Buttons */}
                               <td className="py-3 px-3 text-center">
                                 <div className="flex items-center justify-center gap-1">
-                                  <button
-                                    onClick={() => onViewSingleCard(participant)}
-                                    title="Lihat Kartu Santri"
-                                    className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors cursor-pointer"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
                                   <button
                                     onClick={() => {
                                       if (!canEditParticipant) {
