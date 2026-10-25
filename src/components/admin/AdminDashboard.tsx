@@ -109,7 +109,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return 'dashboard';
     }
     if (activeRoute === 'berita-acara' && session.role === 'super_admin') return 'berita-acara';
-    if (activeRoute === 'master-tpa') return 'master-tpa';
+    if (activeRoute === 'master-tpa' && session.role === 'super_admin') return 'master-tpa';
     if (activeRoute === 'panitia-juri' && session.role === 'super_admin') return 'panitia-juri';
     if (activeRoute === 'pengaturan' && session.role === 'super_admin') return 'pengaturan';
     if (activeRoute === 'log' && session.role === 'super_admin') return 'log';
@@ -136,16 +136,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
     }
     else if (activeRoute === 'berita-acara' && session.role === 'super_admin') setActiveAdminTab('berita-acara');
-    else if (activeRoute === 'master-tpa') setActiveAdminTab('master-tpa');
+    else if (activeRoute === 'master-tpa' && session.role === 'super_admin') setActiveAdminTab('master-tpa');
     else if (activeRoute === 'panitia-juri' && session.role === 'super_admin') setActiveAdminTab('panitia-juri');
     else if (activeRoute === 'pengaturan' && session.role === 'super_admin') setActiveAdminTab('pengaturan');
     else if (activeRoute === 'log' && session.role === 'super_admin') setActiveAdminTab('log');
-    else if (session.role !== 'super_admin' && (activeRoute === 'admin-rekapcbg-lomba' || activeRoute === 'berita-acara' || activeRoute === 'panitia-juri' || activeRoute === 'pengaturan' || activeRoute === 'log')) {
+    else if (session.role !== 'super_admin' && (activeRoute === 'admin-rekapcbg-lomba' || activeRoute === 'berita-acara' || activeRoute === 'master-tpa' || activeRoute === 'panitia-juri' || activeRoute === 'pengaturan' || activeRoute === 'log')) {
       setActiveAdminTab('dashboard');
     }
   }, [activeRoute, session.role, appSettings.publishResultsToRayon]);
 
   const handleTabChange = (tab: 'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log') => {
+    if (tab === 'master-tpa' && session.role !== 'super_admin') {
+      showToast('info', 'Fitur Manajemen Data TPA dinonaktifkan untuk Admin Kab/Kota.');
+      return;
+    }
     setActiveAdminTab(tab);
     if (onNavigateRoute) {
       if (tab === 'dashboard') onNavigateRoute('admin-dashboard');
@@ -645,29 +649,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           )}
 
-          {/* Master Data TPA Tab (Super Admin & Admin Rayon) */}
-          <button
-            onClick={() => handleTabChange('master-tpa')}
-            className={`w-full px-3 py-2 font-bold rounded-xl flex items-center justify-between transition-all cursor-pointer text-left ${
-              activeAdminTab === 'master-tpa'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-slate-700 hover:text-emerald-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 shrink-0 text-teal-600" />
-              <span>Manajemen Data TPA</span>
-            </div>
-            {session.role === 'super_admin' ? (
+          {/* Master Data TPA Tab (Super Admin Only; Nonaktif untuk Admin Kab/Kota) */}
+          {session.role === 'super_admin' ? (
+            <button
+              onClick={() => handleTabChange('master-tpa')}
+              className={`w-full px-3 py-2 font-bold rounded-xl flex items-center justify-between transition-all cursor-pointer text-left ${
+                activeAdminTab === 'master-tpa'
+                  ? 'bg-emerald-800 text-white shadow-xs'
+                  : 'text-slate-700 hover:text-emerald-900 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 shrink-0 text-teal-600" />
+                <span>Manajemen Data TPA</span>
+              </div>
               <span className="px-1.5 py-0.2 bg-teal-100 text-teal-900 text-[9px] font-bold rounded">
                 Master
               </span>
-            ) : (
-              <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-900 text-[9px] font-bold rounded">
-                {currentKemantren?.code}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                showToast('info', 'Fitur Manajemen Data TPA dinonaktifkan untuk Admin Kab/Kota.');
+              }}
+              className="w-full px-3 py-2 text-slate-400 bg-slate-50 font-medium rounded-xl flex items-center justify-between transition-colors cursor-not-allowed text-left opacity-70 border border-slate-200"
+              title="Manajemen Data TPA dikelola terpusat oleh Super Admin"
+            >
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 shrink-0 text-slate-400" />
+                <span>Manajemen Data TPA</span>
+              </div>
+              <span className="px-1.5 py-0.2 bg-slate-200 text-slate-600 text-[9px] font-bold rounded">
+                Nonaktif
               </span>
-            )}
-          </button>
+            </button>
+          )}
 
           {/* Undian Nomor Tampil (Superadmin Only) */}
           {session.role === 'super_admin' && (
@@ -858,8 +875,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           />
         )}
 
-        {/* VIEW: MASTER DATA TPA */}
-        {activeAdminTab === 'master-tpa' && (
+        {/* VIEW: MASTER DATA TPA (SUPERADMIN ONLY) */}
+        {activeAdminTab === 'master-tpa' && session.role === 'super_admin' && (
           <MasterTpaAdmin session={session} />
         )}
 

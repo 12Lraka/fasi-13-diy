@@ -82,7 +82,7 @@ export default function App() {
       if (!curSession) return 'beranda';
       const isSuperOnly = [
         'admin-rekapcbg-lomba', 'hasil-cabang', 'berita-acara',
-        'panitia-juri', 'pengaturan', 'log', 'cetak'
+        'panitia-juri', 'pengaturan', 'log', 'cetak', 'master-tpa'
       ].includes(initial);
       if (isSuperOnly && curSession.role !== 'super_admin') return 'admin-dashboard';
       return (initial === 'admin' || initial === 'superadmin' || initial === 'adminkecamatan') ? 'admin-dashboard' : initial;
@@ -182,9 +182,14 @@ export default function App() {
           route === 'berita-acara' ||
           route === 'panitia-juri' ||
           route === 'pengaturan' ||
-          route === 'log';
+          route === 'log' ||
+          route === 'master-tpa';
         if (isSuperOnly && effectiveSession.role !== 'super_admin') {
+          if (route === 'master-tpa') {
+            showToast('warning', 'Fitur Manajemen Data TPA dinonaktifkan untuk Admin Kab/Kota.');
+          }
           setActiveTab('admin-dashboard');
+          navigateToRoute('admin-dashboard');
         } else {
           setActiveTab(route === 'admin' || route === 'superadmin' || route === 'adminkecamatan' ? 'admin-dashboard' : route);
         }
@@ -552,7 +557,7 @@ export default function App() {
           activeTab === 'admin-rekapcbg-lomba' ||
           activeTab === 'hasil-cabang' ||
           activeTab === 'berita-acara' ||
-          activeTab === 'master-tpa' ||
+          (activeTab === 'master-tpa' && session.role === 'super_admin') ||
           activeTab === 'panitia-juri' ||
           activeTab === 'pengaturan' ||
           activeTab === 'log') &&
