@@ -33,8 +33,8 @@ import { exportParticipantsToExcel } from '../../utils/excelExport';
 import { downloadSingleRecapPdf } from '../../utils/recapPdfGenerator';
 import { showToast } from '../../utils/sweetalert';
 
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
 
 interface RekapPesertaAdminProps {
   session: UserSession;
@@ -247,6 +247,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
         kemantrenList,
         fileName,
         docType,
+        orientation: 'portrait',
       });
 
       showToast('success', 'Dokumen PDF A4 siap cetak berhasil diunduh.');
@@ -547,45 +548,65 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
       {/* ========================================================================= */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0 print:m-0">
         {/* KOP SURAT RESMI FASI XIII */}
-        <div className="pb-3 border-b-2 border-slate-900 space-y-1">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo Kiri: BADKO */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div className="space-y-1.5 pb-2">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            {/* Logo Kiri: FASI DIY (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
               <img
-                src={LOGO_BADKO_URL}
-                alt="Logo Badko TKA-TPA"
+                src={LOGO_LEFT_URL}
+                alt="Logo FASI XIII DIY"
                 crossOrigin="anonymous"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
 
             {/* Teks Kop Tengah */}
-            <div className="text-center flex-1 px-2">
-              <h2 className="font-extrabold text-xs sm:text-base md:text-lg text-slate-900 uppercase tracking-wide leading-tight">
-                FESTIVAL ANAK SHOLEH INDONESIA XIII
+            <div className="text-center flex-1 px-1 sm:px-2">
+              <h2
+                className="font-black text-sm sm:text-base md:text-[18px] text-[#0047AB] uppercase tracking-wide leading-tight"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                PANITIA PELAKSANA
               </h2>
-              <h3 className="font-black text-xs sm:text-sm md:text-base text-emerald-950 uppercase tracking-wider leading-tight mt-0.5">
-                BADKO TKA-TPA D.I. YOGYAKARTA
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                FESTIVAL ANAK SHOLEH INDONESIA XIII
               </h3>
-              <p className="text-[8.5px] sm:text-[10px] md:text-[11px] text-slate-700 font-medium leading-tight mt-1">
-                Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+              </h3>
+              <p
+                className="text-[7.5px] sm:text-[8px] md:text-[8.5px] text-black font-normal leading-tight mt-1"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026
               </p>
             </div>
 
-            {/* Logo Kanan: FASI */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+            {/* Logo Kanan: Maskot FASI (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
               <img
-                src={LOGO_FASI_URL}
-                alt="Logo FASI XIII"
+                src={LOGO_RIGHT_URL}
+                alt="Maskot FASI XIII DIY"
                 crossOrigin="anonymous"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
           </div>
 
-          {/* Garis Ganda Kop Surat */}
-          <div className="pt-1">
-            <div className="w-full h-[1px] bg-slate-900" />
+          {/* Garis Pembatas Rectangle Merah dengan Informasi Sekretariat Tulisan Putih */}
+          <div className="w-full bg-[#E50914] text-white py-1 px-2 text-center rounded-none shadow-none">
+            <p
+              className="text-[7.5px] sm:text-[8px] md:text-[8.5px] font-normal leading-tight tracking-tight text-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175
+            </p>
           </div>
         </div>
 
@@ -640,16 +661,16 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-2 px-2 border border-slate-300 text-center font-mono text-[10px] text-slate-600">
+                      <td className="py-3 px-2 border border-slate-300 text-center font-mono text-[10px] text-slate-600">
                         {rowNum}
                       </td>
-                      <td className="py-2 px-2 border border-slate-300 font-mono font-bold text-[10.5px] text-emerald-950 whitespace-nowrap">
+                      <td className="py-3 px-2 border border-slate-300 font-mono font-bold text-[10.5px] text-emerald-950 whitespace-nowrap">
                         {p.registrationNumber}
                       </td>
-                      <td className="py-2 px-3 border border-slate-300 font-bold text-slate-950">
+                      <td className="py-3 px-3 border border-slate-300 font-bold text-slate-950">
                         {p.fullName}
                       </td>
-                      <td className="py-2 px-2 border border-slate-300 text-center font-semibold">
+                      <td className="py-3 px-2 border border-slate-300 text-center font-semibold">
                         <span
                           className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold ${
                             p.gender === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
@@ -658,10 +679,10 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                           {p.gender}
                         </span>
                       </td>
-                      <td className="py-2 px-3 border border-slate-300 text-slate-800">
+                      <td className="py-3 px-3 border border-slate-300 text-slate-800">
                         <div className="font-bold text-slate-900">{kem?.name || p.kemantrenId}</div>
                       </td>
-                      <td className="py-2 px-3 border border-slate-300">
+                      <td className="py-3 px-3 border border-slate-300">
                         <span className="font-semibold text-emerald-950">{cat?.name || p.categoryId}</span>
                         {cat?.level && (
                           <span className="ml-1.5 text-[9px] px-1.5 py-0.2 bg-slate-100 border border-slate-200 rounded font-bold text-slate-700">
@@ -669,7 +690,7 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                           </span>
                         )}
                       </td>
-                      <td className="py-2 px-2 border border-slate-300 text-center text-[10px]">
+                      <td className="py-3 px-2 border border-slate-300 text-center text-[10px]">
                         {isHadir ? (
                           <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                             <CheckCircle2 className="w-3 h-3" />
@@ -680,8 +701,8 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
                         )}
                       </td>
                       {docType === 'daftar_hadir' && (
-                        <td className="py-1 px-2 border border-slate-300 text-center">
-                          <div className="h-7 border border-dashed border-slate-300 rounded flex items-center justify-between px-2 text-[9px] text-slate-400 font-mono">
+                        <td className="py-2 px-2 border border-slate-300 text-center">
+                          <div className="h-8 border border-dashed border-slate-300 rounded flex items-center justify-between px-2 text-[9px] text-slate-400 font-mono">
                             <span>{rowNum}.</span>
                             <span>....................</span>
                           </div>
@@ -699,18 +720,18 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
         {/* TABEL DATA PESERTA (PRINT ONLY - FULL LIST SEMUA RECORD TANPA PAGINASI) */}
         {/* ========================================================================= */}
         <div className="hidden print:block">
-          <table className="w-full text-left text-[9.5pt] border-collapse border border-slate-400">
+          <table className="w-full text-left text-[9pt] border-collapse border border-slate-400">
             <thead>
               <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-400">
-                <th className="py-1.5 px-2 border border-slate-400 text-center w-8">No</th>
-                <th className="py-1.5 px-2 border border-slate-400 w-24">No Reg</th>
-                <th className="py-1.5 px-2 border border-slate-400">Nama Lengkap Santri</th>
-                <th className="py-1.5 px-1 border border-slate-400 text-center w-8">L/P</th>
-                <th className="py-1.5 px-2 border border-slate-400">Kabupaten / Kota</th>
-                <th className="py-1.5 px-2 border border-slate-400">Cabang Lomba</th>
-                <th className="py-1.5 px-2 border border-slate-400 text-center w-16">Status</th>
+                <th className="py-2 px-2 border border-slate-400 text-center w-8">No</th>
+                <th className="py-2 px-2 border border-slate-400 w-24">No Reg</th>
+                <th className="py-2 px-2 border border-slate-400">Nama Lengkap Santri</th>
+                <th className="py-2 px-1 border border-slate-400 text-center w-8">L/P</th>
+                <th className="py-2 px-2 border border-slate-400">Kabupaten / Kota</th>
+                <th className="py-2 px-2 border border-slate-400">Cabang Lomba</th>
+                <th className="py-2 px-2 border border-slate-400 text-center w-16">Status</th>
                 {docType === 'daftar_hadir' && (
-                  <th className="py-1.5 px-2 border border-slate-400 text-center w-28">Paraf / TTD</th>
+                  <th className="py-2 px-2 border border-slate-400 text-center w-28">Paraf / TTD</th>
                 )}
               </tr>
             </thead>
@@ -729,30 +750,30 @@ export const RekapPesertaAdmin: React.FC<RekapPesertaAdminProps> = ({
 
                   return (
                     <tr key={p.id} className="border-b border-slate-300 break-inside-avoid">
-                      <td className="py-1 px-1.5 border border-slate-400 text-center font-mono text-[8.5pt]">
+                      <td className="py-2.5 px-1.5 border border-slate-400 text-center font-mono text-[8.5pt]">
                         {idx + 1}
                       </td>
-                      <td className="py-1 px-1.5 border border-slate-400 font-mono font-bold text-[8.5pt] whitespace-nowrap">
+                      <td className="py-2.5 px-1.5 border border-slate-400 font-mono font-bold text-[8.5pt] whitespace-nowrap">
                         {p.registrationNumber}
                       </td>
-                      <td className="py-1 px-2 border border-slate-400 font-bold text-slate-900">
+                      <td className="py-2.5 px-2 border border-slate-400 font-bold text-slate-900 leading-snug">
                         {p.fullName}
                       </td>
-                      <td className="py-1 px-1 border border-slate-400 text-center font-bold">
+                      <td className="py-2.5 px-1 border border-slate-400 text-center font-bold">
                         {p.gender}
                       </td>
-                      <td className="py-1 px-2 border border-slate-400">
+                      <td className="py-2.5 px-2 border border-slate-400 leading-snug">
                         <span className="font-bold">{kem?.name || p.kemantrenId}</span>
                       </td>
-                      <td className="py-1 px-2 border border-slate-400">
+                      <td className="py-2.5 px-2 border border-slate-400 leading-snug">
                         <span className="font-semibold">{cat?.name || p.categoryId}</span>
                         {cat?.level && <span className="text-[7.5pt] ml-1 font-bold">({cat.level})</span>}
                       </td>
-                      <td className="py-1 px-1.5 border border-slate-400 text-center font-semibold text-[8pt]">
+                      <td className="py-2.5 px-1.5 border border-slate-400 text-center font-semibold text-[8pt]">
                         {isHadir ? 'Hadir' : 'Belum'}
                       </td>
                       {docType === 'daftar_hadir' && (
-                        <td className="py-1 px-1.5 border border-slate-400 text-left align-middle">
+                        <td className="py-2.5 px-1.5 border border-slate-400 text-left align-middle">
                           <div className="flex items-center justify-between text-[8pt] text-slate-600 px-0.5">
                             <span className="font-mono text-[7.5pt]">{idx + 1}.</span>
                             <span className="text-slate-400">...............</span>

@@ -12,8 +12,8 @@ import autoTable from 'jspdf-autotable';
 import { Participant, CompetitionCategory, Kemantren } from '../types/fasi';
 import { fetchImageAsBase64 } from './idCardPngGenerator';
 
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
 
 interface ExportBranchPdfOptions {
   category: CompetitionCategory;
@@ -49,65 +49,74 @@ export async function renderBranchToPdfPage({
   const contentWidth = pageWidth - (marginX * 2);
 
   // Load logo images as Base64
-  let logoBadkoBase64 = '';
-  let logoFasiBase64 = '';
+  let logoLeftBase64 = '';
+  let logoRightBase64 = '';
   try {
-    logoBadkoBase64 = await fetchImageAsBase64(LOGO_BADKO_URL);
-    logoFasiBase64 = await fetchImageAsBase64(LOGO_FASI_URL);
+    logoLeftBase64 = await fetchImageAsBase64(LOGO_LEFT_URL);
+    logoRightBase64 = await fetchImageAsBase64(LOGO_RIGHT_URL);
   } catch {
     // ignore
   }
 
-  // 1. KOP SURAT RESMI
-  const topY = 12;
-  const logoSize = 16;
+  // 1. KOP SURAT RESMI FASI XIII
+  const topY = 10;
+  const logoSize = 18;
 
-  if (logoBadkoBase64 && logoBadkoBase64.startsWith('data:')) {
+  if (logoLeftBase64 && logoLeftBase64.startsWith('data:')) {
     try {
-      pdfDoc.addImage(logoBadkoBase64, 'PNG', marginX + 2, topY, logoSize, logoSize);
+      const format = logoLeftBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      pdfDoc.addImage(logoLeftBase64, format, marginX, topY, logoSize, logoSize);
     } catch {}
   }
 
-  if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
+  if (logoRightBase64 && logoRightBase64.startsWith('data:')) {
     try {
-      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
-      pdfDoc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {
-      try {
-        pdfDoc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-      } catch {}
-    }
+      const format = logoRightBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      pdfDoc.addImage(logoRightBase64, format, pageWidth - marginX - logoSize, topY, logoSize, logoSize);
+    } catch {}
   }
 
+  // Teks Kop Tengah (Warna Biru, Font Arial Black / Helvetica Bold)
   pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.setTextColor(0, 71, 171); // Biru #0047AB
+
+  // Baris 1: PANITIA PELAKSANA
+  pdfDoc.setFontSize(14);
+  pdfDoc.text('PANITIA PELAKSANA', pageWidth / 2, topY + 4.5, { align: 'center' });
+
+  // Baris 2: FESTIVAL ANAK SHOLEH INDONESIA XIII
   pdfDoc.setFontSize(11);
-  pdfDoc.setTextColor(15, 23, 42); // slate-900
-  pdfDoc.text('FESTIVAL ANAK SHOLEH INDONESIA XIII', pageWidth / 2, topY + 4, { align: 'center' });
+  pdfDoc.text('FESTIVAL ANAK SHOLEH INDONESIA XIII', pageWidth / 2, topY + 9.5, { align: 'center' });
 
-  pdfDoc.setFontSize(12);
-  pdfDoc.setTextColor(6, 78, 59); // emerald-900
-  pdfDoc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  // Baris 3: BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+  pdfDoc.setFontSize(11);
+  pdfDoc.text('BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA', pageWidth / 2, topY + 14.5, { align: 'center' });
 
+  // Baris 4: SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026 (Hitam, normal, size 8)
   pdfDoc.setFont('helvetica', 'normal');
   pdfDoc.setFontSize(7.5);
-  pdfDoc.setTextColor(71, 85, 105); // slate-600
+  pdfDoc.setTextColor(0, 0, 0); // Hitam
+  pdfDoc.text('SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026', pageWidth / 2, topY + 18.5, { align: 'center' });
+
+  // Garis Pembatas Persegi Panjang Berwarna Merah
+  const rectY = topY + 21;
+  const rectHeight = 5;
+  pdfDoc.setFillColor(229, 9, 20); // Merah #E50914
+  pdfDoc.rect(marginX, rectY, contentWidth, rectHeight, 'F');
+
+  // Tulisan di dalam pita merah: jenis arial size 8 warna putih
+  pdfDoc.setFont('helvetica', 'normal');
+  pdfDoc.setFontSize(7);
+  pdfDoc.setTextColor(255, 255, 255); // Putih
   pdfDoc.text(
-    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
+    'Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175',
     pageWidth / 2,
-    topY + 14,
+    rectY + 3.5,
     { align: 'center' }
   );
 
-  // Garis Kop Surat
-  const lineY = topY + 18;
-  pdfDoc.setDrawColor(15, 23, 42);
-  pdfDoc.setLineWidth(0.8);
-  pdfDoc.line(marginX, lineY, pageWidth - marginX, lineY);
-  pdfDoc.setLineWidth(0.2);
-  pdfDoc.line(marginX, lineY + 0.8, pageWidth - marginX, lineY + 0.8);
-
   // 2. JUDUL DOKUMEN & NAMA CABANG LOMBA
-  const titleY = lineY + 7;
+  const titleY = rectY + rectHeight + 7;
   pdfDoc.setFont('helvetica', 'bold');
   pdfDoc.setFontSize(11);
   pdfDoc.setTextColor(15, 23, 42);
@@ -138,14 +147,14 @@ export async function renderBranchToPdfPage({
   };
 
   // 3. TABEL DATA
-  // Kolom: No, Undian, No Registrasi, Nama Lengkap, L/P, Rayon & Unit TPA, Juri I, Juri II, Total Nilai
+  // Kolom: No, Undian, No Registrasi, Nama Lengkap, L/P, Kabupaten / Kota, Juri I, Juri II, Total Nilai
   const tableHeaders = [
     'No',
     'Undian',
     'No Registrasi',
     'Nama Lengkap',
     'L/P',
-    'Rayon & Unit TPA',
+    'Kabupaten / Kota',
     'Juri I',
     'Juri II',
     'Total Nilai',
@@ -155,13 +164,10 @@ export async function renderBranchToPdfPage({
     ? [['-', '-', '-', 'Belum ada santri terdaftar pada cabang lomba ini.', '-', '-', '-', '-', '-']]
     : inCat.map((p, index) => {
         const kemName = getKemName(p.kemantrenId);
-        const rayonAndTpa = p.tpaUnitName
-          ? `Kem. ${kemName}\n${p.tpaUnitName}`
-          : `Kem. ${kemName}`;
 
         const totalNilai = p.averageScore != null
           ? Number(p.averageScore.toFixed(2))
-          : ((p.scoreJury1 || 0) + (p.scoreJury2 || 0)) > 0
+          : ((p.scoreJuri1 || 0) + (p.scoreJuri2 || 0)) > 0
           ? ((p.scoreJury1 || 0) + (p.scoreJury2 || 0))
           : '-';
 
@@ -171,26 +177,27 @@ export async function renderBranchToPdfPage({
           p.registrationNumber || '-',
           p.fullName || '-',
           p.gender || '-',
-          rayonAndTpa,
+          kemName || '-',
           p.scoreJury1 != null ? String(p.scoreJury1) : '',
           p.scoreJury2 != null ? String(p.scoreJury2) : '',
           totalNilai !== '-' ? String(totalNilai) : '',
         ];
       });
 
-  const startTableY = titleY + 8;
+  const startTableY = titleY + 7;
 
   autoTable(pdfDoc, {
     startY: startTableY,
     head: [tableHeaders],
     body: tableBody,
-    margin: { left: marginX, right: marginX, bottom: 45 },
+    margin: { left: marginX, right: marginX, bottom: 15 },
     theme: 'grid',
     headStyles: {
       fillColor: [241, 245, 249], // slate-100
       textColor: [15, 23, 42], // slate-900
       fontStyle: 'bold',
-      fontSize: 8.5,
+      fontSize: 8,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
       halign: 'center',
       valign: 'middle',
       lineWidth: 0.2,
@@ -198,7 +205,8 @@ export async function renderBranchToPdfPage({
     },
     bodyStyles: {
       textColor: [15, 23, 42],
-      fontSize: 8,
+      fontSize: 7.5,
+      cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 },
       lineWidth: 0.15,
       lineColor: [203, 213, 225], // slate-300
       valign: 'middle',
@@ -206,10 +214,10 @@ export async function renderBranchToPdfPage({
     columnStyles: {
       0: { halign: 'center', cellWidth: 8 },  // No
       1: { halign: 'center', cellWidth: 14, fontStyle: 'bold' }, // Undian
-      2: { halign: 'center', cellWidth: 26, fontStyle: 'bold' }, // No Registrasi
-      3: { halign: 'left', cellWidth: 46, fontStyle: 'bold' },   // Nama Lengkap
+      2: { halign: 'center', cellWidth: 25, fontStyle: 'bold' }, // No Registrasi
+      3: { halign: 'left', cellWidth: 47, fontStyle: 'bold' },   // Nama Lengkap
       4: { halign: 'center', cellWidth: 10 }, // L/P
-      5: { halign: 'left', cellWidth: 42 },   // Rayon & Unit TPA
+      5: { halign: 'left', cellWidth: 42 },   // Kabupaten / Kota
       6: { halign: 'center', cellWidth: 13 }, // Juri I
       7: { halign: 'center', cellWidth: 13 }, // Juri II
       8: { halign: 'center', cellWidth: 14, fontStyle: 'bold' }, // Total Nilai
@@ -221,11 +229,10 @@ export async function renderBranchToPdfPage({
 
   // 4. BLOK TANDA TANGAN RESMI (3 Kolom: Panitera, Juri I, Juri II - manual signature & name)
   const lastTableY = (pdfDoc as any).lastAutoTable?.finalY || startTableY + 40;
-  const pageHeight = 297;
-  let signatureY = lastTableY + 8;
+  let signatureY = lastTableY + 6;
 
-  // Jika tidak cukup ruang untuk tanda tangan (butuh minimal 35mm), buat halaman baru
-  if (signatureY + 35 > pageHeight) {
+  // Jika tidak cukup ruang untuk tanda tangan (butuh minimal 30mm sebelum margin bawah), buat halaman baru
+  if (signatureY + 30 > 282) {
     pdfDoc.addPage('a4', 'portrait');
     signatureY = 20;
   }
@@ -350,65 +357,74 @@ export async function renderAttendanceToPdfPage({
   const contentWidth = pageWidth - (marginX * 2);
 
   // Load logo images as Base64
-  let logoBadkoBase64 = '';
-  let logoFasiBase64 = '';
+  let logoLeftBase64 = '';
+  let logoRightBase64 = '';
   try {
-    logoBadkoBase64 = await fetchImageAsBase64(LOGO_BADKO_URL);
-    logoFasiBase64 = await fetchImageAsBase64(LOGO_FASI_URL);
+    logoLeftBase64 = await fetchImageAsBase64(LOGO_LEFT_URL);
+    logoRightBase64 = await fetchImageAsBase64(LOGO_RIGHT_URL);
   } catch {
     // ignore
   }
 
-  // 1. KOP SURAT RESMI
-  const topY = 12;
-  const logoSize = 16;
+  // 1. KOP SURAT RESMI FASI XIII
+  const topY = 10;
+  const logoSize = 18;
 
-  if (logoBadkoBase64 && logoBadkoBase64.startsWith('data:')) {
+  if (logoLeftBase64 && logoLeftBase64.startsWith('data:')) {
     try {
-      pdfDoc.addImage(logoBadkoBase64, 'PNG', marginX + 2, topY, logoSize, logoSize);
+      const format = logoLeftBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      pdfDoc.addImage(logoLeftBase64, format, marginX, topY, logoSize, logoSize);
     } catch {}
   }
 
-  if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
+  if (logoRightBase64 && logoRightBase64.startsWith('data:')) {
     try {
-      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
-      pdfDoc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {
-      try {
-        pdfDoc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-      } catch {}
-    }
+      const format = logoRightBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      pdfDoc.addImage(logoRightBase64, format, pageWidth - marginX - logoSize, topY, logoSize, logoSize);
+    } catch {}
   }
 
+  // Teks Kop Tengah (Warna Biru, Font Arial Black / Helvetica Bold)
   pdfDoc.setFont('helvetica', 'bold');
+  pdfDoc.setTextColor(0, 71, 171); // Biru #0047AB
+
+  // Baris 1: PANITIA PELAKSANA
+  pdfDoc.setFontSize(14);
+  pdfDoc.text('PANITIA PELAKSANA', pageWidth / 2, topY + 4.5, { align: 'center' });
+
+  // Baris 2: FESTIVAL ANAK SHOLEH INDONESIA XIII
   pdfDoc.setFontSize(11);
-  pdfDoc.setTextColor(15, 23, 42); // slate-900
-  pdfDoc.text('FESTIVAL ANAK SHOLEH INDONESIA XIII', pageWidth / 2, topY + 4, { align: 'center' });
+  pdfDoc.text('FESTIVAL ANAK SHOLEH INDONESIA XIII', pageWidth / 2, topY + 9.5, { align: 'center' });
 
-  pdfDoc.setFontSize(12);
-  pdfDoc.setTextColor(6, 78, 59); // emerald-900
-  pdfDoc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
+  // Baris 3: BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+  pdfDoc.setFontSize(11);
+  pdfDoc.text('BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA', pageWidth / 2, topY + 14.5, { align: 'center' });
 
+  // Baris 4: SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026 (Hitam, normal, size 8)
   pdfDoc.setFont('helvetica', 'normal');
   pdfDoc.setFontSize(7.5);
-  pdfDoc.setTextColor(71, 85, 105); // slate-600
+  pdfDoc.setTextColor(0, 0, 0); // Hitam
+  pdfDoc.text('SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026', pageWidth / 2, topY + 18.5, { align: 'center' });
+
+  // Garis Pembatas Persegi Panjang Berwarna Merah
+  const rectY = topY + 21;
+  const rectHeight = 5;
+  pdfDoc.setFillColor(229, 9, 20); // Merah #E50914
+  pdfDoc.rect(marginX, rectY, contentWidth, rectHeight, 'F');
+
+  // Tulisan di dalam pita merah: jenis arial size 8 warna putih
+  pdfDoc.setFont('helvetica', 'normal');
+  pdfDoc.setFontSize(7);
+  pdfDoc.setTextColor(255, 255, 255); // Putih
   pdfDoc.text(
-    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
+    'Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175',
     pageWidth / 2,
-    topY + 14,
+    rectY + 3.5,
     { align: 'center' }
   );
 
-  // Garis Kop Surat
-  const lineY = topY + 18;
-  pdfDoc.setDrawColor(15, 23, 42);
-  pdfDoc.setLineWidth(0.8);
-  pdfDoc.line(marginX, lineY, pageWidth - marginX, lineY);
-  pdfDoc.setLineWidth(0.2);
-  pdfDoc.line(marginX, lineY + 0.8, pageWidth - marginX, lineY + 0.8);
-
   // 2. JUDUL DOKUMEN & NAMA CABANG LOMBA
-  const titleY = lineY + 7;
+  const titleY = rectY + rectHeight + 7;
   pdfDoc.setFont('helvetica', 'bold');
   pdfDoc.setFontSize(11);
   pdfDoc.setTextColor(15, 23, 42);
@@ -439,14 +455,14 @@ export async function renderAttendanceToPdfPage({
   };
 
   // 3. TABEL DATA DAFTAR HADIR
-  // Kolom: No, Undian, No Registrasi, Nama Lengkap, L/P, Rayon & Unit TPA, Paraf / Tanda Tangan
+  // Kolom: No, Undian, No Registrasi, Nama Lengkap, L/P, Kabupaten / Kota, Paraf / Tanda Tangan
   const tableHeaders = [
     'No',
     'Undian',
     'No Registrasi',
     'Nama Lengkap',
     'L/P',
-    'Rayon & Unit TPA',
+    'Kabupaten / Kota',
     'Paraf / Tanda Tangan',
   ];
 
@@ -454,9 +470,6 @@ export async function renderAttendanceToPdfPage({
     ? [['-', '-', '-', 'Belum ada santri terdaftar pada cabang lomba ini.', '-', '-', '-']]
     : inCat.map((p, index) => {
         const kemName = getKemName(p.kemantrenId);
-        const rayonAndTpa = p.tpaUnitName
-          ? `Rayon ${kemName}\n${p.tpaUnitName}`
-          : `Rayon ${kemName}`;
 
         // Alternating numbering format for classic Indonesian attendance signature cell
         const signCell = (index % 2 === 0)
@@ -469,24 +482,25 @@ export async function renderAttendanceToPdfPage({
           p.registrationNumber || '-',
           p.fullName || '-',
           p.gender || '-',
-          rayonAndTpa,
+          kemName || '-',
           signCell,
         ];
       });
 
-  const startTableY = titleY + 8;
+  const startTableY = titleY + 7;
 
   autoTable(pdfDoc, {
     startY: startTableY,
     head: [tableHeaders],
     body: tableBody,
-    margin: { left: marginX, right: marginX, bottom: 45 },
+    margin: { left: marginX, right: marginX, bottom: 15 },
     theme: 'grid',
     headStyles: {
       fillColor: [241, 245, 249], // slate-100
       textColor: [15, 23, 42], // slate-900
       fontStyle: 'bold',
-      fontSize: 8.5,
+      fontSize: 8,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
       halign: 'center',
       valign: 'middle',
       lineWidth: 0.2,
@@ -494,7 +508,8 @@ export async function renderAttendanceToPdfPage({
     },
     bodyStyles: {
       textColor: [15, 23, 42],
-      fontSize: 8,
+      fontSize: 7.5,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
       lineWidth: 0.15,
       lineColor: [203, 213, 225], // slate-300
       valign: 'middle',
@@ -502,10 +517,10 @@ export async function renderAttendanceToPdfPage({
     columnStyles: {
       0: { halign: 'center', cellWidth: 8 },  // No
       1: { halign: 'center', cellWidth: 14, fontStyle: 'bold' }, // Undian
-      2: { halign: 'center', cellWidth: 26, fontStyle: 'bold' }, // No Registrasi
+      2: { halign: 'center', cellWidth: 25, fontStyle: 'bold' }, // No Registrasi
       3: { halign: 'left', cellWidth: 52, fontStyle: 'bold' },   // Nama Lengkap
       4: { halign: 'center', cellWidth: 10 }, // L/P
-      5: { halign: 'left', cellWidth: 48 },   // Rayon & Unit TPA
+      5: { halign: 'left', cellWidth: 45 },   // Kabupaten / Kota
       6: { halign: 'left', cellWidth: 32, fontStyle: 'normal' },  // Paraf / TTD
     },
     alternateRowStyles: {
@@ -515,10 +530,9 @@ export async function renderAttendanceToPdfPage({
 
   // 4. BLOK TANDA TANGAN RESMI PRESENSI (1 Tanda Tangan: Panitera di Sisi Kanan)
   const lastTableY = (pdfDoc as any).lastAutoTable?.finalY || startTableY + 40;
-  const pageHeight = 297;
-  let signatureY = lastTableY + 8;
+  let signatureY = lastTableY + 6;
 
-  if (signatureY + 35 > pageHeight) {
+  if (signatureY + 30 > 282) {
     pdfDoc.addPage('a4', 'portrait');
     signatureY = 20;
   }

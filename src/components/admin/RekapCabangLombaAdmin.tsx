@@ -41,8 +41,8 @@ import {
 } from '../../utils/branchPdfGenerator';
 import { exportBranchToExcel } from '../../utils/branchExcelExport';
 
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
 
 interface RekapCabangLombaAdminProps {
   session: UserSession;
@@ -511,45 +511,65 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
       {/* ========================================================================= */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none print:p-0 print:m-0">
         {/* KOP SURAT RESMI FASI XIII */}
-        <div className="pb-3 border-b-2 border-slate-900 space-y-1">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo Kiri: BADKO */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div className="space-y-1.5 pb-2">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            {/* Logo Kiri: FASI DIY (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
               <img
-                src={LOGO_BADKO_URL}
-                alt="Logo Badko TKA-TPA"
+                src={LOGO_LEFT_URL}
+                alt="Logo FASI XIII DIY"
                 crossOrigin="anonymous"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
 
             {/* Teks Kop Tengah */}
-            <div className="text-center flex-1 px-2">
-              <h2 className="font-extrabold text-xs sm:text-base md:text-lg text-slate-900 uppercase tracking-wide leading-tight">
-                FESTIVAL ANAK SHOLEH INDONESIA XIII
+            <div className="text-center flex-1 px-1 sm:px-2">
+              <h2
+                className="font-black text-sm sm:text-base md:text-[18px] text-[#0047AB] uppercase tracking-wide leading-tight"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                PANITIA PELAKSANA
               </h2>
-              <h3 className="font-black text-xs sm:text-sm md:text-base text-emerald-950 uppercase tracking-wider leading-tight mt-0.5">
-                BADKO TKA-TPA D.I. YOGYAKARTA
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                FESTIVAL ANAK SHOLEH INDONESIA XIII
               </h3>
-              <p className="text-[8.5px] sm:text-[10px] md:text-[11px] text-slate-700 font-medium leading-tight mt-1">
-                Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+              </h3>
+              <p
+                className="text-[7.5px] sm:text-[8px] md:text-[8.5px] text-black font-normal leading-tight mt-1"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026
               </p>
             </div>
 
-            {/* Logo Kanan: FASI */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+            {/* Logo Kanan: Maskot FASI (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
               <img
-                src={LOGO_FASI_URL}
-                alt="Logo FASI XIII"
+                src={LOGO_RIGHT_URL}
+                alt="Maskot FASI XIII DIY"
                 crossOrigin="anonymous"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
           </div>
 
-          {/* Garis Ganda Kop Surat */}
-          <div className="pt-1">
-            <div className="w-full h-[1px] bg-slate-900" />
+          {/* Garis Pembatas Rectangle Merah dengan Informasi Sekretariat Tulisan Putih */}
+          <div className="w-full bg-[#E50914] text-white py-1 px-2 text-center rounded-none shadow-none">
+            <p
+              className="text-[7.5px] sm:text-[8px] md:text-[8.5px] font-normal leading-tight tracking-tight text-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175
+            </p>
           </div>
         </div>
 
@@ -601,25 +621,25 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
 
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-2 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-600">
+                        <td className="py-3 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-600">
                           {idx + 1}
                         </td>
-                        <td className="py-2 px-2 border border-slate-300 text-center">
+                        <td className="py-3 px-2 border border-slate-300 text-center">
                           {p.lotteryNumber ? (
-                            <span className="px-1.5 py-0.5 bg-amber-400 text-emerald-950 font-black rounded text-[11px] shadow-2xs">
+                            <span className="px-2 py-0.5 bg-amber-400 text-emerald-950 font-black rounded text-[11px] shadow-2xs">
                               {String(p.lotteryNumber).padStart(2, '0')}
                             </span>
                           ) : (
                             <span className="text-slate-400 text-[10px]">-</span>
                           )}
                         </td>
-                        <td className="py-2 px-2 border border-slate-300 font-mono font-bold text-[11px] text-emerald-950 text-center whitespace-nowrap">
+                        <td className="py-3 px-2 border border-slate-300 font-mono font-bold text-[11px] text-emerald-950 text-center whitespace-nowrap">
                           {p.registrationNumber}
                         </td>
-                        <td className="py-2 px-3 border border-slate-300 font-bold text-slate-950">
+                        <td className="py-3 px-3 border border-slate-300 font-bold text-slate-950">
                           {p.fullName}
                         </td>
-                        <td className="py-2 px-1.5 border border-slate-300 text-center font-bold text-[10px]">
+                        <td className="py-3 px-1.5 border border-slate-300 text-center font-bold text-[10px]">
                           <span
                             className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
                               p.gender === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
@@ -628,16 +648,16 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                             {p.gender}
                           </span>
                         </td>
-                        <td className="py-2 px-3 border border-slate-300 font-bold text-slate-800">
+                        <td className="py-3 px-3 border border-slate-300 font-bold text-slate-800">
                           {kem?.name || p.kemantrenId}
                         </td>
-                        <td className="py-2 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-700">
+                        <td className="py-3 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-700">
                           {p.scoreJury1 != null ? p.scoreJury1 : ''}
                         </td>
-                        <td className="py-2 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-700">
+                        <td className="py-3 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-700">
                           {p.scoreJury2 != null ? p.scoreJury2 : ''}
                         </td>
-                        <td className="py-2 px-2 border border-slate-300 text-center font-mono font-bold text-[11px] text-emerald-950">
+                        <td className="py-3 px-2 border border-slate-300 text-center font-mono font-bold text-[11px] text-emerald-950">
                           {totalNilai}
                         </td>
                       </tr>
@@ -675,25 +695,25 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
 
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-2.5 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-600">
+                        <td className="py-3 px-2 border border-slate-300 text-center font-mono text-[11px] text-slate-600">
                           {idx + 1}
                         </td>
-                        <td className="py-2.5 px-2 border border-slate-300 text-center">
+                        <td className="py-3 px-2 border border-slate-300 text-center">
                           {p.lotteryNumber ? (
-                            <span className="px-1.5 py-0.5 bg-amber-400 text-emerald-950 font-black rounded text-[11px] shadow-2xs">
+                            <span className="px-2 py-0.5 bg-amber-400 text-emerald-950 font-black rounded text-[11px] shadow-2xs">
                               {String(p.lotteryNumber).padStart(2, '0')}
                             </span>
                           ) : (
                             <span className="text-slate-400 text-[10px]">-</span>
                           )}
                         </td>
-                        <td className="py-2.5 px-2 border border-slate-300 font-mono font-bold text-[11px] text-emerald-950 text-center whitespace-nowrap">
+                        <td className="py-3 px-2 border border-slate-300 font-mono font-bold text-[11px] text-emerald-950 text-center whitespace-nowrap">
                           {p.registrationNumber}
                         </td>
-                        <td className="py-2.5 px-3 border border-slate-300 font-bold text-slate-950">
+                        <td className="py-3 px-3 border border-slate-300 font-bold text-slate-950">
                           {p.fullName}
                         </td>
-                        <td className="py-2.5 px-1.5 border border-slate-300 text-center font-bold text-[10px]">
+                        <td className="py-3 px-1.5 border border-slate-300 text-center font-bold text-[10px]">
                           <span
                             className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
                               p.gender === 'L' ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800'
@@ -702,13 +722,13 @@ export const RekapCabangLombaAdmin: React.FC<RekapCabangLombaAdminProps> = ({
                             {p.gender}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 border border-slate-300 font-bold text-slate-800">
+                        <td className="py-3 px-3 border border-slate-300 font-bold text-slate-800">
                           {kem?.name || p.kemantrenId}
                         </td>
-                        <td className="py-2.5 px-3 border border-slate-300 font-mono text-[11px] text-slate-700">
+                        <td className="py-3 px-3 border border-slate-300 font-mono text-[11px] text-slate-700">
                           {/* Pola selang-seling khas Lembar Hadir Resmi agar tanda tangan tidak bertumpuk */}
                           <div
-                            className={`min-h-[28px] flex items-center ${
+                            className={`min-h-[32px] flex items-center ${
                               idx % 2 === 0 ? 'justify-start pl-2' : 'justify-end pr-2'
                             }`}
                           >
