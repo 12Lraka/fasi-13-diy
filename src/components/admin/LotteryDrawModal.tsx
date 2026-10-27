@@ -7,16 +7,13 @@
  */
 
 import React, { useState } from 'react';
-import { X, Dices, Sparkles, CheckCircle2, Lock, Shuffle, AlertCircle, Download } from 'lucide-react';
+import { X, Dices, Sparkles, CheckCircle2, Lock, Shuffle, AlertCircle, Download, Loader2 } from 'lucide-react';
 import { Participant, UserSession } from '../../types/fasi';
 import { CATEGORIES_LIST, KEMANTREN_LIST } from '../../data/fasiMasterData';
 import { shuffleLotteryNumbers, logAuditEvent, getStoredKemantren } from '../../utils/storage';
 import { bulkSyncParticipantsToSupabase, isSupabaseConfigured } from '../../lib/supabase';
 import { showSuccessAlert, showToast } from '../../utils/sweetalert';
-import { downloadSingleLotteryPdf } from '../../utils/lotteryPdfGenerator';
-
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+import { downloadSingleLotteryPdf, downloadAllLotteryPdf } from '../../utils/lotteryPdfGenerator';
 
 interface LotteryDrawModalProps {
   isOpen: boolean;
@@ -36,6 +33,8 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(CATEGORIES_LIST[0].id);
   const [isShuffling, setIsShuffling] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+  const [isDownloadingAllPdf, setIsDownloadingAllPdf] = useState<boolean>(false);
+  const [allPdfProgress, setAllPdfProgress] = useState<{ current: number; total: number } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   if (!isOpen) return null;
@@ -59,6 +58,28 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
       showToast('error', 'Gagal memproses file PDF.');
     } finally {
       setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadAllPdf = async () => {
+    try {
+      setIsDownloadingAllPdf(true);
+      const kemList = getStoredKemantren();
+      await downloadAllLotteryPdf({
+        categories: CATEGORIES_LIST,
+        participants,
+        kemantrenList: kemList,
+        onProgress: (current, total) => {
+          setAllPdfProgress({ current, total });
+        },
+      });
+      showToast('success', 'PDF undian seluruh cabang lomba berhasil diunduh.');
+    } catch (err) {
+      console.error('Gagal download PDF semua cabang:', err);
+      showToast('error', 'Gagal memproses file PDF semua cabang.');
+    } finally {
+      setIsDownloadingAllPdf(false);
+      setAllPdfProgress(null);
     }
   };
 
@@ -166,11 +187,33 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
               <button
                 onClick={handleDownloadPdf}
                 disabled={isDownloadingPdf || categoryParticipants.length === 0}
-                className="px-4 py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
-                title="Unduh Daftar Nomor Undian Tampil (PDF A4)"
+                className="px-3.5 py-2.5 bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+                title="Unduh Daftar Nomor Undian Tampil Cabang Ini (PDF A4)"
               >
-                <Download className="w-4 h-4 text-rose-100" />
-                <span>{isDownloadingPdf ? 'Mengunduh...' : 'Download PDF'}</span>
+                {isDownloadingPdf ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-rose-100" />
+                ) : (
+                  <Download className="w-4 h-4 text-rose-100" />
+                )}
+                <span>{isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF (A4)'}</span>
+              </button>
+
+              <button
+                onClick={handleDownloadAllPdf}
+                disabled={isDownloadingAllPdf}
+                className="px-3.5 py-2.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+                title="Unduh Daftar Nomor Undian Tampil Seluruh Cabang Lomba (PDF A4)"
+              >
+                {allPdfProgress ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-100" />
+                ) : (
+                  <Download className="w-4 h-4 text-slate-100" />
+                )}
+                <span>
+                  {allPdfProgress
+                    ? `Proses (${allPdfProgress.current}/${allPdfProgress.total})`
+                    : 'Semua Cabang'}
+                </span>
               </button>
 
               <button
@@ -240,12 +283,22 @@ export const LotteryDrawModal: React.FC<LotteryDrawModalProps> = ({
               <button
                 onClick={handleDownloadPdf}
                 disabled={isDownloadingPdf || categoryParticipants.length === 0}
-                className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                className="px-3.5 py-2 bg-rose-700 hover:bg-rose-600 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                title="Unduh PDF A4 Cabang Ini"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>{isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF Undian'}</span>
+                {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                <span>{isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF (A4)'}</span>
               </button>
             )}
+            <button
+              onClick={handleDownloadAllPdf}
+              disabled={isDownloadingAllPdf}
+              className="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+              title="Unduh PDF A4 Semua Cabang Lomba"
+            >
+              {allPdfProgress ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{allPdfProgress ? `Proses (${allPdfProgress.current}/${allPdfProgress.total})` : 'Semua Cabang'}</span>
+            </button>
             <button
               onClick={onClose}
               className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-semibold cursor-pointer"

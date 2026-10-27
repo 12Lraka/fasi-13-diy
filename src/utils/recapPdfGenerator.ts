@@ -136,7 +136,7 @@ export async function renderRecapToPdfPage({
   pdfDoc.setFontSize(10);
   pdfDoc.setTextColor(4, 120, 87); // emerald-700
   pdfDoc.text(
-    titleSubtitle.subTitle || 'SEMUA KONTINGEN 14 KEMANTREN KOTA YOGYAKARTA',
+    titleSubtitle.subTitle || 'SEMUA KONTINGEN D.I. YOGYAKARTA',
     pageWidth / 2,
     titleY + 5,
     { align: 'center' }
@@ -167,7 +167,7 @@ export async function renderRecapToPdfPage({
         'No. Registrasi',
         'Nama Lengkap Santri',
         'L/P',
-        'Rayon & Unit TPA',
+        'Kabupaten / Kota',
         'Cabang Lomba',
         'Paraf / Tanda Tangan Meja',
       ]
@@ -198,7 +198,7 @@ export async function renderRecapToPdfPage({
     : participants.map((p, index) => {
         const kemName = getKemName(p.kemantrenId);
         const cat = getCategory(p.categoryId);
-        const rayonAndTpa = kemName;
+        const kabupatenKota = kemName || '-';
 
         const branchName = cat
           ? `[${cat.level}] ${cat.name}${cat.isGroup ? ' (Grup)' : ''}`
@@ -214,7 +214,7 @@ export async function renderRecapToPdfPage({
             p.registrationNumber || '-',
             p.fullName || '-',
             p.gender || '-',
-            rayonAndTpa,
+            kabupatenKota,
             branchName,
             attendanceSign,
           ];
@@ -230,7 +230,7 @@ export async function renderRecapToPdfPage({
           p.fullName || '-',
           p.gender || '-',
           birthAndAge,
-          rayonAndTpa,
+          kabupatenKota,
           branchName,
           p.lotteryNumber ? String(p.lotteryNumber).padStart(2, '0') : '-',
         ];
@@ -242,7 +242,7 @@ export async function renderRecapToPdfPage({
     startY: startTableY,
     head: [tableHeaders],
     body: tableBody,
-    margin: { left: marginX, right: marginX, bottom: 45 },
+    margin: { left: marginX, right: marginX, bottom: 25 },
     theme: 'grid',
     headStyles: {
       fillColor: [241, 245, 249], // slate-100
@@ -266,20 +266,20 @@ export async function renderRecapToPdfPage({
     columnStyles: isDaftarHadir
       ? {
           0: { halign: 'center', cellWidth: 8 }, // No
-          1: { halign: 'center', cellWidth: 28, fontStyle: 'bold' }, // No Registrasi
+          1: { halign: 'center', cellWidth: 26, fontStyle: 'bold' }, // No Registrasi
           2: { halign: 'left', cellWidth: orientation === 'landscape' ? 64 : 46, fontStyle: 'bold' }, // Nama Lengkap
           3: { halign: 'center', cellWidth: 10 }, // L/P
-          4: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 36 }, // Rayon & Unit TPA
+          4: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 38 }, // Kabupaten / Kota
           5: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 30 }, // Cabang Lomba
           6: { halign: 'center', cellWidth: orientation === 'landscape' ? 45 : 28 }, // Paraf / Tanda Tangan
         }
       : {
           0: { halign: 'center', cellWidth: 8 }, // No
-          1: { halign: 'center', cellWidth: 28, fontStyle: 'bold' }, // No Registrasi
+          1: { halign: 'center', cellWidth: 26, fontStyle: 'bold' }, // No Registrasi
           2: { halign: 'left', cellWidth: orientation === 'landscape' ? 62 : 44, fontStyle: 'bold' }, // Nama Lengkap
           3: { halign: 'center', cellWidth: 10 }, // L/P
           4: { halign: 'center', cellWidth: orientation === 'landscape' ? 35 : 24 }, // Tgl Lahir / Usia
-          5: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 34 }, // Rayon & Unit TPA
+          5: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 36 }, // Kabupaten / Kota
           6: { halign: 'left', cellWidth: orientation === 'landscape' ? 48 : 28 }, // Cabang Lomba
           7: { halign: 'center', cellWidth: orientation === 'landscape' ? 19 : 10, fontStyle: 'bold' }, // No Undian
         },
@@ -423,8 +423,8 @@ export async function downloadAllKemantrenRecapPdf({
     await renderRecapToPdfPage({
       titleSubtitle: {
         mainTitle: 'REKAPITULASI NOMINASI TETAP PESERTA LOMBA',
-        subTitle: `KONTINGEN RAYON ${kem.name.toUpperCase()} (${kemParticipants.length} SANTRI)`,
-        filterInfo: `Kontingen Resmi FASI XIII — Rayon ${kem.name}`,
+        subTitle: `KONTINGEN ${kem.name.toUpperCase()} (${kemParticipants.length} SANTRI)`,
+        filterInfo: `Kontingen Resmi FASI XIII — ${kem.name}`,
       },
       participants: kemParticipants,
       categoriesList,
