@@ -63,6 +63,7 @@ import { MasterTpaAdmin } from './MasterTpaAdmin';
 import { PanitiaJuriAdmin } from './PanitiaJuriAdmin';
 import { PengaturanAdmin } from './PengaturanAdmin';
 import { LogAktivitasAdmin } from './LogAktivitasAdmin';
+import { QuotaWarningBanner, QuotaViolation } from './QuotaWarningBanner';
 import { AppRoute } from '../../utils/router';
 
 interface AdminDashboardProps {
@@ -436,6 +437,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         ? `Data_Peserta_FASI_Kontingen_${currentKemantren?.name || 'Daerah'}`
         : 'Data_Peserta_FASI_DIY';
     exportParticipantsToExcel(visibleParticipants, filename);
+  };
+
+  const handleInspectViolation = (violation: QuotaViolation) => {
+    handleTabChange('peserta');
+    setSelectedCategoryFilter(violation.categoryId);
+    if (session.role === 'super_admin') {
+      setSelectedKemantrenFilter(violation.kemantrenId);
+    }
+    setSearchTerm('');
+    setCurrentPage(1);
   };
 
   const getCat = (catId: string) => categoriesList.find((c) => c.id === catId);
@@ -818,6 +829,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 w-full space-y-4">
+        {/* BANNER NOTIFIKASI PERINGATAN KUOTA BERLEBIH & PANDUAN LANGKAH */}
+        <QuotaWarningBanner
+          session={session}
+          participants={participants}
+          kemantrenList={kemantrenList}
+          categoriesList={categoriesList}
+          onInspectViolation={handleInspectViolation}
+        />
+
         {/* VIEW: DASHBOARD (OVERVIEW & STATISTIK UTAMA) */}
         {activeAdminTab === 'dashboard' && (
           <AdminOverviewDashboard
