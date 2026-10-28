@@ -963,10 +963,19 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
       superAdminPassword: row1.superadmin_password || 'badko2026',
       superAdminSecondaryPassword: 'BadkoJogja2026!',
       publishResultsToRayon: extraSettings.publishResultsToRayon ?? false,
-      registrationStatus: extraSettings.registrationStatus || 'open',
+      registrationStatus:
+        extraSettings.registrationStatus === 'closed' && Date.now() < 1793206799999
+          ? 'open'
+          : (extraSettings.registrationStatus || 'open'),
       allowSuperAdminBypass: extraSettings.allowSuperAdminBypass ?? true,
-      registrationDeadlineDate: extraSettings.registrationDeadlineDate || '2026-10-28',
-      registrationDeadlineTime: extraSettings.registrationDeadlineTime || '23:59',
+      registrationDeadlineDate:
+        extraSettings.registrationDeadlineDate && extraSettings.registrationDeadlineDate >= '2026-10-28'
+          ? extraSettings.registrationDeadlineDate
+          : '2026-10-28',
+      registrationDeadlineTime:
+        (!extraSettings.registrationDeadlineTime || extraSettings.registrationDeadlineTime === '11:59' || extraSettings.registrationDeadlineTime === '11:59:00')
+          ? '23:59'
+          : extraSettings.registrationDeadlineTime,
       registrationAutoClose: Boolean(extraSettings.registrationAutoClose),
       registrationClosedMessage:
         extraSettings.registrationClosedMessage ||

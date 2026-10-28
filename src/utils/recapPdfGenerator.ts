@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  * 
  * Sistem Informasi FASI XIII Kota Yogyakarta
- * Generator PDF Rekapitulasi Nominasi Tetap Peserta Lomba A4 Portrait Rapi
- * Mendukung Ekspor Satuan (Filter/Kemantren Terpilih) atau Batch Semua 14 Kemantren
+ * Generator PDF Rekapitulasi Nominasi Tetap Peserta Lomba F4 / A4 Portrait Rapi
+ * Mendukung Ekspor Satuan (Filter/Kabupaten Terpilih) atau Batch Semua 5 Kabupaten/Kota
  */
 
 import { jsPDF } from 'jspdf';
@@ -14,6 +14,8 @@ import { fetchImageAsBase64 } from './idCardPngGenerator';
 
 const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
 const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
+
+export const F4_FOLIO_FORMAT: [number, number] = [215, 330];
 
 interface ExportRecapPdfOptions {
   titleSubtitle: {
@@ -28,10 +30,11 @@ interface ExportRecapPdfOptions {
   isFirstPage?: boolean;
   docType?: 'daftar_hadir' | 'nominasi';
   orientation?: 'landscape' | 'portrait';
+  paperSize?: 'a4' | 'f4';
 }
 
 /**
- * Render satu lembar / kontingen rekapitulasi ke dokumen jsPDF A4 (Landscape / Portrait)
+ * Render satu lembar / kontingen rekapitulasi ke dokumen jsPDF F4/A4 (Portrait / Landscape)
  */
 export async function renderRecapToPdfPage({
   titleSubtitle,
@@ -42,20 +45,27 @@ export async function renderRecapToPdfPage({
   isFirstPage = true,
   docType = 'nominasi',
   orientation = 'portrait',
+  paperSize = 'f4',
 }: ExportRecapPdfOptions): Promise<jsPDF> {
+  const pageFormat: [number, number] | string = paperSize === 'f4' ? F4_FOLIO_FORMAT : 'a4';
+
   const pdfDoc = doc || new jsPDF({
     orientation: orientation,
     unit: 'mm',
-    format: 'a4',
+    format: pageFormat,
     compress: true,
   });
 
   if (!isFirstPage) {
-    pdfDoc.addPage('a4', orientation);
+    pdfDoc.addPage(pageFormat, orientation);
   }
 
-  const pageWidth = orientation === 'landscape' ? 297 : 210;
-  const pageHeight = orientation === 'landscape' ? 210 : 297;
+  const pageWidth = paperSize === 'f4'
+    ? (orientation === 'landscape' ? 330 : 215)
+    : (orientation === 'landscape' ? 297 : 210);
+  const pageHeight = paperSize === 'f4'
+    ? (orientation === 'landscape' ? 215 : 330)
+    : (orientation === 'landscape' ? 210 : 297);
   const marginX = 12;
   const contentWidth = pageWidth - (marginX * 2);
 
@@ -267,21 +277,21 @@ export async function renderRecapToPdfPage({
       ? {
           0: { halign: 'center', cellWidth: 8 }, // No
           1: { halign: 'center', cellWidth: 26, fontStyle: 'bold' }, // No Registrasi
-          2: { halign: 'left', cellWidth: orientation === 'landscape' ? 64 : 46, fontStyle: 'bold' }, // Nama Lengkap
+          2: { halign: 'left', cellWidth: orientation === 'landscape' ? 68 : 46, fontStyle: 'bold' }, // Nama Lengkap
           3: { halign: 'center', cellWidth: 10 }, // L/P
-          4: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 38 }, // Kabupaten / Kota
-          5: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 30 }, // Cabang Lomba
-          6: { halign: 'center', cellWidth: orientation === 'landscape' ? 45 : 28 }, // Paraf / Tanda Tangan
+          4: { halign: 'left', cellWidth: orientation === 'landscape' ? 60 : 38 }, // Kabupaten / Kota
+          5: { halign: 'left', cellWidth: orientation === 'landscape' ? 60 : 33 }, // Cabang Lomba
+          6: { halign: 'center', cellWidth: orientation === 'landscape' ? 50 : 30 }, // Paraf / Tanda Tangan
         }
       : {
           0: { halign: 'center', cellWidth: 8 }, // No
           1: { halign: 'center', cellWidth: 26, fontStyle: 'bold' }, // No Registrasi
-          2: { halign: 'left', cellWidth: orientation === 'landscape' ? 62 : 44, fontStyle: 'bold' }, // Nama Lengkap
+          2: { halign: 'left', cellWidth: orientation === 'landscape' ? 68 : 44, fontStyle: 'bold' }, // Nama Lengkap
           3: { halign: 'center', cellWidth: 10 }, // L/P
-          4: { halign: 'center', cellWidth: orientation === 'landscape' ? 35 : 24 }, // Tgl Lahir / Usia
-          5: { halign: 'left', cellWidth: orientation === 'landscape' ? 55 : 36 }, // Kabupaten / Kota
-          6: { halign: 'left', cellWidth: orientation === 'landscape' ? 48 : 28 }, // Cabang Lomba
-          7: { halign: 'center', cellWidth: orientation === 'landscape' ? 19 : 10, fontStyle: 'bold' }, // No Undian
+          4: { halign: 'center', cellWidth: orientation === 'landscape' ? 36 : 24 }, // Tgl Lahir / Usia
+          5: { halign: 'left', cellWidth: orientation === 'landscape' ? 60 : 36 }, // Kabupaten / Kota
+          6: { halign: 'left', cellWidth: orientation === 'landscape' ? 54 : 31 }, // Cabang Lomba
+          7: { halign: 'center', cellWidth: orientation === 'landscape' ? 20 : 12, fontStyle: 'bold' }, // No Undian
         },
     alternateRowStyles: {
       fillColor: [248, 250, 252], // slate-50
@@ -294,7 +304,7 @@ export async function renderRecapToPdfPage({
 
   // Jika tidak cukup ruang untuk tanda tangan (butuh minimal 35mm), buat halaman baru
   if (signatureY + 35 > pageHeight) {
-    pdfDoc.addPage('a4', orientation);
+    pdfDoc.addPage(pageFormat, orientation);
     signatureY = 20;
   }
 
@@ -351,7 +361,7 @@ export async function renderRecapToPdfPage({
 }
 
 /**
- * Unduh Rekapitulasi Data Peserta Aktif (Single Filter / Kemantren) sebagai PDF A4 Landscape Resmi
+ * Unduh Rekapitulasi Data Peserta Aktif (Single Filter / Kabupaten) sebagai Dokumen PDF F4 (Folio) Portrait Resmi
  */
 export async function downloadSingleRecapPdf({
   titleSubtitle,
@@ -361,6 +371,7 @@ export async function downloadSingleRecapPdf({
   fileName = 'Rekapitulasi_Peserta_FASI_XIII',
   docType = 'nominasi',
   orientation = 'portrait',
+  paperSize = 'f4',
 }: {
   titleSubtitle: {
     mainTitle?: string;
@@ -373,6 +384,7 @@ export async function downloadSingleRecapPdf({
   fileName?: string;
   docType?: 'daftar_hadir' | 'nominasi';
   orientation?: 'landscape' | 'portrait';
+  paperSize?: 'a4' | 'f4';
 }): Promise<void> {
   const doc = await renderRecapToPdfPage({
     titleSubtitle,
@@ -382,6 +394,7 @@ export async function downloadSingleRecapPdf({
     isFirstPage: true,
     docType,
     orientation,
+    paperSize,
   });
 
   const dateIso = new Date().toISOString().slice(0, 10);
@@ -390,27 +403,30 @@ export async function downloadSingleRecapPdf({
 }
 
 /**
- * Unduh Semua 14 Kemantren dalam 1 Dokumen PDF Lengkap (A4 Portrait Multi-page)
+ * Unduh Semua 5 Kabupaten/Kota dalam 1 Dokumen PDF Lengkap (F4 Folio Portrait Multi-page)
  */
 export async function downloadAllKemantrenRecapPdf({
   kemantrenList,
   participants,
   categoriesList,
   orientation = 'portrait',
+  paperSize = 'f4',
   onProgress,
 }: {
   kemantrenList: Kemantren[];
   participants: Participant[];
   categoriesList: CompetitionCategory[];
   orientation?: 'landscape' | 'portrait';
+  paperSize?: 'a4' | 'f4';
   onProgress?: (current: number, total: number) => void;
 }): Promise<void> {
   if (!kemantrenList.length) return;
 
+  const pageFormat: [number, number] | string = paperSize === 'f4' ? F4_FOLIO_FORMAT : 'a4';
   const doc = new jsPDF({
     orientation: orientation,
     unit: 'mm',
-    format: 'a4',
+    format: pageFormat,
     compress: true,
   });
 
@@ -433,9 +449,10 @@ export async function downloadAllKemantrenRecapPdf({
       isFirstPage: i === 0,
       docType: 'nominasi',
       orientation,
+      paperSize,
     });
   }
 
   const dateStr = new Date().toISOString().slice(0, 10);
-  doc.save(`Rekapitulasi_Semua_Kemantren_FASI_XIII_${dateStr}.pdf`);
+  doc.save(`Rekapitulasi_Semua_KabupatenKota_FASI_XIII_${dateStr}.pdf`);
 }

@@ -28,8 +28,8 @@ import { exportParticipantsToExcel } from '../../utils/excelExport';
 import { showToast } from '../../utils/sweetalert';
 import { downloadSingleRecapPdf, downloadAllKemantrenRecapPdf } from '../../utils/recapPdfGenerator';
 
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
 
 interface RecapPrintViewProps {
   participants: Participant[];
@@ -203,7 +203,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
       setIsExportingSinglePdf(true);
       const selectedKemName = selectedKemantrenFilter !== 'ALL'
         ? kemantrenList.find((k) => k.id === selectedKemantrenFilter)?.name.toUpperCase()
-        : 'SEMUA KONTINGEN 14 RAYON';
+        : 'SEMUA KONTINGEN D.I. YOGYAKARTA';
 
       const filterInfoParts: string[] = [];
       if (selectedLevelFilter !== 'ALL') filterInfoParts.push(`Jenjang ${selectedLevelFilter}`);
@@ -218,18 +218,21 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
       await downloadSingleRecapPdf({
         titleSubtitle: {
           mainTitle: 'REKAPITULASI NOMINASI TETAP PESERTA LOMBA',
-          subTitle: selectedKemantrenFilter !== 'ALL' ? `KONTINGEN RAYON ${selectedKemName}` : selectedKemName,
+          subTitle: selectedKemantrenFilter !== 'ALL' ? `KONTINGEN ${selectedKemName}` : selectedKemName,
           filterInfo: filterInfoParts.length > 0 ? `Filter: ${filterInfoParts.join(' • ')}` : undefined,
         },
         participants: filteredParticipants,
         categoriesList,
         kemantrenList,
-        fileName: `Rekapitulasi_FASI_XIII_${selectedKemantrenFilter !== 'ALL' ? selectedKemName : 'Kota_Yogyakarta'}`,
+        fileName: `Rekapitulasi_FASI_XIII_${selectedKemantrenFilter !== 'ALL' ? selectedKemName : 'DIY'}`,
         docType: 'nominasi',
-        orientation: 'landscape',
+        orientation: 'portrait',
+        paperSize: 'f4',
       });
+      showToast('success', 'Dokumen PDF Rekapitulasi (F4 Portrait) berhasil diunduh!');
     } catch (err) {
       console.error('Error exporting recap PDF:', err);
+      showToast('error', 'Gagal memproses file PDF Rekapitulasi.');
     } finally {
       setIsExportingSinglePdf(false);
     }
@@ -242,11 +245,14 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
         kemantrenList,
         participants,
         categoriesList,
-        orientation: 'landscape',
+        orientation: 'portrait',
+        paperSize: 'f4',
         onProgress: (current, total) => setExportProgress({ current, total }),
       });
+      showToast('success', 'Dokumen PDF Rekapitulasi 5 Kab/Kota (F4 Portrait) berhasil diunduh!');
     } catch (err) {
       console.error('Error exporting all kemantren recap PDF:', err);
+      showToast('error', 'Gagal memproses file PDF gabungan 5 Kab/Kota.');
     } finally {
       setIsExportingAllPdf(false);
       setExportProgress(null);
@@ -273,7 +279,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
               Laporan Rekapitulasi Berita Acara & Nominasi Tetap
             </h2>
             <p className="text-xs text-slate-500">
-              Dokumen resmi rekapitulasi peserta FASI XIII BADKO TKA-TPA D.I. YOGYAKARTA.
+              Dokumen resmi rekapitulasi peserta FASI XIII BADKO TKA-TPA D.I. YOGYAKARTA (Kertas F4 / Folio Portrait).
             </p>
           </div>
 
@@ -298,7 +304,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
               ) : (
                 <FileDown className="w-4 h-4 text-amber-300" />
               )}
-              <span>Download PDF (Halaman Ini)</span>
+              <span>{isExportingSinglePdf ? 'Membuat PDF...' : 'Download PDF halaman ini'}</span>
             </button>
 
             {/* Download Semua PDF (5 Kabupaten/Kota) */}
@@ -318,7 +324,7 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
                 ) : (
                   <>
                     <Download className="w-4 h-4 text-white" />
-                    <span>Download Semua PDF (5 Kab/Kota)</span>
+                    <span>Download semua PDF (5 Kab/Kota)</span>
                   </>
                 )}
               </button>
@@ -435,49 +441,78 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. DOKUMEN RESMI A4 (SCREEN PREVIEW & PRINTABLE FORMAT) */}
+      {/* 2. DOKUMEN RESMI F4 PORTRAIT (SCREEN PREVIEW & PRINTABLE FORMAT) */}
       {/* ========================================================================= */}
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-6xl mx-auto print:border-none print:shadow-none print:p-0 print:max-w-none">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm max-w-4xl mx-auto print:border-none print:shadow-none print:p-0 print:max-w-none print:m-0">
+        <style>{`
+          @media print {
+            @page {
+              size: 215mm 330mm portrait;
+              margin: 10mm 12mm 12mm 12mm;
+            }
+          }
+        `}</style>
+
         {/* KOP SURAT RESMI FASI XIII */}
-        <div className="pb-3 border-b-2 border-slate-900 space-y-1">
-          <div className="flex items-center justify-between gap-4">
-            {/* Logo Kiri: BADKO */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+        <div className="space-y-1.5 pb-2">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            {/* Logo Kiri: FASI DIY (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
               <img
-                src={LOGO_BADKO_URL}
-                alt="Logo Badko TKA-TPA"
+                src={LOGO_LEFT_URL}
+                alt="Logo FASI XIII DIY"
                 crossOrigin="anonymous"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
 
             {/* Teks Kop Tengah */}
-            <div className="text-center flex-1 px-2">
-              <h2 className="font-extrabold text-xs sm:text-base md:text-lg text-slate-900 uppercase tracking-wide leading-tight">
-                FESTIVAL ANAK SHOLEH INDONESIA XIII
+            <div className="text-center flex-1 px-1 sm:px-2">
+              <h2
+                className="font-black text-sm sm:text-base md:text-[18px] text-[#0047AB] uppercase tracking-wide leading-tight"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                PANITIA PELAKSANA
               </h2>
-              <h3 className="font-black text-xs sm:text-sm md:text-base text-emerald-950 uppercase tracking-wider leading-tight mt-0.5">
-                BADKO TKA-TPA D.I. YOGYAKARTA
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                FESTIVAL ANAK SHOLEH INDONESIA XIII
               </h3>
-              <p className="text-[8.5px] sm:text-[10px] md:text-[11px] text-slate-700 font-medium leading-tight mt-1">
-                Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+              </h3>
+              <p
+                className="text-[7.5px] sm:text-[8px] md:text-[8.5px] text-black font-normal leading-tight mt-1"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026
               </p>
             </div>
 
-            {/* Logo Kanan: FASI */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center">
+            {/* Logo Kanan: Maskot FASI (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
               <img
-                src={LOGO_FASI_URL}
-                alt="Logo FASI XIII"
+                src={LOGO_RIGHT_URL}
+                alt="Maskot FASI XIII DIY"
                 crossOrigin="anonymous"
                 className="max-h-full max-w-full object-contain"
               />
             </div>
           </div>
 
-          {/* Garis Ganda Kop Surat */}
-          <div className="pt-1">
-            <div className="w-full h-[1px] bg-slate-900" />
+          {/* Garis Pembatas Rectangle Merah dengan Informasi Sekretariat Tulisan Putih */}
+          <div className="w-full bg-[#E50914] text-white py-1 px-2 text-center rounded-none shadow-none">
+            <p
+              className="text-[7.5px] sm:text-[8px] md:text-[8.5px] font-normal leading-tight tracking-tight text-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175
+            </p>
           </div>
         </div>
 
@@ -488,8 +523,8 @@ export const RecapPrintView: React.FC<RecapPrintViewProps> = ({
           </h4>
           <p className="text-xs font-bold text-slate-800 uppercase">
             {selectedKemantrenFilter !== 'ALL'
-              ? `KONTINGEN RAYON ${kemantrenList.find((k) => k.id === selectedKemantrenFilter)?.name.toUpperCase()}`
-              : 'SEMUA KONTINGEN 14 RAYON KOTA YOGYAKARTA'}
+              ? `KONTINGEN ${kemantrenList.find((k) => k.id === selectedKemantrenFilter)?.name.toUpperCase()}`
+              : 'SEMUA KONTINGEN D.I. YOGYAKARTA'}
           </p>
           {(selectedLevelFilter !== 'ALL' || selectedCategoryFilter !== 'ALL' || selectedGenderFilter !== 'ALL') && (
             <p className="text-[11px] text-slate-600 font-medium">

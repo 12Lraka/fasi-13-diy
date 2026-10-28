@@ -167,7 +167,7 @@ export async function renderBranchToPdfPage({
 
         const totalNilai = p.averageScore != null
           ? Number(p.averageScore.toFixed(2))
-          : ((p.scoreJuri1 || 0) + (p.scoreJuri2 || 0)) > 0
+          : ((p.scoreJury1 || 0) + (p.scoreJury2 || 0)) > 0
           ? ((p.scoreJury1 || 0) + (p.scoreJury2 || 0))
           : '-';
 

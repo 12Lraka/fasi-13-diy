@@ -108,14 +108,27 @@ export function getEffectiveRegistrationStatus(settings?: AppSettings): 'open' |
   if (s.registrationAutoClose && s.registrationDeadlineDate) {
     try {
       const rawTime = (s.registrationDeadlineTime || '23:59').trim();
-      const [h, m] = rawTime.split(':');
-      const hour = (h || '23').padStart(2, '0');
-      const min = (m || '59').padStart(2, '0');
-      const dateStr = s.registrationDeadlineDate.trim();
+      const timeClean = rawTime.replace(/:\d{2}$/, '');
+      const [h, m] = timeClean.split(':');
+      let hour = parseInt(h || '23', 10);
+      const min = parseInt(m || '59', 10);
+      // Koreksi jika tersimpan format 12 jam (11:59 dikonversi ke 23:59 format 24 jam)
+      if (hour === 11 && min === 59) {
+        hour = 23;
+      }
+      const formattedHour = String(hour).padStart(2, '0');
+      const formattedMin = String(min).padStart(2, '0');
+      const dateStr = s.registrationDeadlineDate >= '2026-10-28' ? s.registrationDeadlineDate.trim() : '2026-10-28';
 
-      // Format ISO dengan offset +07:00 (WIB) dan detik :59.999 agar full 1 menit 23.59 tetap bisa digunakan
-      const deadlineDate = new Date(`${dateStr}T${hour}:${min}:59.999+07:00`);
-      if (!isNaN(deadlineDate.getTime()) && Date.now() > deadlineDate.getTime()) {
+      // Standar UTC untuk WIB (UTC+7): 28 Oktober 2026 23:59:59.999 WIB = Date.UTC(2026, 9, 28, 16, 59, 59, 999)
+      const [yStr, mStr, dStr] = dateStr.split('-');
+      const y = parseInt(yStr || '2026', 10);
+      const monthIndex = parseInt(mStr || '10', 10) - 1;
+      const d = parseInt(dStr || '28', 10);
+      const utcH = hour - 7;
+      const deadlineTimestamp = Date.UTC(y, monthIndex, d, utcH, min, 59, 999);
+
+      if (!isNaN(deadlineTimestamp) && Date.now() > deadlineTimestamp) {
         return 'closed';
       }
     } catch (e) {
@@ -139,11 +152,24 @@ export function getStoredSettings(): AppSettings {
     const parsed = JSON.parse(raw);
     const merged: AppSettings = { ...DEFAULT_SETTINGS, ...parsed };
 
-    // Auto-migrasi jika local storage masih tersimpan tanggal default lama (5 Oktober 2026)
-    if (merged.registrationDeadlineDate === '2026-10-05') {
+    // Batas penutupan resmi pendaftaran santri FASI XIII: 28 Oktober 2026 23.59.59 WIB
+    const REG_DEADLINE_TIMESTAMP = Date.UTC(2026, 9, 28, 16, 59, 59, 999);
+
+    // Auto-migrasi jika local storage tersimpan tanggal lama, format jam belum 23:59, atau status closed prematur
+    const needsDateFix = !merged.registrationDeadlineDate || merged.registrationDeadlineDate < '2026-10-28';
+    const isToday28Okt = (merged.registrationDeadlineDate || '2026-10-28') === '2026-10-28';
+    const needsTimeFix = isToday28Okt && merged.registrationDeadlineTime !== '23:59';
+    const isPrematureClosed = merged.registrationStatus === 'closed' && Date.now() < REG_DEADLINE_TIMESTAMP;
+
+    if (needsDateFix || needsTimeFix || isPrematureClosed) {
       merged.registrationDeadlineDate = '2026-10-28';
       merged.registrationDeadlineTime = '23:59';
       merged.registrationClosedMessage = DEFAULT_SETTINGS.registrationClosedMessage;
+
+      if (isPrematureClosed) {
+        merged.registrationStatus = 'open';
+      }
+
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
     }
 

@@ -99,13 +99,15 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
   const [regStatus, setRegStatus] = useState<'open' | 'closed' | 'lockdown'>(settings.registrationStatus || 'open');
   const [allowBypass, setAllowBypass] = useState<boolean>(settings.allowSuperAdminBypass ?? true);
   const [deadlineDate, setDeadlineDate] = useState<string>(
-    settings.registrationDeadlineDate && settings.registrationDeadlineDate !== '2026-10-05'
+    settings.registrationDeadlineDate && settings.registrationDeadlineDate >= '2026-10-28'
       ? settings.registrationDeadlineDate
       : '2026-10-28'
   );
-  const [deadlineTime, setDeadlineTime] = useState<string>(
-    settings.registrationDeadlineDate === '2026-10-05' ? '23:59' : (settings.registrationDeadlineTime || '23:59')
-  );
+  const [deadlineTime, setDeadlineTime] = useState<string>(() => {
+    const raw = (settings.registrationDeadlineTime || '23:59').trim().replace(/:\d{2}$/, '');
+    if (raw === '11:59') return '23:59';
+    return raw || '23:59';
+  });
   const [autoClose, setAutoClose] = useState<boolean>(!!settings.registrationAutoClose);
   const [closedMsg, setClosedMsg] = useState<string>(
     !settings.registrationClosedMessage || settings.registrationClosedMessage.includes('5 Oktober')
@@ -115,12 +117,17 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
 
   const handleSaveRegistrationSettings = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    let cleanTime = (deadlineTime || '23:59').trim().replace(/:\d{2}$/, '');
+    if (cleanTime === '11:59') {
+      cleanTime = '23:59';
+    }
+
     const updated: AppSettings = {
       ...settings,
       registrationStatus: regStatus,
       allowSuperAdminBypass: allowBypass,
-      registrationDeadlineDate: deadlineDate,
-      registrationDeadlineTime: deadlineTime,
+      registrationDeadlineDate: deadlineDate >= '2026-10-28' ? deadlineDate : '2026-10-28',
+      registrationDeadlineTime: cleanTime,
       registrationAutoClose: autoClose,
       registrationClosedMessage: closedMsg.trim(),
     };
@@ -1071,7 +1078,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Jam Batas Waktu (WIB):</span>
+                    <span>Jam Batas Waktu (Format 24 Jam, Contoh: 23:59 WIB):</span>
                   </label>
                   <input
                     type="time"
@@ -1079,6 +1086,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                     onChange={(e) => setDeadlineTime(e.target.value)}
                     className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
                   />
+                  <p className="text-[10px] text-slate-500">Gunakan format 24 jam penuh (misal 23:59 untuk malam hari menjelang tengah malam).</p>
                 </div>
               </div>
             </div>

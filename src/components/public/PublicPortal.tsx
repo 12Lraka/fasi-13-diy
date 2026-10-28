@@ -28,56 +28,80 @@ export const PublicPortal: React.FC<PublicPortalProps> = ({
 }) => {
   const theme = getThemeConfig(settings?.themeColor);
 
-  // Target 1: Batas Akhir Pendaftaran Santri (28 Oktober 2026 23.59 WIB)
-  const regDeadlineDate = settings?.registrationDeadlineDate && settings.registrationDeadlineDate !== '2026-10-05'
-    ? settings.registrationDeadlineDate
-    : '2026-10-28';
-  const regDeadlineTime = settings?.registrationDeadlineTime || '23:59';
-  const regDeadlineTarget = new Date(`${regDeadlineDate}T${regDeadlineTime}:00+07:00`).getTime();
+  // Target 1: Batas Akhir Pendaftaran Santri (28 Oktober 2026 23.59 WIB - 24 Jam Penuh)
+  // Standar patokan waktu 28 Oktober 2026 23:59:59.999 WIB = 16:59:59.999 UTC
+  const REG_DEADLINE_DEFAULT_UTC = Date.UTC(2026, 9, 28, 16, 59, 59, 999);
 
-  // Target 2: Hari-H Pelaksanaan FASI XIII (Ahad, 8 November 2026 07.00 WIB)
-  const eventDateTarget = new Date('2026-11-08T07:00:00+07:00').getTime();
+  const regDeadlineTarget = React.useMemo(() => {
+    try {
+      const dateStr = (settings?.registrationDeadlineDate && settings.registrationDeadlineDate >= '2026-10-28')
+        ? settings.registrationDeadlineDate
+        : '2026-10-28';
+
+      const [yearStr, monthStr, dayStr] = dateStr.split('-');
+      const y = parseInt(yearStr || '2026', 10);
+      const m = parseInt(monthStr || '10', 10) - 1; // bulan 0-indexed (9 = Oktober)
+      const d = parseInt(dayStr || '28', 10);
+
+      const rawTime = (settings?.registrationDeadlineTime || '23:59').trim();
+      // Bersihkan karakter non-digit selain pemisah
+      const cleanTime = rawTime.replace(/:\d{2}$/, '').replace(/[^\d:.]/g, '');
+      const parts = cleanTime.includes(':') ? cleanTime.split(':') : cleanTime.split('.');
+      let h = parseInt(parts[0] || '23', 10);
+      let min = parseInt(parts[1] || '59', 10);
+
+      // Normalisasi format 12 jam (jika jam 11 malam tersimpan sebagai 11:59)
+      if (h === 11 && min === 59) {
+        h = 23;
+      }
+
+      // Safeguard: Jika tanggal pendaftaran adalah 28 Oktober 2026 dan jam < 23,
+      // pastikan batas waktu tetap berlaku hingga penutupan resmi akhir hari (23.59 WIB)
+      if (y === 2026 && m === 9 && d === 28 && h < 23) {
+        h = 23;
+        min = 59;
+      }
+
+      // WIB adalah UTC+7, jadi jam UTC = h - 7
+      const utcH = h - 7;
+      const computed = Date.UTC(y, m, d, utcH, min, 59, 999);
+      return !isNaN(computed) ? computed : REG_DEADLINE_DEFAULT_UTC;
+    } catch {
+      return REG_DEADLINE_DEFAULT_UTC;
+    }
+  }, [settings?.registrationDeadlineDate, settings?.registrationDeadlineTime]);
+
+  // Target 2: Hari-H Pelaksanaan FASI XIII (Ahad, 8 November 2026 07.00 WIB = 00:00:00 UTC)
+  const eventDateTarget = Date.UTC(2026, 10, 8, 0, 0, 0);
+
+  // Helper kalkulasi selisih waktu
+  const calcTimeRemaining = (target: number) => {
+    const now = Date.now();
+    const difference = target - now;
+    if (difference > 0) {
+      return {
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        isExpired: false,
+      };
+    }
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true };
+  };
 
   // Mode Tab Hitung Mundur: 'pendaftaran' (default) atau 'pelaksanaan'
   const [activeCountdownMode, setActiveCountdownMode] = useState<'pendaftaran' | 'pelaksanaan'>('pendaftaran');
   const [isAutoRotatePaused, setIsAutoRotatePaused] = useState<boolean>(false);
 
-  const [timeLeftReg, setTimeLeftReg] = useState<{
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-    isExpired: boolean;
-  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false });
-
-  const [timeLeftEvent, setTimeLeftEvent] = useState<{
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-    isExpired: boolean;
-  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false });
+  const [timeLeftReg, setTimeLeftReg] = useState(() => calcTimeRemaining(regDeadlineTarget));
+  const [timeLeftEvent, setTimeLeftEvent] = useState(() => calcTimeRemaining(eventDateTarget));
 
   // Update countdown tiap detik
   useEffect(() => {
-    const calc = (target: number) => {
-      const now = new Date().getTime();
-      const difference = target - now;
-      if (difference > 0) {
-        return {
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((difference % (1000 * 60)) / 1000),
-          isExpired: false,
-        };
-      }
-      return { days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true };
-    };
-
     const updateAll = () => {
-      setTimeLeftReg(calc(regDeadlineTarget));
-      setTimeLeftEvent(calc(eventDateTarget));
+      setTimeLeftReg(calcTimeRemaining(regDeadlineTarget));
+      setTimeLeftEvent(calcTimeRemaining(eventDateTarget));
     };
 
     updateAll();

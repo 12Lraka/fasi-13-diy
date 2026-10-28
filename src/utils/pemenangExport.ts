@@ -12,8 +12,10 @@ import autoTable from 'jspdf-autotable';
 import { BeritaAcaraKejuaraan, CompetitionCategory, WinnerSlot } from '../types/fasi';
 import { fetchImageAsBase64 } from './idCardPngGenerator';
 
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
+
+export const F4_FOLIO_LANDSCAPE: [number, number] = [330, 215];
 
 export interface WinnerRow {
   no: number;
@@ -199,7 +201,79 @@ export function exportPemenangToExcel(
 }
 
 /**
- * Ekspor Hasil Pemenang ke Dokumen PDF Resmi (Format A4 Landscape Rapi dengan Kop Surat)
+ * Render Kop Surat Resmi FASI XIII untuk Dokumen PDF Landscape F4
+ */
+function renderLandscapeFasiKopSurat(
+  doc: jsPDF,
+  pageWidth: number,
+  marginX: number,
+  contentWidth: number,
+  logoLeftBase64: string,
+  logoRightBase64: string
+): number {
+  const topY = 10;
+  const logoSize = 22;
+
+  // 1. Logo Kiri: FASI XIII DIY
+  if (logoLeftBase64 && logoLeftBase64.startsWith('data:')) {
+    try {
+      const format = logoLeftBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(logoLeftBase64, format, marginX, topY, logoSize, logoSize);
+    } catch {}
+  }
+
+  // 2. Logo Kanan: Maskot FASI XIII DIY
+  if (logoRightBase64 && logoRightBase64.startsWith('data:')) {
+    try {
+      const format = logoRightBase64.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(logoRightBase64, format, pageWidth - marginX - logoSize, topY, logoSize, logoSize);
+    } catch {}
+  }
+
+  // 3. Teks Kop Tengah (Warna Biru #0047AB, Font Helvetica Bold)
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 71, 171); // Biru #0047AB
+
+  // Baris 1: PANITIA PELAKSANA
+  doc.setFontSize(16);
+  doc.text('PANITIA PELAKSANA', pageWidth / 2, topY + 4.5, { align: 'center' });
+
+  // Baris 2: FESTIVAL ANAK SHOLEH INDONESIA XIII
+  doc.setFontSize(12.5);
+  doc.text('FESTIVAL ANAK SHOLEH INDONESIA XIII', pageWidth / 2, topY + 9.5, { align: 'center' });
+
+  // Baris 3: BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+  doc.setFontSize(12.5);
+  doc.text('BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA', pageWidth / 2, topY + 14.5, { align: 'center' });
+
+  // Baris 4: SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026 (Hitam normal, size 8)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0); // Hitam
+  doc.text('SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026', pageWidth / 2, topY + 18.5, { align: 'center' });
+
+  // 4. Garis Pembatas Persegi Panjang Berwarna Merah
+  const rectY = topY + 21;
+  const rectHeight = 5.5;
+  doc.setFillColor(229, 9, 20); // Merah #E50914
+  doc.rect(marginX, rectY, contentWidth, rectHeight, 'F');
+
+  // Tulisan di dalam pita merah: jenis arial size 8 warna putih
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255); // Putih
+  doc.text(
+    'Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175',
+    pageWidth / 2,
+    rectY + 3.8,
+    { align: 'center' }
+  );
+
+  return rectY + rectHeight;
+}
+
+/**
+ * Ekspor Hasil Pemenang ke Dokumen PDF Resmi (Format F4 Folio Landscape Rapi dengan Kop Surat)
  */
 export async function exportPemenangToPdf(
   categories: CompetitionCategory[],
@@ -212,74 +286,37 @@ export async function exportPemenangToPdf(
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
-    format: 'a4',
+    format: [215, 330], // F4 Folio Landscape (330mm x 215mm)
     compress: true,
   });
 
-  const pageWidth = 297;
-  const pageHeight = 210;
+  const pageWidth = 330;
+  const pageHeight = 215;
   const marginX = 14;
+  const contentWidth = pageWidth - (marginX * 2); // 302 mm
 
   // Load logo images as Base64
-  let logoBadkoBase64 = '';
-  let logoFasiBase64 = '';
+  let logoLeftBase64 = '';
+  let logoRightBase64 = '';
   try {
-    logoBadkoBase64 = await fetchImageAsBase64(LOGO_BADKO_URL);
-    logoFasiBase64 = await fetchImageAsBase64(LOGO_FASI_URL);
+    logoLeftBase64 = await fetchImageAsBase64(LOGO_LEFT_URL);
+    logoRightBase64 = await fetchImageAsBase64(LOGO_RIGHT_URL);
   } catch {
     // ignore
   }
 
-  // 1. KOP SURAT
-  const topY = 10;
-  const logoSize = 16;
-
-  if (logoBadkoBase64 && logoBadkoBase64.startsWith('data:')) {
-    try {
-      doc.addImage(logoBadkoBase64, 'PNG', marginX + 2, topY, logoSize, logoSize);
-    } catch {}
-  }
-
-  if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
-    try {
-      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {
-      try {
-        doc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-      } catch {}
-    }
-  }
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  doc.text('FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII', pageWidth / 2, topY + 4, { align: 'center' });
-
-  doc.setFontSize(13);
-  doc.setTextColor(6, 78, 59); // emerald-900
-  doc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text(
-    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
-    pageWidth / 2,
-    topY + 14,
-    { align: 'center' }
+  // 1. KOP SURAT RESMI FASI XIII
+  const headerBottomY = renderLandscapeFasiKopSurat(
+    doc,
+    pageWidth,
+    marginX,
+    contentWidth,
+    logoLeftBase64,
+    logoRightBase64
   );
 
-  // Garis Kop Surat
-  const lineY = topY + 17;
-  doc.setDrawColor(15, 23, 42);
-  doc.setLineWidth(0.8);
-  doc.line(marginX, lineY, pageWidth - marginX, lineY);
-  doc.setLineWidth(0.2);
-  doc.line(marginX, lineY + 0.8, pageWidth - marginX, lineY + 0.8);
-
   // 2. JUDUL DOKUMEN
-  const titleY = lineY + 7;
+  const titleY = headerBottomY + 7;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
@@ -302,9 +339,9 @@ export async function exportPemenangToPdf(
     'Cabang Lomba',
     'Jenjang',
     'Peringkat',
-    'Nama Pemenang',
+    'Nama Lengkap Juara',
     'Kontingen / Kab. Kota',
-    'Nilai',
+    'Total Nilai',
   ];
 
   const tableBody = winnerRows.length === 0
@@ -327,40 +364,43 @@ export async function exportPemenangToPdf(
     margin: { left: marginX, right: marginX, bottom: 18 },
     styles: {
       fontSize: 8,
-      cellPadding: 2.2,
-      lineColor: [226, 232, 240],
-      lineWidth: 0.1,
+      cellPadding: 2.4,
+      lineColor: [203, 213, 225],
+      lineWidth: 0.15,
       textColor: [15, 23, 42],
+      valign: 'middle',
     },
     headStyles: {
-      fillColor: [6, 78, 59], // emerald-900
-      textColor: [255, 255, 255],
+      fillColor: [241, 245, 249],
+      textColor: [15, 23, 42],
       fontStyle: 'bold',
-      fontSize: 8,
+      fontSize: 8.5,
       halign: 'center',
+      lineWidth: 0.2,
+      lineColor: [148, 163, 184],
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: 10 },
-      1: { halign: 'center', cellWidth: 16, fontStyle: 'bold' },
-      2: { cellWidth: 58 },
-      3: { halign: 'center', cellWidth: 16 },
-      4: { halign: 'center', cellWidth: 26, fontStyle: 'bold' },
-      5: { cellWidth: 68, fontStyle: 'bold' },
-      6: { cellWidth: 56 },
-      7: { halign: 'center', cellWidth: 19, fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
+      2: { cellWidth: 68 },
+      3: { halign: 'center', cellWidth: 18 },
+      4: { halign: 'center', cellWidth: 28, fontStyle: 'bold' },
+      5: { cellWidth: 76, fontStyle: 'bold' },
+      6: { cellWidth: 62 },
+      7: { halign: 'center', cellWidth: 22, fontStyle: 'bold' },
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252],
     },
-    didDrawPage: (data) => {
+    didDrawPage: () => {
       // Footer Halaman
       const pageCount = (doc as any).internal.getNumberOfPages();
       const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(7.5);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        `FASI XIII D.I. Yogyakarta — Hasil Pemenang Resmi • Halaman ${currentPage} dari ${pageCount}`,
+        `FASI XIII D.I. Yogyakarta — Hasil Pemenang Resmi (Kertas F4 Landscape) • Halaman ${currentPage} dari ${pageCount}`,
         pageWidth / 2,
         pageHeight - 6,
         { align: 'center' }
@@ -373,97 +413,74 @@ export async function exportPemenangToPdf(
 }
 
 /**
- * Ekspor 1 Cabang Lomba Spesifik ke PDF Lembar Keputusan Resmi A4 Portrait
+ * Ekspor 1 Cabang Lomba Spesifik ke PDF Lembar Keputusan Resmi F4 (Folio) Landscape
  */
 export async function exportSingleCabangPdf(
   category: CompetitionCategory,
   beritaAcara?: BeritaAcaraKejuaraan
 ) {
   const doc = new jsPDF({
-    orientation: 'portrait',
+    orientation: 'landscape',
     unit: 'mm',
-    format: 'a4',
+    format: [215, 330], // F4 Folio Landscape (330mm x 215mm)
     compress: true,
   });
 
-  const pageWidth = 210;
-  const marginX = 14;
+  const pageWidth = 330;
+  const pageHeight = 215;
+  const marginX = 16;
+  const contentWidth = pageWidth - (marginX * 2); // 298 mm
 
-  let logoBadkoBase64 = '';
-  let logoFasiBase64 = '';
+  let logoLeftBase64 = '';
+  let logoRightBase64 = '';
   try {
-    logoBadkoBase64 = await fetchImageAsBase64(LOGO_BADKO_URL);
-    logoFasiBase64 = await fetchImageAsBase64(LOGO_FASI_URL);
+    logoLeftBase64 = await fetchImageAsBase64(LOGO_LEFT_URL);
+    logoRightBase64 = await fetchImageAsBase64(LOGO_RIGHT_URL);
   } catch {}
 
-  const topY = 12;
-  const logoSize = 16;
-
-  if (logoBadkoBase64 && logoBadkoBase64.startsWith('data:')) {
-    try {
-      doc.addImage(logoBadkoBase64, 'PNG', marginX + 2, topY, logoSize, logoSize);
-    } catch {}
-  }
-
-  if (logoFasiBase64 && logoFasiBase64.startsWith('data:')) {
-    try {
-      const format = logoFasiBase64.includes('image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(logoFasiBase64, format, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-    } catch {
-      try {
-        doc.addImage(logoFasiBase64, pageWidth - marginX - logoSize - 2, topY, logoSize, logoSize);
-      } catch {}
-    }
-  }
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
-  doc.text('FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII', pageWidth / 2, topY + 4, { align: 'center' });
-
-  doc.setFontSize(12);
-  doc.setTextColor(6, 78, 59);
-  doc.text('BADKO TKA-TPA D.I. YOGYAKARTA', pageWidth / 2, topY + 9, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text(
-    'Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194',
-    pageWidth / 2,
-    topY + 14,
-    { align: 'center' }
+  // 1. KOP SURAT RESMI FASI XIII
+  const headerBottomY = renderLandscapeFasiKopSurat(
+    doc,
+    pageWidth,
+    marginX,
+    contentWidth,
+    logoLeftBase64,
+    logoRightBase64
   );
 
-  const lineY = topY + 17;
-  doc.setDrawColor(15, 23, 42);
-  doc.setLineWidth(0.8);
-  doc.line(marginX, lineY, pageWidth - marginX, lineY);
-  doc.setLineWidth(0.2);
-  doc.line(marginX, lineY + 0.8, pageWidth - marginX, lineY + 0.8);
-
-  const titleY = lineY + 8;
+  // 2. JUDUL DOKUMEN & SUBJUDUL CABANG
+  const titleY = headerBottomY + 7;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
   doc.text('BERITA ACARA PENETAPAN HASIL KEJUARAAN', pageWidth / 2, titleY, { align: 'center' });
 
-  doc.setFontSize(9.5);
-  doc.setTextColor(4, 120, 87);
-  doc.text(`CABANG: [${category.code}] ${category.name.toUpperCase()}`, pageWidth / 2, titleY + 5, { align: 'center' });
+  doc.setFontSize(10.5);
+  doc.setTextColor(0, 71, 171); // Biru #0047AB
+  doc.text(`CABANG LOMBA: [${category.code}] ${category.name.toUpperCase()}`, pageWidth / 2, titleY + 5.5, { align: 'center' });
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(71, 85, 105);
   doc.text(
-    `Tingkat: ${category.level} | Tanggal Penetapan: ${beritaAcara?.tanggalPenetapan || '-'} | Status: ${
+    `Jenjang: ${category.level} | Tanggal Penetapan: ${beritaAcara?.tanggalPenetapan || '08 November 2026'} | Status: ${
       beritaAcara?.status === 'Disahkan' ? 'RESMI DISAHKAN' : 'DRAFT'
     }`,
     pageWidth / 2,
-    titleY + 10,
+    titleY + 10.5,
     { align: 'center' }
   );
 
+  // 3. NARASI PEMBUKA
+  const narasiY = titleY + 16;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  const narasi = `Pada hari ini, tanggal ${beritaAcara?.tanggalPenetapan || '08 November 2026'}, bertempat di lokasi pelaksanaan FASI XIII D.I. Yogyakarta, Dewan Juri Cabang Lomba [${category.code}] ${category.name} (${category.level}) telah melaksanakan penilaian dan menetapkan para pemenang kejuaraan sebagai berikut:`;
+  const splitNarasi = doc.splitTextToSize(narasi, contentWidth);
+  doc.text(splitNarasi, marginX, narasiY);
+
+  // 4. DATA PEMENANG
   const p = beritaAcara?.pemenang;
   const getKontingenText = (slot?: WinnerSlot) => {
     if (!slot) return '-';
@@ -472,55 +489,96 @@ export async function exportSingleCabangPdf(
   };
 
   const tableData = [
-    ['Juara I', p?.juara1?.nama || '-', getKontingenText(p?.juara1), p?.juara1?.totalNilai || '-'],
-    ['Juara II', p?.juara2?.nama || '-', getKontingenText(p?.juara2), p?.juara2?.totalNilai || '-'],
-    ['Juara III', p?.juara3?.nama || '-', getKontingenText(p?.juara3), p?.juara3?.totalNilai || '-'],
+    ['Juara I', p?.juara1?.nama || '-', getKontingenText(p?.juara1), p?.juara1?.unitTpa || '-', p?.juara1?.totalNilai || '-'],
+    ['Juara II', p?.juara2?.nama || '-', getKontingenText(p?.juara2), p?.juara2?.unitTpa || '-', p?.juara2?.totalNilai || '-'],
+    ['Juara III', p?.juara3?.nama || '-', getKontingenText(p?.juara3), p?.juara3?.unitTpa || '-', p?.juara3?.totalNilai || '-'],
   ];
 
   autoTable(doc, {
-    head: [['Peringkat', 'Nama Juara', 'Kontingen / Kab. Kota', 'Total Nilai']],
+    head: [['Peringkat', 'Nama Lengkap Juara', 'Kabupaten / Kota', 'Asal Unit TPA', 'Total Nilai']],
     body: tableData,
-    startY: titleY + 15,
+    startY: narasiY + (splitNarasi.length * 4) + 2,
     margin: { left: marginX, right: marginX },
-    styles: { fontSize: 8.5, cellPadding: 3 },
-    headStyles: { fillColor: [6, 78, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 2.8,
+      lineColor: [203, 213, 225],
+      lineWidth: 0.15,
+      textColor: [15, 23, 42],
+      valign: 'middle',
+    },
+    headStyles: {
+      fillColor: [241, 245, 249],
+      textColor: [15, 23, 42],
+      fontStyle: 'bold',
+      fontSize: 8.5,
+      halign: 'center',
+      lineWidth: 0.2,
+      lineColor: [148, 163, 184],
+    },
     columnStyles: {
-      0: { cellWidth: 32, fontStyle: 'bold' },
-      1: { cellWidth: 70, fontStyle: 'bold' },
-      2: { cellWidth: 54 },
-      3: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 36, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 82, fontStyle: 'bold' },
+      2: { cellWidth: 70 },
+      3: { cellWidth: 74 },
+      4: { cellWidth: 36, halign: 'center', fontStyle: 'bold' },
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
     },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 12;
+  const tableEndY = (doc as any).lastAutoTable?.finalY || (narasiY + 36);
+  let afterTableY = tableEndY + 5;
 
   // Catatan juri jika ada
   if (beritaAcara?.catatanJuri || (beritaAcara as any)?.catatan) {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Catatan Dewan Juri: "${beritaAcara.catatanJuri || (beritaAcara as any).catatan}"`, marginX, finalY);
+    doc.text(`Catatan Dewan Juri: "${beritaAcara.catatanJuri || (beritaAcara as any).catatan}"`, marginX, afterTableY);
+    afterTableY += 4.5;
   }
 
-  // Tanda Tangan Dewan Juri
-  const signY = finalY + 14;
+  // Narasi Penutup
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  const closingText = 'Demikian Berita Acara ini dibuat dengan sebenarnya dan ditandatangani oleh Dewan Juri untuk dipergunakan sebagaimana mestinya. Keputusan Dewan Juri bersifat mutlak dan tidak dapat diganggu gugat.';
+  const splitClosing = doc.splitTextToSize(closingText, contentWidth);
+  doc.text(splitClosing, marginX, afterTableY);
+
+  afterTableY += 7;
+
+  // 5. TANDA TANGAN DEWAN JURI
+  const signColWidth = contentWidth / 2;
+  const colLeftX = marginX + (signColWidth / 2);
+  const colRightX = marginX + signColWidth + (signColWidth / 2);
+
+  // Titimangsa di sisi kanan
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text('Yogyakarta, 08 November 2026', pageWidth - marginX - 10, signY, { align: 'right' });
-  doc.text('Dewan Juri / Hakim Lomba,', pageWidth - marginX - 10, signY + 5, { align: 'right' });
+  doc.setTextColor(71, 85, 105);
+  doc.text('Yogyakarta, 08 November 2026', colRightX, afterTableY, { align: 'center' });
 
-  doc.setFont('helvetica', 'bold');
+  // Tanda Tangan: Dewan Juri I (Kiri) & Dewan Juri II (Kanan)
+  doc.text('Dewan Juri I (Ketua),', colLeftX, afterTableY + 4.5, { align: 'center' });
+  doc.text('Dewan Juri II (Sekretaris),', colRightX, afterTableY + 4.5, { align: 'center' });
+
   const juri1 = beritaAcara?.juriSatu || beritaAcara?.namaKetuaJuri || '( ........................................ )';
   const juri2 = beritaAcara?.juriDua || beritaAcara?.namaAnggotaJuri || '( ........................................ )';
 
-  doc.text(juri1, marginX + 25, signY + 28, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.text('Ketua Dewan Juri', marginX + 25, signY + 32, { align: 'center' });
-
+  const lineSignY = afterTableY + 22;
   doc.setFont('helvetica', 'bold');
-  doc.text(juri2, pageWidth - marginX - 35, signY + 28, { align: 'center' });
+  doc.setTextColor(15, 23, 42);
+  doc.text(juri1, colLeftX, lineSignY, { align: 'center' });
+  doc.text(juri2, colRightX, lineSignY, { align: 'center' });
+
   doc.setFont('helvetica', 'normal');
-  doc.text('Anggota / Sekretaris Juri', pageWidth - marginX - 35, signY + 32, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Ketua Dewan Juri', colLeftX, lineSignY + 4, { align: 'center' });
+  doc.text('Anggota / Sekretaris Dewan Juri', colRightX, lineSignY + 4, { align: 'center' });
 
   const safeCategoryCode = category.code.replace(/[^a-zA-Z0-9_-]/g, '_');
   doc.save(`Berita_Acara_${safeCategoryCode}_${category.level}.pdf`);

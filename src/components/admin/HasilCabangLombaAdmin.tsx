@@ -154,7 +154,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
     try {
       setIsExportingPdf(true);
       await exportPemenangToPdf(CATEGORIES_LIST, beritaAcaraMap, 'Hasil_Pemenang_FASI_XIII_DIY', false);
-      showToast('success', 'Dokumen PDF daftar pemenang berhasil diunduh.');
+      showToast('success', 'Dokumen PDF daftar pemenang (F4 Landscape) berhasil diunduh.');
     } catch (err) {
       console.error('Gagal ekspor PDF:', err);
       showToast('error', 'Gagal membuat dokumen PDF.');
@@ -169,7 +169,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
     try {
       setExportingCabangId(cat.id);
       await exportSingleCabangPdf(cat, ba);
-      showToast('success', `PDF Berita Acara ${cat.name} berhasil diunduh.`);
+      showToast('success', `PDF Berita Acara ${cat.name} (F4 Landscape) berhasil diunduh.`);
     } catch (err) {
       console.error('Gagal ekspor PDF cabang:', err);
       showToast('error', 'Gagal membuat dokumen PDF cabang.');

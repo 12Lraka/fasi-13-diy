@@ -40,8 +40,8 @@ import {
 } from '../../lib/supabase';
 import { showToast, showConfirmDialog } from '../../utils/sweetalert';
 
-const LOGO_BADKO_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png';
-const LOGO_FASI_URL = 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png';
+const LOGO_LEFT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logofasidiy.jpg';
+const LOGO_RIGHT_URL = 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/maskotfasidiy.jpeg';
 
 interface BeritaAcaraAdminProps {
   participants: Participant[];
@@ -439,23 +439,66 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
       {/* Printable Sheet (Hanya Muncul Saat Print Berita Acara A4) */}
       <div className="hidden print:block font-serif text-black p-8 max-w-4xl mx-auto bg-white">
         {/* Kop Surat Resmi FASI XIII */}
-        <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
-          <img src={LOGO_BADKO_URL} alt="BADKO LPPTKA" className="h-16 w-auto object-contain" />
-          <div className="text-center flex-1 px-4">
-            <h3 className="text-xs font-bold font-sans tracking-wide uppercase">
-              BADAN KOORDINASI LEMBAGA PENDIDIKAN DAN PENGEMBANGAN AL-QUR'AN
-            </h3>
-            <h3 className="text-xs font-bold font-sans tracking-wide uppercase">
-              BADKO TKA-TPA D.I. YOGYAKARTA
-            </h3>
-            <h2 className="text-base font-black font-sans tracking-wider uppercase mt-0.5">
-              FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII
-            </h2>
-            <p className="text-[10px] font-sans text-slate-700">
-              Sekretariat : Kertopaten, Glondong, Wirokerten, Kec. Banguntapan, Bantul, DIY 55194
+        <div className="space-y-1.5 pb-2 mb-4">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            {/* Logo Kiri: FASI DIY (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
+              <img
+                src={LOGO_LEFT_URL}
+                alt="Logo FASI XIII DIY"
+                crossOrigin="anonymous"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+
+            {/* Teks Kop Tengah */}
+            <div className="text-center flex-1 px-1 sm:px-2">
+              <h2
+                className="font-black text-sm sm:text-base md:text-[18px] text-[#0047AB] uppercase tracking-wide leading-tight"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                PANITIA PELAKSANA
+              </h2>
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                FESTIVAL ANAK SHOLEH INDONESIA XIII
+              </h3>
+              <h3
+                className="font-black text-xs sm:text-sm md:text-[14px] text-[#0047AB] uppercase tracking-wide leading-tight mt-0.5"
+                style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              >
+                BADAN KOORDINASI TKA-TPA DI.YOGYAKARTA
+              </h3>
+              <p
+                className="text-[7.5px] sm:text-[8px] md:text-[8.5px] text-black font-normal leading-tight mt-1"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                SK KEMENHUKAM Nomor AHU-0001522.AH.01.08.TAHUN 2026
+              </p>
+            </div>
+
+            {/* Logo Kanan: Maskot FASI (1:1 background putih) */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 flex items-center justify-center bg-white">
+              <img
+                src={LOGO_RIGHT_URL}
+                alt="Maskot FASI XIII DIY"
+                crossOrigin="anonymous"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          </div>
+
+          {/* Garis Pembatas Rectangle Merah dengan Informasi Sekretariat Tulisan Putih */}
+          <div className="w-full bg-[#E50914] text-white py-1 px-2 text-center rounded-none shadow-none">
+            <p
+              className="text-[7.5px] sm:text-[8px] md:text-[8.5px] font-normal leading-tight tracking-tight text-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              Sekretariatan: Kertopaten, Wirokerten, Banguntapan, Bantul, Daerah Istimewa Yogyakarta | HP : 0877 3904 7175
             </p>
           </div>
-          <img src={LOGO_FASI_URL} alt="FASI XIII" className="h-16 w-auto object-contain" />
         </div>
 
         {/* Judul Berita Acara */}
