@@ -26,6 +26,9 @@ export const ID_CARD_ASSETS = {
   logoBadko: 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/logobadkodiy.png',
   logoFasi: 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/logofasi.png',
   templateKartu: 'https://gigluvvkswjaiwxpnqet.supabase.co/storage/v1/object/public/public-assets/templatekartu.png',
+  templateTka: 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/Cocard%20peserta%20TKA.png',
+  templateTpa: 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/Cocard%20peserta%20TPA.png',
+  templateTqa: 'https://gcligykrxdujlfapgkud.supabase.co/storage/v1/object/public/public-assets/Cocard%20peserta%20TQA.png',
 };
 
 export const ID_CARD_THEMES: Record<string, IdCardTheme> = {

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  * 
  * Sistem Informasi FASI XIII Kota Yogyakarta
- * Komponen ID Card Peserta Resmi (Portrait 5.5cm x 8.8cm)
- * Menggunakan Template Kartu Resmi Supabase
+ * Komponen ID Card Peserta Resmi (Portrait B4 - 100mm x 150mm)
+ * Menggunakan Template Kartu Resmi Supabase / Local Asset
  */
 
 import React from 'react';
@@ -26,7 +26,6 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
   kemantrenName,
   qrCodeUrl,
   theme = ID_CARD_THEMES.emerald,
-  customTagline = 'Santri Hebat, Hebat Prestasi, Hebat Mengaji, & Berakhlakul Karimah.',
 }) => {
   const cleanCategoryName = category?.name
     ? category.name.replace(/\s*\(Putra\)|\s*\(Putri\)/gi, '').trim()
@@ -36,16 +35,39 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
   const rawLevel = category?.level || (participant.categoryId.includes('tka') ? 'TKA' : participant.categoryId.includes('tqa') ? 'TQA' : 'TPA');
   const levelText = rawLevel.toUpperCase().trim();
 
-  // Format Kontingen Asal (Tanpa Rayon)
+  // Template ID Card sesuai Tingkatan (TKA / TPA / TQA)
+  let templateBg = ID_CARD_ASSETS.templateTka;
+  if (levelText === 'TPA') {
+    templateBg = ID_CARD_ASSETS.templateTpa || ID_CARD_ASSETS.templateTka;
+  } else if (levelText === 'TQA') {
+    templateBg = ID_CARD_ASSETS.templateTqa || ID_CARD_ASSETS.templateTka;
+  }
+
+  // Format Asal Daerah / Kab / Kota
+  // Menampilkan langsung Kabupaten / Kota (contoh: Kabupaten Gunungkidul, Kota Yogyakarta, Kabupaten Sleman, dll.)
   const rawKemantren = kemantrenName || (participant as any).kemantren || (participant as any).kemantrenName || '';
-  const kemantrenClean = rawKemantren ? rawKemantren.replace(/^Kemantren\s*/i, '').replace(/^Rayon\s*/i, '').trim() : '';
-  let displayTpaKemantren = kemantrenClean || 'D.I. Yogyakarta';
-  if (participant.tpaUnitName && kemantrenClean) {
-    displayTpaKemantren = `${participant.tpaUnitName} • ${kemantrenClean}`;
+  let displayKabKota = rawKemantren.trim();
+  if (displayKabKota) {
+    if (!/^Kabupaten|^Kota/i.test(displayKabKota)) {
+      if (/yogyakarta|jogja/i.test(displayKabKota)) {
+        displayKabKota = 'Kota Yogyakarta';
+      } else if (/gunungkidul|gunung kidul/i.test(displayKabKota)) {
+        displayKabKota = 'Kabupaten Gunungkidul';
+      } else if (/sleman/i.test(displayKabKota)) {
+        displayKabKota = 'Kabupaten Sleman';
+      } else if (/bantul/i.test(displayKabKota)) {
+        displayKabKota = 'Kabupaten Bantul';
+      } else if (/kulonprogo|kulon progo/i.test(displayKabKota)) {
+        displayKabKota = 'Kabupaten Kulon Progo';
+      } else {
+        displayKabKota = `Kabupaten ${displayKabKota}`;
+      }
+    }
+  } else {
+    displayKabKota = 'D.I. Yogyakarta';
   }
 
   // Format Gender / Grup
-  // Catatan: Cabang Peragaan Shalat/Sholat adalah perorangan (Putra / Putri), bukan Grup
   const isGroup = typeof category?.isGroup === 'boolean'
     ? category.isGroup
     : Boolean(category?.name && /cerdas cermat|nasyid|ikrar/i.test(category.name));
@@ -59,167 +81,149 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
     genderDisplay = 'Putri';
   }
 
-  // Dynamic Font Size for participant full name
+  // Dynamic Font Size for participant full name (Auto-scale bertingkat agar tidak melebihi kotak)
   const nameLength = (participant.fullName || '').trim().length;
-  let nameFontSizeClass = 'text-[11px] leading-[1.2]';
-  if (nameLength > 30) {
-    nameFontSizeClass = 'text-[8.5px] leading-[1.12]';
-  } else if (nameLength > 22) {
-    nameFontSizeClass = 'text-[9.5px] leading-[1.15]';
+  let nameFontSizeClass = 'text-[12px] leading-[1.18]';
+  if (nameLength > 36) {
+    nameFontSizeClass = 'text-[8.5px] leading-[1.08]';
+  } else if (nameLength > 28) {
+    nameFontSizeClass = 'text-[9.5px] leading-[1.12]';
+  } else if (nameLength > 20) {
+    nameFontSizeClass = 'text-[10.5px] leading-[1.15]';
   }
 
-  // Dynamic Font Size for Cabang Lomba (Diperbesar secara tegas & adaptif terhadap panjang nama lomba)
+  // Dynamic Font Size for Cabang Lomba
   const catLength = cleanCategoryName.length;
-  let catFontSizeClass = 'text-[11px] leading-[1.18]';
-  if (catLength > 35) {
-    catFontSizeClass = 'text-[8.5px] leading-[1.12]';
-  } else if (catLength > 24) {
-    catFontSizeClass = 'text-[9.5px] leading-[1.15]';
-  } else if (catLength > 16) {
-    catFontSizeClass = 'text-[10px] leading-[1.16]';
+  let catFontSizeClass = 'text-[12px] leading-[1.18]';
+  if (catLength > 30) {
+    catFontSizeClass = 'text-[9.5px] leading-[1.12]';
+  } else if (catLength > 20) {
+    catFontSizeClass = 'text-[10.5px] leading-[1.15]';
   }
 
   return (
     <div
-      className="fasi-id-card relative flex flex-col justify-between overflow-hidden select-none bg-white text-slate-900 box-border"
+      className="fasi-id-card relative overflow-hidden select-none bg-white text-slate-900 box-border rounded-lg shadow-sm"
       style={{
-        width: '55mm',
-        height: '88mm',
-        minWidth: '55mm',
-        maxWidth: '55mm',
-        minHeight: '88mm',
-        maxHeight: '88mm',
-        padding: '2.5mm 3mm 2.2mm 3mm',
+        width: '100mm',
+        height: '150mm',
+        minWidth: '100mm',
+        maxWidth: '100mm',
+        minHeight: '150mm',
+        maxHeight: '150mm',
         backgroundColor: '#ffffff',
       }}
     >
-      {/* Background Template Image (Layered underneath all content) */}
+      {/* 1. Background Template Image (Layered underneath all content) */}
       <img
-        src={ID_CARD_ASSETS.templateKartu}
-        alt="Template Kartu"
+        src={templateBg}
+        onError={(e) => {
+          // Fallback to local asset if remote fails
+          (e.target as HTMLImageElement).src = '/assets/aistudio/Cocard_peserta_TKA_eda46573.png';
+        }}
+        alt={`Template ID Card ${levelText}`}
         crossOrigin="anonymous"
         className="absolute inset-0 w-full h-full object-fill pointer-events-none z-0"
         style={{ width: '100%', height: '100%' }}
       />
 
-      {/* 1. Header: Logo Badko & Logo FASI berdampingan di posisi Center + Text Panitia */}
-      <div className="relative z-10 text-center pt-0.5 pb-0.5 shrink-0">
-        <div className="flex items-center justify-center gap-2 mb-0.5">
-          <img
-            src={ID_CARD_ASSETS.logoBadko}
-            alt="Logo Badko"
-            crossOrigin="anonymous"
-            className="h-[6.5mm] max-h-[6.5mm] w-auto object-contain shrink-0"
-          />
-          <div className="h-[4.5mm] w-[1px] bg-slate-300 mx-0.5" />
-          <img
-            src={ID_CARD_ASSETS.logoFasi}
-            alt="Logo FASI"
-            crossOrigin="anonymous"
-            className="h-[6.5mm] max-h-[6.5mm] w-auto object-contain shrink-0"
-          />
-        </div>
-        <div className="leading-[1.15]">
-          <p className="font-extrabold text-[7.5px] tracking-wider uppercase text-slate-900 font-sans m-0">
-            PANITIA FASI XIII
-          </p>
-          <p className="font-bold text-[6.5px] tracking-wider uppercase text-slate-800 m-0">
-            D.I. YOGYAKARTA 2026
-          </p>
-        </div>
+      {/* 2. Kotak Kiri: Nama Peserta & Asal Kab/Kota */}
+      {/* Header 'Nama Peserta' sudah tercetak pada template (Y ~43.7% - 45.8%) */}
+      <div
+        className="absolute z-10 flex flex-col items-center justify-center text-center px-2 overflow-hidden"
+        style={{
+          top: '45.8%',
+          left: '4.8%',
+          width: '43.3%',
+          height: '7.4%',
+        }}
+      >
+        <h4
+          className={`w-full font-black uppercase font-sans tracking-tight line-clamp-2 max-h-[5.2mm] overflow-hidden ${nameFontSizeClass}`}
+          style={{ color: '#0f172a' }}
+          title={participant.fullName}
+        >
+          {participant.fullName}
+        </h4>
+        <span
+          className="w-full text-[8px] font-bold text-slate-700 block truncate mt-0.5 tracking-tight"
+          title={displayKabKota}
+        >
+          {displayKabKota}
+        </span>
       </div>
 
-      {/* 2. Middle Content: Kategori (TKA/TPA/TQA), Nama Peserta, Asal TPA & Kemantren, Cabang Lomba, Gender */}
-      <div className="relative z-10 my-auto py-0.5 text-center flex flex-col items-center justify-center space-y-1">
-        {/* Badge Kategori: Cukup TKA / TPA / TQA besar & jelas */}
-        <div
-          className="inline-flex items-center justify-center px-4 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xs"
-          style={{ backgroundColor: theme.badgeBg, color: theme.badgeText }}
+      {/* 3. Kotak Kanan: Kategori Lomba & Gender / Grup */}
+      {/* Header 'Kategori Lomba' sudah tercetak pada template (Y ~43.7% - 45.8%) */}
+      <div
+        className="absolute z-10 flex flex-col items-center justify-center text-center px-2 overflow-hidden"
+        style={{
+          top: '45.8%',
+          left: '50.9%',
+          width: '43.3%',
+          height: '7.4%',
+        }}
+      >
+        <p
+          className={`w-full font-black text-slate-900 leading-tight line-clamp-2 max-h-[5.2mm] overflow-hidden ${catFontSizeClass}`}
+          title={cleanCategoryName}
         >
-          <span>{levelText}</span>
-        </div>
-
-        {/* Nama Peserta */}
-        <div className="w-full px-0.5">
-          <span className="text-[5.5px] uppercase font-extrabold text-slate-500 block tracking-widest mb-0.5">
-            NAMA PESERTA
+          {cleanCategoryName}
+        </p>
+        {genderDisplay && (
+          <span className="inline-block mt-0.5 font-black text-[7.5px] uppercase tracking-wider px-2 py-0.2 rounded-full bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs">
+            {genderDisplay}
           </span>
-          <h4
-            className={`font-black uppercase font-sans tracking-tight line-clamp-2 ${nameFontSizeClass}`}
-            style={{ color: theme.textColor }}
+        )}
+      </div>
+
+      {/* 4. Kotak Besar Bawah: Nomor Undian Jumbo (~75% Tinggi Kotak) & QR Code di Sudut */}
+      {/* Posisi kotak besar pada template: X 4.8% - 94.8%, Y 55.4% - 82.9% (Tinggi ~41.25mm) */}
+      <div
+        className="absolute z-10 flex items-center justify-center"
+        style={{
+          top: '55.4%',
+          left: '4.8%',
+          width: '90.0%',
+          height: '27.5%',
+        }}
+      >
+        {/* Angka Nomor Undian Jumbo: Mengisi ~75% tinggi kotak (~31mm) agar terbaca jelas dari jarak 5-10 meter */}
+        <div className="w-full flex items-center justify-center text-center px-4">
+          <span
+            className="font-mono font-black leading-none text-slate-950 tracking-tight select-all drop-shadow-xs"
+            style={{
+              fontSize: String(participant.lotteryNumber ?? '').length > 3 ? '78px' : '96px',
+            }}
           >
-            {participant.fullName}
-          </h4>
-          <span className="text-[6.5px] font-semibold text-slate-700 block truncate mt-0.5">
-            {displayTpaKemantren}
+            {participant.lotteryNumber ?? '-'}
           </span>
         </div>
 
-        {/* Cabang Lomba & Jenis Kelamin */}
+        {/* QR Code Kecil Diselipkan di Sudut Kanan Bawah Kotak Besar (Ukuran ~1.1cm x 1.1cm) */}
         <div
-          className="w-full rounded-md py-1 px-1.5 border bg-white/95 shadow-2xs"
+          className="absolute flex flex-col items-center p-0.5 bg-white border border-slate-300 rounded shadow-xs"
           style={{
-            borderColor: `${theme.borderColor}60`,
+            bottom: '7px',
+            right: '8px',
           }}
         >
-          <span className="text-[5.5px] uppercase font-bold block text-slate-500 tracking-wider">
-            CABANG LOMBA
-          </span>
-          <p className={`font-black text-slate-900 leading-tight line-clamp-2 ${catFontSizeClass}`}>
-            {cleanCategoryName}
-          </p>
-          {genderDisplay && (
-            <span
-              className="inline-block mt-0.5 font-extrabold text-[7px] px-2 py-0.2 rounded"
-              style={{
-                color: theme.accentColor,
-                backgroundColor: `${theme.accentColor}18`,
-              }}
-            >
-              {genderDisplay}
-            </span>
+          {qrCodeUrl ? (
+            <img
+              src={qrCodeUrl}
+              alt={`QR ${participant.registrationNumber}`}
+              crossOrigin="anonymous"
+              className="w-[11mm] h-[11mm] object-contain"
+            />
+          ) : (
+            <div className="w-[11mm] h-[11mm] bg-slate-100 flex items-center justify-center text-[6px] text-slate-400 font-bold">
+              QR
+            </div>
           )}
-        </div>
-      </div>
-
-      {/* 3. Bottom Footer: QR Code & No Peserta -> Tagline -> BADKO TKA-TPA KOTA YOGYAKARTA */}
-      <div className="relative z-10 pt-0.5 text-center flex flex-col items-center justify-end space-y-0.5 shrink-0">
-        {/* QR Code & No Peserta (Ukuran QR Code 2 cm / 20mm) */}
-        <div className="flex flex-col items-center justify-center">
-          <div className="p-0.5 bg-white border border-slate-300 rounded shadow-2xs inline-block">
-            {qrCodeUrl ? (
-              <img
-                src={qrCodeUrl}
-                alt={`QR ${participant.registrationNumber}`}
-                crossOrigin="anonymous"
-                className="w-[20mm] h-[20mm] object-contain"
-              />
-            ) : (
-              <div className="w-[20mm] h-[20mm] bg-slate-100 flex items-center justify-center text-[7px] text-slate-400 font-bold">
-                QR
-              </div>
-            )}
-          </div>
-          <span
-            className="font-mono font-bold text-[7px] mt-0.5 tracking-tight"
-            style={{ color: theme.primaryColor }}
-          >
+          <span className="font-mono font-bold text-[6px] text-slate-700 tracking-tighter mt-0.5 leading-none">
             {participant.registrationNumber}
           </span>
         </div>
-
-        {/* Tagline */}
-        <p
-          className="text-[5px] italic leading-tight font-serif px-1 line-clamp-1 m-0"
-          style={{ color: theme.taglineColor }}
-        >
-          “{customTagline}”
-        </p>
-
-        {/* Tulisan Badko TKA-TPA D.I. Yogyakarta */}
-        <p className="text-[5.5px] font-extrabold text-slate-700 uppercase tracking-wider m-0">
-          BADKO TKA-TPA D.I. YOGYAKARTA
-        </p>
       </div>
     </div>
   );

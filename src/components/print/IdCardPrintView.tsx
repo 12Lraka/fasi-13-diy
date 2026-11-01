@@ -204,7 +204,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
           width: 180,
           margin: 1,
           color: {
-            dark: activeTheme.primaryColor,
+            dark: '#000000',
             light: '#ffffff',
           },
           errorCorrectionLevel: 'M',
@@ -214,7 +214,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
         console.error('Gagal generate QR Code:', err);
       }
     });
-  }, [participants, categoriesList, activeTheme.primaryColor]);
+  }, [participants, categoriesList]);
 
   // Daftar Cabang Lomba terfilter sesuai Kategori Level
   const availableCategories = useMemo(() => {
@@ -661,7 +661,8 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
     return result;
   };
 
-  const participantPages = useMemo(() => chunkArray(filteredParticipants, 9), [filteredParticipants]);
+  // Chunk items into pages (Format B4 untuk Peserta: 2 kartu/lembar, Official & Panitia: 9 kartu/lembar)
+  const participantPages = useMemo(() => chunkArray(filteredParticipants, 2), [filteredParticipants]);
   const officialPages = useMemo(() => chunkArray(generatedOfficials, 9), [generatedOfficials]);
   const committeePages = useMemo(() => chunkArray(generatedCommittees, 9), [generatedCommittees]);
 
@@ -703,7 +704,7 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
               </span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Standar Portrait 5.5cm × 8.8cm (9 Kartu / Lembar A4). Format PNG Satuan / ZIP & Cetak Dokumen.
+              Format B4 Portrait 10cm × 15cm (Peserta: 2 Kartu / Lembar) & Standar 5.5cm × 8.8cm (Official/Panitia).
               {isAdminRayon && currentAdminRayon && (
                 <span className="ml-1.5 font-bold text-blue-700">
                   (Akses {currentAdminRayon.name})
@@ -741,61 +742,6 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                 </>
               )}
             </button>
-
-            {/* Tombol Unduh PDF Dokumen A4 */}
-            <button
-              onClick={handleDownloadPdf}
-              disabled={currentTotalCards === 0 || isGeneratingPdf || isGeneratingZip}
-              className={`px-3.5 py-2.5 rounded-xl font-bold text-xs shadow-xs border border-emerald-800/30 flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
-                currentTotalCards === 0 || isGeneratingPdf || isGeneratingZip
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'bg-emerald-800 hover:bg-emerald-900 text-white'
-              }`}
-              title="Unduh berkas PDF A4 (9 kartu per lembar)"
-            >
-              {isGeneratingPdf ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-300" />
-                  <span>
-                    PDF ({pdfProgress.current}/{pdfProgress.total})...
-                  </span>
-                </>
-              ) : (
-                <>
-                  <FileDown className="w-4 h-4 text-emerald-300" />
-                  <span>Download PDF (A4)</span>
-                </>
-              )}
-            </button>
-
-            {/* Tombol Cetak Browser */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => handlePrint(false)}
-                disabled={currentTotalCards === 0 || isGeneratingPdf || isGeneratingZip}
-                className={`px-3.5 py-2.5 rounded-xl font-bold text-xs border border-slate-300 shadow-xs flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
-                  currentTotalCards === 0
-                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                    : 'bg-white hover:bg-slate-50 text-slate-800'
-                }`}
-                title="Cetak seluruh lembar ke printer atau PDF (Ctrl+P)"
-              >
-                <Printer className="w-4 h-4 text-slate-600" />
-                <span>Cetak Semua ({totalPages} Lembar)</span>
-              </button>
-
-              {totalPages > 1 && (
-                <button
-                  onClick={() => handlePrint(true)}
-                  disabled={currentTotalCards === 0 || isGeneratingPdf || isGeneratingZip}
-                  className="px-3 py-2.5 rounded-xl font-bold text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 shadow-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                  title={`Cetak hanya lembar ke-${currentPage} yang sedang aktif`}
-                >
-                  <FileCheck className="w-4 h-4 text-emerald-700" />
-                  <span>Cetak Lembar Ini (#{currentPage})</span>
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
@@ -804,12 +750,12 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
           <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <p className="font-bold text-emerald-950">
-              💡 Rekomendasi Format Cetak ID Card FASI XIII:
+              💡 Format Ekspor ID Card Resmi FASI XIII:
             </p>
             <p className="text-[11.5px] text-slate-600 leading-relaxed">
-              • <strong>Unduh PNG Satuan / ZIP:</strong> Menghasilkan gambar .PNG murni beresolusi tajam <strong>300 DPI</strong> yang <strong>100% identik</strong> dengan preview (paling disukai untuk printer kartu PVC / foto satuan dan share WhatsApp).
+              • <strong>Unduh Semua PNG (.ZIP):</strong> Mengunduh seluruh kartu yang difilter dalam format gambar .PNG beresolusi tinggi <strong>300 DPI</strong> siap cetak murni dan 100% presisi per pixel.
               <br />
-              • <strong>Cetak Langsung (Ctrl+P):</strong> Menggunakan CSS cetak browser resmi untuk lembaran kertas A4 (9 kartu/lembar) dengan ketajaman teks vektor murni.
+              • <strong>Unduh PNG Satuan:</strong> Arahkan kursor ke kartu yang diinginkan lalu klik tombol <em>Unduh PNG</em> di pojok kartu untuk mengunduh satu kartu santri.
             </p>
           </div>
         </div>
@@ -886,33 +832,6 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                 </span>
               )}
             </button>
-          </div>
-
-          {/* Theme Color Selector Swatches */}
-          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
-            <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-              <Palette className="w-3.5 h-3.5 text-slate-500" />
-              <span>Warna Tema:</span>
-            </span>
-            <div className="flex items-center gap-1.5">
-              {Object.keys(ID_CARD_THEMES).map((key) => {
-                const t = ID_CARD_THEMES[key];
-                const isSelected = selectedThemeKey === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedThemeKey(key)}
-                    className={`w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${
-                      isSelected ? 'scale-110 border-slate-900 shadow-xs' : 'border-white opacity-80 hover:opacity-100'
-                    }`}
-                    style={{ backgroundColor: t.primaryColor }}
-                    title={t.name}
-                  >
-                    {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
 
@@ -1588,21 +1507,9 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                 </button>
               </div>
 
-              {/* Tombol Cetak Cepat Lembar Aktif */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handlePrint(true)}
-                  className="px-3 py-1.5 rounded-lg font-bold text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-2xs"
-                  title={`Cetak lembar ke-${currentPage} ini saja ke printer`}
-                >
-                  <Printer className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Cetak Lembar Ini</span>
-                </button>
-              </div>
             </div>
 
-            {/* RENDER PESERTA PER LEMBAR A4 */}
+            {/* RENDER PESERTA PER LEMBAR A4/F4 (Format B4: 2 Kartu / Lembar) */}
             {activeCardType === 'peserta' &&
               participantPages.map((pageItems, pageIdx) => {
                 const isScreenActive = pageIdx + 1 === currentPage;
@@ -1620,13 +1527,13 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
                     }}
                   >
                     <div className="no-print flex items-center justify-between border-b border-slate-100 pb-2 mb-3 text-[11px] text-slate-400 font-mono">
-                      <span className="font-semibold text-emerald-800">ID Card Peserta FASI XIII</span>
+                      <span className="font-semibold text-emerald-800">ID Card Peserta FASI XIII (Format B4 - 100mm × 150mm)</span>
                       <span>Lembar {pageIdx + 1} dari {participantPages.length} ({pageItems.length} Kartu)</span>
                     </div>
                     <div
-                      className="grid grid-cols-3 gap-x-[4mm] gap-y-[3mm] justify-center items-center mx-auto py-1"
+                      className="grid grid-cols-2 gap-x-[6mm] gap-y-[4mm] justify-center items-center mx-auto py-2"
                       style={{
-                        width: '173mm', // 3 * 55mm + 2 * 4mm = 173mm
+                        width: '206mm', // 2 * 100mm + 6mm = 206mm
                       }}
                     >
                       {pageItems.map((p) => {
