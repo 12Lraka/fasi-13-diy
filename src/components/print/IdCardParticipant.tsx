@@ -43,29 +43,6 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
     templateBg = ID_CARD_ASSETS.templateTqa || ID_CARD_ASSETS.templateTka;
   }
 
-  // Format Asal Daerah / Kab / Kota
-  // Menampilkan langsung Kabupaten / Kota (contoh: Kabupaten Gunungkidul, Kota Yogyakarta, Kabupaten Sleman, dll.)
-  const rawKemantren = kemantrenName || (participant as any).kemantren || (participant as any).kemantrenName || '';
-  let displayKabKota = rawKemantren.trim();
-  if (displayKabKota) {
-    if (!/^Kabupaten|^Kota/i.test(displayKabKota)) {
-      if (/yogyakarta|jogja/i.test(displayKabKota)) {
-        displayKabKota = 'Kota Yogyakarta';
-      } else if (/gunungkidul|gunung kidul/i.test(displayKabKota)) {
-        displayKabKota = 'Kabupaten Gunungkidul';
-      } else if (/sleman/i.test(displayKabKota)) {
-        displayKabKota = 'Kabupaten Sleman';
-      } else if (/bantul/i.test(displayKabKota)) {
-        displayKabKota = 'Kabupaten Bantul';
-      } else if (/kulonprogo|kulon progo/i.test(displayKabKota)) {
-        displayKabKota = 'Kabupaten Kulon Progo';
-      } else {
-        displayKabKota = `Kabupaten ${displayKabKota}`;
-      }
-    }
-  } else {
-    displayKabKota = 'D.I. Yogyakarta';
-  }
 
   // Format Gender / Grup
   const isGroup = typeof category?.isGroup === 'boolean'
@@ -81,15 +58,15 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
     genderDisplay = 'Putri';
   }
 
-  // Dynamic Font Size for participant full name (Auto-scale bertingkat agar tidak melebihi kotak)
+  // Dynamic Font Size for participant full name (Auto-scale bertingkat agar rapi di tengah tanpa tertimpa)
   const nameLength = (participant.fullName || '').trim().length;
-  let nameFontSizeClass = 'text-[12px] leading-[1.18]';
+  let nameFontSizeClass = 'text-[12.5px] leading-[1.15]';
   if (nameLength > 36) {
-    nameFontSizeClass = 'text-[8.5px] leading-[1.08]';
-  } else if (nameLength > 28) {
     nameFontSizeClass = 'text-[9.5px] leading-[1.12]';
-  } else if (nameLength > 20) {
+  } else if (nameLength > 26) {
     nameFontSizeClass = 'text-[10.5px] leading-[1.15]';
+  } else if (nameLength > 18) {
+    nameFontSizeClass = 'text-[11.5px] leading-[1.15]';
   }
 
   // Dynamic Font Size for Cabang Lomba
@@ -127,10 +104,10 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
         style={{ width: '100%', height: '100%' }}
       />
 
-      {/* 2. Kotak Kiri: Nama Peserta & Asal Kab/Kota */}
+      {/* 2. Kotak Kiri: Nama Peserta (Ruang vertikal penuh tanpa tertimpa teks daerah) */}
       {/* Header 'Nama Peserta' sudah tercetak pada template (Y ~43.7% - 45.8%) */}
       <div
-        className="absolute z-10 flex flex-col items-center justify-center text-center px-2 overflow-hidden"
+        className="absolute z-10 flex items-center justify-center text-center px-1.5 overflow-hidden"
         style={{
           top: '45.8%',
           left: '4.8%',
@@ -139,18 +116,12 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
         }}
       >
         <h4
-          className={`w-full font-black uppercase font-sans tracking-tight line-clamp-2 max-h-[5.2mm] overflow-hidden ${nameFontSizeClass}`}
+          className={`w-full font-black uppercase font-sans tracking-tight line-clamp-2 ${nameFontSizeClass}`}
           style={{ color: '#0f172a' }}
           title={participant.fullName}
         >
           {participant.fullName}
         </h4>
-        <span
-          className="w-full text-[8px] font-bold text-slate-700 block truncate mt-0.5 tracking-tight"
-          title={displayKabKota}
-        >
-          {displayKabKota}
-        </span>
       </div>
 
       {/* 3. Kotak Kanan: Kategori Lomba & Gender / Grup */}
@@ -177,7 +148,7 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
         )}
       </div>
 
-      {/* 4. Kotak Besar Bawah: Nomor Undian Jumbo (~75% Tinggi Kotak) & QR Code di Sudut */}
+      {/* 4. Kotak Besar Bawah: Nomor Undian Ekstra Jumbo (~80% Tinggi Kotak) & QR Code di Sudut */}
       {/* Posisi kotak besar pada template: X 4.8% - 94.8%, Y 55.4% - 82.9% (Tinggi ~41.25mm) */}
       <div
         className="absolute z-10 flex items-center justify-center"
@@ -188,12 +159,12 @@ export const IdCardParticipant: React.FC<IdCardParticipantProps> = ({
           height: '27.5%',
         }}
       >
-        {/* Angka Nomor Undian Jumbo: Mengisi ~75% tinggi kotak (~31mm) agar terbaca jelas dari jarak 5-10 meter */}
+        {/* Angka Nomor Undian Jumbo: Mengisi ~80% tinggi kotak (~33mm) agar terbaca jelas dari jarak 10+ meter */}
         <div className="w-full flex items-center justify-center text-center px-4">
           <span
             className="font-mono font-black leading-none text-slate-950 tracking-tight select-all drop-shadow-xs"
             style={{
-              fontSize: String(participant.lotteryNumber ?? '').length > 3 ? '78px' : '96px',
+              fontSize: String(participant.lotteryNumber ?? '').length > 3 ? '96px' : '124px',
             }}
           >
             {participant.lotteryNumber ?? '-'}
