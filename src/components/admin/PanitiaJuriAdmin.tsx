@@ -391,6 +391,7 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
       rawIndex: number;
       name: string;
       division: string;
+      institution?: string;
       isExisting: boolean;
       existingId?: string;
     }> = [];
@@ -416,52 +417,81 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
 
       let name = '';
       let division = '';
+      let institution = '';
 
       if (line.includes('\t')) {
         // Format dari MS Excel / Google Sheets / Tabel Word (Tab separated)
-        const parts = line.split('\t').map((p) => p.trim()).filter(Boolean);
+        let parts = line.split('\t').map((p) => p.trim()).filter(Boolean);
+        // Jika kolom pertama hanya berupa nomor urut (angka murni), hilangkan
+        if (parts.length >= 2 && /^\d+$/.test(parts[0])) {
+          parts = parts.slice(1);
+        }
+
         if (parts.length === 1) {
           name = parts[0];
-        } else if (parts.length >= 2) {
-          // Jika kolom pertama hanya berupa nomor urut (angka murni)
-          if (/^\d+$/.test(parts[0])) {
-            name = parts[1];
-            division = parts.slice(2).join(' - ');
-          } else {
-            name = parts[0];
-            division = parts.slice(1).join(' - ');
-          }
+        } else if (parts.length === 2) {
+          name = parts[0];
+          division = parts[1];
+        } else if (parts.length >= 3) {
+          // Format 3 kolom lengkap: Kolom 1 = Nama, Kolom 2 = Cabang/Penugasan, Kolom 3 = Instansi
+          name = parts[0];
+          division = parts[1];
+          institution = parts.slice(2).join(' - ');
         }
       } else if (line.includes(' - ') || line.includes(' — ') || line.includes(' : ') || line.includes(' | ') || line.includes(' ; ')) {
         // Format teks biasa dengan pemisah
-        const sepMatch = line.match(/\s+[-—:|;]\s+/);
-        if (sepMatch && sepMatch.index !== undefined) {
-          name = line.substring(0, sepMatch.index).trim();
-          division = line.substring(sepMatch.index + sepMatch[0].length).trim();
-        } else {
-          name = line;
+        const parts = line.split(/\s+[-—:|;]\s+/).map((p) => p.trim()).filter(Boolean);
+        if (parts.length === 1) {
+          name = parts[0];
+        } else if (parts.length === 2) {
+          name = parts[0];
+          division = parts[1];
+        } else if (parts.length >= 3) {
+          name = parts[0];
+          division = parts[1];
+          institution = parts.slice(2).join(' - ');
         }
       } else {
-        // Cek jika terdapat tanda kurung: "Ahmad, S.Pd (Juri Tilawah)"
-        const parenMatch = line.match(/^(.*?)\((.*?)\)$/);
-        if (parenMatch) {
-          name = parenMatch[1].trim();
-          division = parenMatch[2].trim();
+        // Cek format khusus seperti: "M. Anwar Tartil Al Qur’an ( Putra Putri ) PP Al Munawwir"
+        // Pola: Nama + Cabang Lomba ( dengan/tanpa kurung ) + Instansi (contoh: PP ..., Ponpes ..., UIN ..., Kemenag ...)
+        // Atau jika terdapat tanda kurung cabang: Nama + Cabang (Ket) + Instansi
+        const branchWithParenRegex = /^(.*?)\s+(Tartil|Tilawah|Tahfidz|Cerita|CCQ|Syarhil|Khat|Kaligrafi|Nasyid|Kisah|Mewarnai|Menggambar|Adzan|Sholat|Pidato|Pildacil|Terjemah)\s*([^\(]*?\([^\)]+?\))\s*(.*)$/i;
+        const generalBranchRegex = /^(.*?)\s+(Tartil|Tilawah|Tahfidz|Cerita|CCQ|Syarhil|Khat|Kaligrafi|Nasyid|Kisah|Mewarnai|Menggambar|Adzan|Sholat|Pidato|Pildacil|Terjemah)\s+([A-Za-z0-9\s\(\)\/]+?)\s+(PP\s+|Ponpes\s+|Pondok\s+|UIN\s+|Kemenag\s+|Badko\s+|LPTQ\s+|Masjid\s+|TPA\s+|Kec\.\s+|Kecamatan\s+|Kab\.\s+|Kota\s+)(.*)$/i;
+
+        const mParen = line.match(branchWithParenRegex);
+        const mGen = line.match(generalBranchRegex);
+
+        if (mParen) {
+          name = mParen[1].trim();
+          division = `${mParen[2]} ${mParen[3]}`.trim();
+          institution = mParen[4]?.trim() || '';
+        } else if (mGen) {
+          name = mGen[1].trim();
+          division = `${mGen[2]} ${mGen[3]}`.trim();
+          institution = `${mGen[4]}${mGen[5]}`.trim();
         } else {
-          name = line;
+          // Cek jika terdapat tanda kurung sederhana di akhir: "Ahmad, S.Pd (Juri Tilawah)"
+          const parenMatch = line.match(/^(.*?)\((.*?)\)$/);
+          if (parenMatch) {
+            name = parenMatch[1].trim();
+            division = parenMatch[2].trim();
+          } else {
+            name = line;
+          }
         }
       }
 
       // Bersihkan tanda petik
       name = name.replace(/^["']|["']$/g, '').trim();
       division = division.replace(/^["']|["']$/g, '').trim();
+      institution = institution.replace(/^["']|["']$/g, '').trim();
 
       // Abaikan baris header tabel jika terbawa copy
       const lowerName = name.toLowerCase();
       const lowerDiv = division.toLowerCase();
       const isHeader =
         ['no', 'nomor', 'nama', 'name', 'nama lengkap', 'peserta', 'perangkat', 'nama & gelar'].includes(lowerName) ||
-        (['jabatan', 'divisi', 'bagian', 'penugasan', 'kategori'].includes(lowerDiv) && lowerName.includes('nama'));
+        (['jabatan', 'divisi', 'bagian', 'penugasan', 'kategori', 'cabang'].includes(lowerDiv) && lowerName.includes('nama'));
 
       if (isHeader || !name) return;
 
@@ -489,6 +519,7 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
         rawIndex: idx + 1,
         name,
         division,
+        institution,
         isExisting: Boolean(existing),
         existingId: existing?.id,
       });
@@ -533,23 +564,28 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
     try {
       showToast('info', 'Menyimpan data massal langsung ke database Supabase Cloud...');
 
-      const newItems: IdCardCommitteeData[] = parsedImportRows.map((row, idx) => ({
-        id: row.isExisting && row.existingId && avoidDuplicates
-          ? row.existingId
-          : `com-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
-        name: row.name,
-        division: row.division,
-        accessLevel: importAccessLevel.trim() || 'ALL ACCESS',
-        cardCategory: importCategory,
-        customBadge:
-          importCustomBadge.trim() ||
-          (importCategory === 'dewan_hakim'
-            ? 'DEWAN HAKIM'
-            : importCategory === 'panitera'
-            ? 'PANITERA'
-            : 'PANITIA'),
-        updatedAt: new Date().toISOString(),
-      }));
+      const newItems: IdCardCommitteeData[] = parsedImportRows.map((row, idx) => {
+        // Tentukan accessLevel / instansi: utamakan hasil parsing kolom 3 jika terdeteksi
+        const accessOrInstansi = row.institution?.trim() || importAccessLevel.trim() || (importCategory === 'dewan_hakim' ? '-' : 'ALL ACCESS');
+
+        return {
+          id: row.isExisting && row.existingId && avoidDuplicates
+            ? row.existingId
+            : `com-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+          name: row.name,
+          division: row.division,
+          accessLevel: accessOrInstansi,
+          cardCategory: importCategory,
+          customBadge:
+            importCustomBadge.trim() ||
+            (importCategory === 'dewan_hakim'
+              ? 'DEWAN HAKIM'
+              : importCategory === 'panitera'
+              ? 'PANITERA'
+              : 'PANITIA'),
+          updatedAt: new Date().toISOString(),
+        };
+      });
 
       // Sekali klik langsung tersimpan ke database Supabase dan LocalStorage
       const result = await bulkPersistCommittees(newItems);
@@ -597,6 +633,8 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
         committees,
         eventName: appSettings.eventName,
         eventDate: appSettings.eventDate,
+        ketuaPanitiaName: 'Endro Suwarno, A.Md., S.E.',
+        koordinatorLombaName: 'Nihayaturruhama, S.E.',
       });
       showToast('success', 'PDF Daftar Hadir berhasil diunduh!');
     } catch (err: any) {
@@ -1155,7 +1193,13 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                 <th className="py-3 px-4 w-32">Kategori Perangkat</th>
                 <th className="py-3 px-4">Nama Lengkap & Gelar</th>
                 <th className="py-3 px-4">Jabatan / Penugasan Cabang</th>
-                <th className="py-3 px-4 w-44">Hak Akses Ruang / Arena</th>
+                <th className="py-3 px-4 w-44">
+                  {selectedCategory === 'dewan_hakim'
+                    ? 'Instansi'
+                    : selectedCategory === 'all'
+                    ? 'Hak Akses / Instansi'
+                    : 'Hak Akses Ruang / Arena'}
+                </th>
                 <th className="py-3 px-4 w-28 text-center">Badge Kartu</th>
                 <th className="py-3 px-4 w-28 text-center">Aksi</th>
               </tr>
@@ -1499,40 +1543,72 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                 />
               </div>
 
-              {/* Hak Akses Ruangan */}
+              {/* Hak Akses Ruangan / Instansi */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Hak Akses Ruangan / Arena
+                  {formCategory === 'dewan_hakim' ? 'Instansi / Asal Lembaga' : 'Hak Akses Ruangan / Arena'}
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: RUANG HAKIM & JURI / ARENA LOMBA / ALL ACCESS"
+                  placeholder={
+                    formCategory === 'dewan_hakim'
+                      ? 'Contoh: UIN Sunan Kalijaga / Kemenag DIY / LPTQ DIY / Ponpes Al-Munawwir'
+                      : 'Contoh: RUANG HAKIM & JURI / ARENA LOMBA / ALL ACCESS'
+                  }
                   value={formAccessLevel}
                   onChange={(e) => setFormAccessLevel(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent font-medium"
                 />
                 <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setFormAccessLevel('RUANG HAKIM & JURI')}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
-                  >
-                    RUANG HAKIM & JURI
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormAccessLevel('ARENA LOMBA & MEJA PANITERA')}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
-                  >
-                    ARENA LOMBA & MEJA PANITERA
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormAccessLevel('ALL ACCESS')}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
-                  >
-                    ALL ACCESS
-                  </button>
+                  {formCategory === 'dewan_hakim' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setFormAccessLevel('UIN Sunan Kalijaga')}
+                        className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
+                      >
+                        UIN Sunan Kalijaga
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormAccessLevel('Kemenag DIY')}
+                        className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
+                      >
+                        Kemenag DIY
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormAccessLevel('LPTQ DIY')}
+                        className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
+                      >
+                        LPTQ DIY
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setFormAccessLevel('RUANG HAKIM & JURI')}
+                        className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
+                      >
+                        RUANG HAKIM & JURI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormAccessLevel('ARENA LOMBA & MEJA PANITERA')}
+                        className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
+                      >
+                        ARENA LOMBA & MEJA PANITERA
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormAccessLevel('ALL ACCESS')}
+                        className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono cursor-pointer"
+                      >
+                        ALL ACCESS
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1678,7 +1754,11 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                     rows={6}
                     value={importRawText}
                     onChange={(e) => setImportRawText(e.target.value)}
-                    placeholder={`Contoh Format Copy-Paste dari MS Excel (Kolom Nama & Bagian):\nK.H. Ahmad Syukri, M.S.I\tJuri Tilawah TQA\nDra. Hj. Siti Aminah, M.Pd\tJuri Tartil TKA\nUst. Muhammad Zidan, S.Pd\tPanitera CCQ TPA\n\nAtau format teks biasa berpemisah strip/titik dua dari MS Word:\n1. K.H. Ahmad Syukri, M.S.I - Juri Tilawah TQA\n2. Dra. Hj. Siti Aminah, M.Pd : Juri Tartil TKA`}
+                    placeholder={
+                      importCategory === 'dewan_hakim'
+                        ? `Format 3 Kolom dari MS Excel / Google Sheets (Nama, Cabang Lomba, Instansi):\nM. Anwar\tTartil Al Qur’an ( Putra Putri )\tPP Al Munawwir\nK.H. Ahmad Syukri, M.S.I\tTilawah TQA\tUIN Sunan Kalijaga\nDra. Hj. Siti Aminah, M.Pd\tTahfidz Juz 1\tKemenag DIY\n\nAtau format teks berpemisah strip/spasi dari Word:\nM. Anwar - Tartil Al Qur’an ( Putra Putri ) - PP Al Munawwir\nK.H. Ahmad Syukri, M.S.I : Tilawah TQA : UIN Sunan Kalijaga`
+                        : `Format Copy-Paste dari MS Excel / Google Sheets (Kolom Nama & Bagian):\nMuhammad Fikri, S.Pd\tSeksi Acara & Lomba\nSiti Rahmawati, S.E.\tSeksi Konsumsi\nUst. Muhammad Zidan, S.Pd\tPanitera CCQ TPA\n\nAtau format teks biasa berpemisah strip/titik dua dari MS Word:\n1. Muhammad Fikri, S.Pd - Seksi Acara & Lomba\n2. Siti Rahmawati, S.E. : Seksi Konsumsi`
+                    }
                     className="w-full p-3 font-mono text-[11px] bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent leading-relaxed"
                   />
                   {importRawText && (
@@ -1694,7 +1774,9 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                 <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
                   <Info className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   <span>
-                    Sistem otomatis membersihkan nomor urut (1., 2.), tanda baca, dan mengabaikan baris header tabel.
+                    {importCategory === 'dewan_hakim'
+                      ? 'Mendukung format 3 kolom (Nama, Cabang Lomba, Instansi) baik dari tabel Excel maupun format teks berpemisah.'
+                      : 'Sistem otomatis membersihkan nomor urut (1., 2.), tanda baca, dan mengabaikan baris header tabel.'}
                   </span>
                 </p>
               </div>
@@ -1765,7 +1847,12 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                         <tr>
                           <th className="py-1.5 px-3 w-10 text-center">No</th>
                           <th className="py-1.5 px-3">Nama Lengkap & Gelar</th>
-                          <th className="py-1.5 px-3">Bagian / Penugasan</th>
+                          <th className="py-1.5 px-3">
+                            {importCategory === 'dewan_hakim' ? 'Cabang Lomba' : 'Bagian / Penugasan'}
+                          </th>
+                          {importCategory === 'dewan_hakim' && (
+                            <th className="py-1.5 px-3">Instansi</th>
+                          )}
                           <th className="py-1.5 px-3 w-24 text-center">Status</th>
                         </tr>
                       </thead>
@@ -1781,6 +1868,11 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                             <td className="py-1 px-3 text-slate-600">
                               {row.division}
                             </td>
+                            {importCategory === 'dewan_hakim' && (
+                              <td className="py-1 px-3 text-slate-600 font-medium">
+                                {row.institution || '-'}
+                              </td>
+                            )}
                             <td className="py-1 px-3 text-center">
                               {row.isExisting ? (
                                 <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 whitespace-nowrap">
