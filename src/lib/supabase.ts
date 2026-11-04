@@ -1345,16 +1345,19 @@ export async function fetchCommitteesFromSupabase(): Promise<IdCardCommitteeData
       return [];
     }
 
-    return (data || []).map((row: any) => ({
-      id: row.id,
-      name: row.name || '',
-      division: row.division || 'Panitia Pelaksana',
-      accessLevel: row.access_level || 'ALL ACCESS',
-      cardCategory: row.card_category === 'dewan_hakim' ? 'dewan_hakim' : (row.card_category === 'panitera' ? 'panitera' : 'panitia'),
-      customBadge: row.custom_badge || (row.card_category === 'dewan_hakim' ? 'DEWAN HAKIM' : (row.card_category === 'panitera' ? 'PANITERA' : 'PANITIA')),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    return (data || []).map((row: any) => {
+      const rawCategory = row.role || row.card_category || 'panitia';
+      return {
+        id: row.id,
+        name: row.name || '',
+        division: row.division || 'Panitia Pelaksana',
+        accessLevel: row.access_level || 'ALL ACCESS',
+        cardCategory: rawCategory === 'dewan_hakim' ? 'dewan_hakim' : (rawCategory === 'panitera' ? 'panitera' : 'panitia'),
+        customBadge: row.custom_badge || (rawCategory === 'dewan_hakim' ? 'DEWAN HAKIM' : (rawCategory === 'panitera' ? 'PANITERA' : 'PANITIA')),
+        createdAt: row.created_at,
+        updatedAt: row.created_at,
+      };
+    });
   } catch (err: any) {
     console.error('Exception fetchCommitteesFromSupabase:', err?.message || err);
     return [];
@@ -1366,43 +1369,58 @@ export async function upsertCommitteeToSupabase(committee: IdCardCommitteeData):
   if (!client) return { success: false, error: 'Klien Supabase belum terhubung' };
 
   try {
-    const payload = {
+    const cat = committee.cardCategory || 'panitia';
+    const badge = committee.customBadge || (cat === 'dewan_hakim' ? 'DEWAN HAKIM' : (cat === 'panitera' ? 'PANITERA' : 'PANITIA'));
+    
+    // Schema Supabase menggunakan kolom 'role' (bukan 'card_category') dan tidak memiliki kolom 'updated_at'
+    const payload: Record<string, any> = {
       id: committee.id,
       name: committee.name || '',
-      division: committee.division,
+      division: committee.division || 'Panitia Pelaksana',
+      role: cat,
       access_level: committee.accessLevel || 'ALL ACCESS',
-      card_category: committee.cardCategory || 'panitia',
-      custom_badge: committee.customBadge || (committee.cardCategory === 'dewan_hakim' ? 'DEWAN HAKIM' : (committee.cardCategory === 'panitera' ? 'PANITERA' : 'PANITIA')),
-      updated_at: new Date().toISOString(),
+      custom_badge: badge,
     };
 
-    const { error } = await client
+    let { error } = await client
       .from('id_card_committees')
       .upsert(payload, { onConflict: 'id' });
 
     if (error) {
-      // Fallback otomatis: jika kolom access_level atau custom_badge belum ada di schema cache Supabase
-      if (
-        error.code === 'PGRST204' ||
-        /access_level/i.test(error.message) ||
-        /custom_badge/i.test(error.message)
-      ) {
-        console.warn('Fallback otomatis ke kolom dasar id_card_committees:', error.message);
-        const basicPayload = {
-          id: committee.id,
-          name: committee.name || '',
-          division: committee.division,
-          card_category: committee.cardCategory || 'panitia',
-          updated_at: new Date().toISOString(),
-        };
-        const { error: retryErr } = await client
+      // Fallback 1: Jika kolom access_level atau custom_badge belum tersedia
+      if (error.code === 'PGRST204' && (/access_level/i.test(error.message) || /custom_badge/i.test(error.message))) {
+        console.warn('Fallback 1 id_card_committees (tanpa access_level/custom_badge):', error.message);
+        const retry1 = await client
           .from('id_card_committees')
-          .upsert(basicPayload, { onConflict: 'id' });
-        if (!retryErr) return { success: true };
+          .upsert({
+            id: committee.id,
+            name: committee.name || '',
+            division: committee.division || 'Panitia Pelaksana',
+            role: cat,
+          }, { onConflict: 'id' });
+        error = retry1.error;
       }
 
-      console.error('Error upserting committee to Supabase:', error);
-      return { success: false, error: error.message };
+      // Fallback 2: Jika di environment tertentu kolom bernama card_category (bukan role)
+      if (error && error.code === 'PGRST204' && /role/i.test(error.message)) {
+        console.warn('Fallback 2 id_card_committees (menggunakan card_category):', error.message);
+        const retry2 = await client
+          .from('id_card_committees')
+          .upsert({
+            id: committee.id,
+            name: committee.name || '',
+            division: committee.division || 'Panitia Pelaksana',
+            card_category: cat,
+            access_level: committee.accessLevel || 'ALL ACCESS',
+            custom_badge: badge,
+          }, { onConflict: 'id' });
+        error = retry2.error;
+      }
+
+      if (error) {
+        console.error('Error upserting committee to Supabase:', error);
+        return { success: false, error: error.message };
+      }
     }
     return { success: true };
   } catch (err: any) {
@@ -1419,52 +1437,57 @@ export async function bulkUpsertCommitteesToSupabase(
   if (!committees || committees.length === 0) return { success: true, count: 0 };
 
   try {
-    const payloads = committees.map((committee) => ({
-      id: committee.id,
-      name: committee.name || '',
-      division: committee.division || 'Panitia Pelaksana',
-      access_level: committee.accessLevel || 'ALL ACCESS',
-      card_category: committee.cardCategory || 'panitia',
-      custom_badge:
-        committee.customBadge ||
-        (committee.cardCategory === 'dewan_hakim'
-          ? 'DEWAN HAKIM'
-          : committee.cardCategory === 'panitera'
-          ? 'PANITERA'
-          : 'PANITIA'),
-      updated_at: new Date().toISOString(),
-    }));
+    const buildPayloads = (withBadgeAndAccess = true, useRoleColumn = true) => {
+      return committees.map((c) => {
+        const cat = c.cardCategory || 'panitia';
+        const badge = c.customBadge || (cat === 'dewan_hakim' ? 'DEWAN HAKIM' : (cat === 'panitera' ? 'PANITERA' : 'PANITIA'));
+        const item: Record<string, any> = {
+          id: c.id,
+          name: c.name || '',
+          division: c.division || 'Panitia Pelaksana',
+        };
 
-    const { error } = await client
+        if (useRoleColumn) {
+          item.role = cat;
+        } else {
+          item.card_category = cat;
+        }
+
+        if (withBadgeAndAccess) {
+          item.access_level = c.accessLevel || 'ALL ACCESS';
+          item.custom_badge = badge;
+        }
+
+        return item;
+      });
+    };
+
+    let payloads = buildPayloads(true, true);
+    let { error } = await client
       .from('id_card_committees')
       .upsert(payloads, { onConflict: 'id' });
 
     if (error) {
-      // Fallback otomatis jika schema Supabase belum memiliki kolom access_level atau custom_badge
-      if (
-        error.code === 'PGRST204' ||
-        /access_level/i.test(error.message) ||
-        /custom_badge/i.test(error.message)
-      ) {
-        console.warn('Fallback otomatis ke kolom dasar id_card_committees:', error.message);
-        const basicPayloads = committees.map((committee) => ({
-          id: committee.id,
-          name: committee.name || '',
-          division: committee.division || 'Panitia Pelaksana',
-          card_category: committee.cardCategory || 'panitia',
-          updated_at: new Date().toISOString(),
-        }));
-        const { error: retryError } = await client
-          .from('id_card_committees')
-          .upsert(basicPayloads, { onConflict: 'id' });
-
-        if (!retryError) {
-          return { success: true, count: basicPayloads.length };
-        }
+      // Fallback 1: Jika tabel belum memiliki kolom access_level atau custom_badge
+      if (error.code === 'PGRST204' && (/access_level/i.test(error.message) || /custom_badge/i.test(error.message))) {
+        console.warn('Fallback 1 bulk upsert (tanpa access_level/custom_badge):', error.message);
+        payloads = buildPayloads(false, true);
+        const retry1 = await client.from('id_card_committees').upsert(payloads, { onConflict: 'id' });
+        error = retry1.error;
       }
 
-      console.error('Error bulk upserting committees to Supabase:', error);
-      return { success: false, error: error.message };
+      // Fallback 2: Jika tabel ternyata menggunakan card_category (bukan role)
+      if (error && error.code === 'PGRST204' && /role/i.test(error.message)) {
+        console.warn('Fallback 2 bulk upsert (menggunakan card_category):', error.message);
+        payloads = buildPayloads(true, false);
+        const retry2 = await client.from('id_card_committees').upsert(payloads, { onConflict: 'id' });
+        error = retry2.error;
+      }
+
+      if (error) {
+        console.error('Error bulk upserting committees to Supabase:', error);
+        return { success: false, error: error.message };
+      }
     }
     return { success: true, count: payloads.length };
   } catch (err: any) {
