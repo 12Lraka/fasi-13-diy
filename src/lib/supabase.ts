@@ -1391,6 +1391,45 @@ export async function upsertCommitteeToSupabase(committee: IdCardCommitteeData):
   }
 }
 
+export async function bulkUpsertCommitteesToSupabase(
+  committees: IdCardCommitteeData[]
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, error: 'Klien Supabase belum terhubung' };
+  if (!committees || committees.length === 0) return { success: true, count: 0 };
+
+  try {
+    const payloads = committees.map((committee) => ({
+      id: committee.id,
+      name: committee.name || '',
+      division: committee.division || 'Panitia Pelaksana',
+      access_level: committee.accessLevel || 'ALL ACCESS',
+      card_category: committee.cardCategory || 'panitia',
+      custom_badge:
+        committee.customBadge ||
+        (committee.cardCategory === 'dewan_hakim'
+          ? 'DEWAN HAKIM'
+          : committee.cardCategory === 'panitera'
+          ? 'PANITERA'
+          : 'PANITIA'),
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await client
+      .from('id_card_committees')
+      .upsert(payloads, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error bulk upserting committees to Supabase:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true, count: payloads.length };
+  } catch (err: any) {
+    console.error('Exception bulkUpsertCommitteesToSupabase:', err?.message || err);
+    return { success: false, error: err?.message || 'Gagal menyimpan batch data panitia ke Supabase' };
+  }
+}
+
 export async function deleteCommitteeFromSupabase(id: string): Promise<boolean> {
   const client = getSupabaseClient();
   if (!client) return false;

@@ -34,6 +34,7 @@ import {
   deleteOfficialFromSupabase,
   fetchCommitteesFromSupabase,
   upsertCommitteeToSupabase,
+  bulkUpsertCommitteesToSupabase,
   deleteCommitteeFromSupabase,
   saveSettingsToSupabase,
   fetchMasterTpaFromSupabase,
@@ -864,6 +865,31 @@ export async function persistCommittee(committee: IdCardCommitteeData): Promise<
       console.warn('Gagal background sync committee ke Supabase:', err);
     });
   }
+}
+
+export async function bulkPersistCommittees(
+  newItems: IdCardCommitteeData[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  if (!newItems || newItems.length === 0) return { success: true, count: 0 };
+
+  const current = getStoredCommittees();
+  const currentMap = new Map<string, IdCardCommitteeData>();
+  current.forEach((item) => currentMap.set(item.id, item));
+
+  // Merge or add by ID
+  newItems.forEach((item) => {
+    currentMap.set(item.id, item);
+  });
+
+  const updated = Array.from(currentMap.values());
+  saveCommitteesList(updated);
+
+  if (isSupabaseConfigured()) {
+    const res = await bulkUpsertCommitteesToSupabase(newItems);
+    return { success: res.success, count: newItems.length, error: res.error };
+  }
+
+  return { success: true, count: newItems.length };
 }
 
 export async function removeCommittee(id: string): Promise<void> {
