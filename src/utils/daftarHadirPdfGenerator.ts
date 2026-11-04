@@ -42,7 +42,7 @@ function getCategoryMeta(categoryType: string) {
   switch (categoryType) {
     case 'dewan_hakim':
       return {
-        title: 'DAFTAR HADIR DEWAN HAKIM / JURI',
+        title: 'DAFTAR HADIR DEWAN YURI',
         sub: 'FESTIVAL ANAK SHOLEH INDONESIA (FASI) XIII TAHUN 2026',
         roleLabel: 'Penugasan Cabang / Bidang',
         accessHeaderLabel: 'Instansi',

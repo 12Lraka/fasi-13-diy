@@ -3,34 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  * 
  * Sistem Informasi FASI XIII Kota Yogyakarta
- * Komponen ID Card Panitia Pelaksana Resmi (Portrait 5.5cm x 8.8cm)
- * Menggunakan Template Kartu Resmi Supabase
+ * Komponen Cocard Resmi Panitia Pelaksana, Dewan Hakim, & Panitera
+ * Ukuran Resmi Portrait 9,2 cm × 13,8 cm (92mm × 138mm)
+ * Menggunakan Template Desain Resmi Supabase
  */
 
 import React from 'react';
-import { ID_CARD_ASSETS, ID_CARD_THEMES, IdCardTheme } from './idCardThemes';
+import { ID_CARD_ASSETS } from './idCardThemes';
 
 export interface CommitteeCardData {
   id: string;
-  name?: string; // Optional: If empty, provides empty space area for physical sticker/handwritten name
-  division: string; // e.g. "Sie Acara & Lomba", "Dewan Juri Tilawah", "Sie IT & Registrasi", "Koordinator Dewan Hakim"
-  accessLevel?: string; // e.g. "ALL ACCESS", "PANITIA INTI", "RUANG HAKIM & JURI"
+  name?: string; // Nama Lengkap & Gelar (jika kosong, area blanko untuk tempel stiker/tulis tangan)
+  division: string; // Jabatan / Penugasan Cabang / Seksi
+  accessLevel?: string; // Instansi (Dewan Hakim) / Hak Akses Ruang
   cardCategory?: 'panitia' | 'dewan_hakim' | 'panitera';
-  customBadge?: string; // e.g. "PANITIA", "DEWAN HAKIM", or "PANITERA"
+  customBadge?: string;
 }
 
 interface IdCardCommitteeProps {
   data: CommitteeCardData;
-  theme?: IdCardTheme;
-  customTagline?: string;
 }
 
-export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({
-  data,
-  theme = ID_CARD_THEMES.maroon,
-  customTagline = 'Santri Hebat, Hebat Prestasi, Hebat Mengaji, & Berakhlakul Karimah.',
-}) => {
-  const hasDigitalName = Boolean(data.name && data.name.trim().length > 0);
+/**
+ * Format nama agar spasi setelah tanda koma gelar rapi (misal: "H. Suprapto,S.Ag.,M.A." -> "H. Suprapto, S.Ag., M.A.")
+ */
+function formatDisplayName(rawName?: string): string {
+  if (!rawName) return '';
+  return rawName.trim().replace(/,([^\s])/g, ', $1');
+}
+
+export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({ data }) => {
   const isPanitera =
     data.cardCategory === 'panitera' ||
     (data.customBadge && /panitera/i.test(data.customBadge)) ||
@@ -39,163 +41,117 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({
   const isDewanHakim =
     !isPanitera &&
     (data.cardCategory === 'dewan_hakim' ||
-      (data.customBadge && /hakim|juri/i.test(data.customBadge)) ||
-      /hakim|juri/i.test(data.division || ''));
+      (data.customBadge && /hakim|juri|yuri/i.test(data.customBadge)) ||
+      /hakim|juri|yuri/i.test(data.division || ''));
 
-  const badgeText = data.customBadge || (isPanitera ? 'PANITERA' : (isDewanHakim ? 'DEWAN HAKIM' : 'PANITIA'));
+  // 1. Pilih Template Resmi dari Supabase Storage
+  let templateBg = ID_CARD_ASSETS.templateCocardPanitia;
+  let roleColor = '#065f46'; // Emerald untuk Panitia
+  let defaultDivision = 'PANITIA PELAKSANA';
 
-  // Badge background color
-  const badgeBgColor = isPanitera ? '#0369a1' : (isDewanHakim ? '#831843' : theme.badgeBg);
+  if (isDewanHakim) {
+    templateBg = ID_CARD_ASSETS.templateCocardDewanHakim;
+    roleColor = '#881337'; // Wine / Maroon untuk Dewan Hakim
+    defaultDivision = 'DEWAN HAKIM / JURI';
+  } else if (isPanitera) {
+    templateBg = ID_CARD_ASSETS.templateCocardPanitera;
+    roleColor = '#0369a1'; // Sky Royal untuk Panitera
+    defaultDivision = 'PANITERA ARENA LOMBA';
+  }
 
-  // Dynamic font sizing
-  const nameLength = (data.name || '').trim().length;
-  let nameFontSizeClass = 'text-[11px] leading-[1.2]';
-  if (nameLength > 30) {
-    nameFontSizeClass = 'text-[8.5px] leading-[1.12]';
-  } else if (nameLength > 22) {
-    nameFontSizeClass = 'text-[9.5px] leading-[1.15]';
+  const displayName = formatDisplayName(data.name);
+  const hasDigitalName = displayName.length > 0;
+  const displayDivision = (data.division || defaultDivision).trim();
+
+  // Dynamic font sizing berdasarkan panjang nama
+  const nameLength = displayName.length;
+  let nameFontSize = '14.5px';
+  if (nameLength > 34) {
+    nameFontSize = '11.5px';
+  } else if (nameLength > 24) {
+    nameFontSize = '13px';
+  }
+
+  // Dynamic font sizing untuk jabatan
+  const divLength = displayDivision.length;
+  let divFontSize = '11px';
+  if (divLength > 34) {
+    divFontSize = '9.5px';
+  } else if (divLength > 24) {
+    divFontSize = '10px';
   }
 
   return (
     <div
-      className="fasi-id-card relative flex flex-col justify-between overflow-hidden select-none bg-white text-slate-900 box-border"
+      className="fasi-id-card relative flex flex-col justify-center items-center overflow-hidden select-none bg-white text-slate-900 box-border shadow-md"
       style={{
-        width: '55mm',
-        height: '88mm',
-        minWidth: '55mm',
-        maxWidth: '55mm',
-        minHeight: '88mm',
-        maxHeight: '88mm',
-        padding: '2.5mm 3mm 2.2mm 3mm',
+        width: '92mm',
+        height: '138mm',
+        minWidth: '92mm',
+        maxWidth: '92mm',
+        minHeight: '138mm',
+        maxHeight: '138mm',
         backgroundColor: '#ffffff',
       }}
     >
-      {/* Background Template Image (Layered underneath all content) */}
+      {/* 1. Background Template Desain Resmi (Layer Penuh) */}
       <img
-        src={ID_CARD_ASSETS.templateKartu}
-        alt="Template Kartu"
+        src={templateBg}
+        alt="Cocard Template"
         crossOrigin="anonymous"
         className="absolute inset-0 w-full h-full object-fill pointer-events-none z-0"
         style={{ width: '100%', height: '100%' }}
       />
 
-      {/* 1. Header: Logo Badko & Logo FASI berdampingan di posisi Center + Text Panitia */}
-      <div className="relative z-10 text-center pt-0.5 pb-0.5 shrink-0">
-        <div className="flex items-center justify-center gap-2 mb-0.5">
-          <img
-            src={ID_CARD_ASSETS.logoBadko}
-            alt="Logo Badko"
-            crossOrigin="anonymous"
-            className="h-[6.5mm] max-h-[6.5mm] w-auto object-contain shrink-0"
-          />
-          <div className="h-[4.5mm] w-[1px] bg-slate-300 mx-0.5" />
-          <img
-            src={ID_CARD_ASSETS.logoFasi}
-            alt="Logo FASI"
-            crossOrigin="anonymous"
-            className="h-[6.5mm] max-h-[6.5mm] w-auto object-contain shrink-0"
-          />
-        </div>
-        <div className="leading-[1.15]">
-          <p className="font-extrabold text-[7.5px] tracking-wider uppercase text-slate-900 font-sans m-0">
-            PANITIA FASI XIII
-          </p>
-          <p className="font-bold text-[6.5px] tracking-wider uppercase text-slate-800 m-0">
-            D.I. YOGYAKARTA 2026
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Middle Content: Divisi / Jabatan + Area Nama */}
-      <div className="relative z-10 my-auto py-1 text-center flex flex-col items-center justify-center space-y-1.5">
-        {/* Badge: PANITIA, DEWAN HAKIM, atau PANITERA */}
+      {/* 2. Area Kotak Putih Khusus Teks Nama & Jabatan Penugasan
+          Koordinat Hasil Analisis Pixel Presisi (1088 x 1630 px master):
+          top: 57.91% (944px), height: 14.79% (241px), left: 3.03% (33px), width: 93.93% (1022px)
+      */}
+      <div
+        className="absolute z-10 flex flex-col justify-center items-center text-center px-4 py-1 select-none pointer-events-none"
+        style={{
+          top: '57.91%',
+          height: '14.79%',
+          left: '3.03%',
+          width: '93.93%',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* Jabatan / Penugasan */}
         <div
-          className="inline-flex items-center justify-center px-4 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xs"
+          className="font-extrabold uppercase tracking-wide line-clamp-1 w-full text-center"
           style={{
-            backgroundColor: badgeBgColor,
-            color: '#ffffff',
+            fontSize: divFontSize,
+            color: roleColor,
+            letterSpacing: '0.04em',
           }}
         >
-          <span>{badgeText}</span>
+          {displayDivision}
         </div>
 
-        {/* Divisi / Bidang Lomba */}
-        <div className="w-full pt-0.5">
-          <span className="text-[5.5px] uppercase font-extrabold text-slate-500 block tracking-widest mb-0.5">
-            {isPanitera
-              ? 'TUGAS ARENA / CABANG LOMBA'
-              : (isDewanHakim ? 'BIDANG PENILAIAN / JABATAN' : 'SEKSI / DIVISI')}
-          </span>
-          <h3
-            className="font-black text-[11px] uppercase tracking-tight leading-tight m-0"
-            style={{ color: theme.primaryColor }}
-          >
-            {data.division || (isPanitera ? 'PANITERA ARENA LOMBA' : (isDewanHakim ? 'DEWAN HAKIM FASI XIII' : 'PANITIA FASI XIII'))}
-          </h3>
-        </div>
+        {/* Garis Aksen Halus */}
+        <div
+          className="w-16 h-[1.5px] rounded-full my-1 shrink-0"
+          style={{ backgroundColor: `${roleColor}40` }}
+        />
 
-        {/* Space Area untuk Tempel Nama / Tulisan Nama */}
+        {/* Nama Lengkap & Gelar */}
         {hasDigitalName ? (
           <div
-            className="w-full rounded-md py-1.5 px-2 border bg-white/95 shadow-2xs"
-            style={{ borderColor: `${theme.borderColor}60` }}
-          >
-            <span className="text-[5.5px] uppercase font-bold block text-slate-500 tracking-wider">
-              {isPanitera
-                ? 'NAMA LENGKAP PANITERA'
-                : (isDewanHakim ? 'NAMA LENGKAP DEWAN HAKIM' : 'NAMA LENGKAP PANITIA')}
-            </span>
-            <h4
-              className={`font-black uppercase font-sans tracking-tight line-clamp-2 ${nameFontSizeClass}`}
-              style={{ color: theme.textColor }}
-            >
-              {data.name}
-            </h4>
-            <div className="mt-0.5">
-              <span
-                className="inline-block font-extrabold text-[7px] uppercase tracking-wider px-2 py-0.2 rounded"
-                style={{
-                  color: isPanitera ? '#0369a1' : theme.accentColor,
-                  backgroundColor: isPanitera ? '#e0f2fe' : `${theme.accentColor}18`,
-                }}
-              >
-                {data.accessLevel || (isPanitera ? 'ARENA LOMBA & MEJA PANITERA' : (isDewanHakim ? 'RUANG HAKIM & JURI' : 'ALL ACCESS'))}
-              </span>
-            </div>
-          </div>
-        ) : (
-          /* Area Tempel Nama Blanko yang Bersih */
-          <div
-            className="w-full rounded-md p-1.5 border-2 border-dashed bg-white/95 flex flex-col items-center justify-center min-h-[14mm]"
+            className="font-black uppercase tracking-tight text-slate-900 line-clamp-2 leading-tight w-full text-center font-sans"
             style={{
-              borderColor: `${theme.borderColor}70`,
+              fontSize: nameFontSize,
             }}
           >
-            <span className="text-[6px] font-extrabold uppercase tracking-wider text-slate-600 mb-0.5">
-              {isPanitera
-                ? '[ TEMPEL LABEL / NAMA PANITERA ]'
-                : (isDewanHakim ? '[ TEMPEL LABEL / NAMA DEWAN HAKIM ]' : '[ TEMPEL LABEL / TULIS NAMA ]')}
-            </span>
-            <div className="w-3/4 h-[1px] bg-slate-300 my-0.5" />
-            <span className="text-[5.5px] font-bold text-slate-500">
-              Format Stiker Label No. 103 / 107
+            {displayName}
+          </div>
+        ) : (
+          <div className="w-4/5 text-center border border-dashed border-slate-300 rounded py-1 bg-white/80">
+            <span className="text-[8.5px] font-bold tracking-wider text-slate-400 uppercase">
+              [ Area Tempel / Tulis Nama ]
             </span>
           </div>
         )}
-      </div>
-
-      {/* 3. Bottom Footer: Tagline & BADKO TKA-TPA KOTA YOGYAKARTA */}
-      <div className="relative z-10 pt-0.5 text-center flex flex-col items-center justify-end space-y-0.5 shrink-0">
-        <p
-          className="text-[5px] italic leading-tight font-serif px-1 line-clamp-1 m-0"
-          style={{ color: theme.taglineColor }}
-        >
-          “{customTagline}”
-        </p>
-
-        <p className="text-[5.5px] font-extrabold text-slate-700 uppercase tracking-wider m-0">
-          BADKO TKA-TPA D.I. YOGYAKARTA
-        </p>
       </div>
     </div>
   );
