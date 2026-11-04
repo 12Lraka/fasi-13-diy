@@ -347,6 +347,36 @@ async function renderSingleCategorySheet(
 }
 
 /**
+ * Urutkan daftar personel secara konsisten:
+ * 1. Kategori: Dewan Hakim -> Panitera -> Panitia
+ * 2. Urutan Asli Input / Import (Berdasarkan createdAt / ID / sequence import)
+ *    Mencegah pergeseran urutan SK kepanitiaan dan daftar hadir agar tidak membingungkan saat tanda tangan.
+ */
+export function sortCommitteesList(list: IdCardCommitteeData[]): IdCardCommitteeData[] {
+  const CATEGORY_ORDER: Record<string, number> = {
+    dewan_hakim: 1,
+    panitera: 2,
+    panitia: 3,
+  };
+
+  return [...list].sort((a, b) => {
+    const catA = a.cardCategory || 'panitia';
+    const catB = b.cardCategory || 'panitia';
+    const rankA = CATEGORY_ORDER[catA] || 99;
+    const rankB = CATEGORY_ORDER[catB] || 99;
+    if (rankA !== rankB) return rankA - rankB;
+
+    // Pertahankan urutan input asli berdasarkan createdAt
+    if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
+      return a.createdAt.localeCompare(b.createdAt);
+    }
+
+    // Jika createdAt sama atau tidak ada, pertahankan urutan ID stabil
+    return (a.id || '').localeCompare(b.id || '');
+  });
+}
+
+/**
  * Generate Dokumen PDF Daftar Hadir
  * Menggunakan Ukuran Kertas F4 Folio Portrait (215 x 330 mm)
  */
@@ -361,23 +391,24 @@ export async function generateDaftarHadirPdf(options: ExportDaftarHadirPdfOption
   const { categoryType, committees } = options;
 
   if (categoryType === 'all') {
-    // Render 3 lembar terpisah: Dewan Hakim, Panitera, Panitia
-    const hakimList = committees.filter((c) => c.cardCategory === 'dewan_hakim');
-    const paniteraList = committees.filter((c) => c.cardCategory === 'panitera');
-    const panitiaList = committees.filter((c) => !c.cardCategory || c.cardCategory === 'panitia');
+    // Render 3 lembar terpisah: Dewan Hakim, Panitera, Panitia (terurut rapi)
+    const hakimList = sortCommitteesList(committees.filter((c) => c.cardCategory === 'dewan_hakim'));
+    const paniteraList = sortCommitteesList(committees.filter((c) => c.cardCategory === 'panitera'));
+    const panitiaList = sortCommitteesList(committees.filter((c) => !c.cardCategory || c.cardCategory === 'panitia'));
 
     await renderSingleCategorySheet(pdfDoc, 'dewan_hakim', hakimList, options, true);
     await renderSingleCategorySheet(pdfDoc, 'panitera', paniteraList, options, false);
     await renderSingleCategorySheet(pdfDoc, 'panitia', panitiaList, options, false);
   } else {
-    const filtered = committees.filter((c) => {
+    const rawFiltered = committees.filter((c) => {
       if (categoryType === 'panitia') {
         return !c.cardCategory || c.cardCategory === 'panitia';
       }
       return c.cardCategory === categoryType;
     });
 
-    await renderSingleCategorySheet(pdfDoc, categoryType, filtered, options, true);
+    const sortedFiltered = sortCommitteesList(rawFiltered);
+    await renderSingleCategorySheet(pdfDoc, categoryType, sortedFiltered, options, true);
   }
 
   // Tambahkan nomor halaman di footer setiap lembar (Kertas F4 Folio Tinggi 330 mm)

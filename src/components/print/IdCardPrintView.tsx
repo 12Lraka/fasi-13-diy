@@ -58,6 +58,7 @@ import {
   syncCommitteesFromCloud,
 } from '../../utils/storage';
 import { ID_CARD_THEMES, IdCardTheme } from './idCardThemes';
+import { sortCommitteesList } from '../../utils/daftarHadirPdfGenerator';
 import { IdCardParticipant } from './IdCardParticipant';
 import { IdCardOfficial, OfficialCardData } from './IdCardOfficial';
 import { IdCardCommittee, CommitteeCardData } from './IdCardCommittee';
@@ -475,16 +476,16 @@ export const IdCardPrintView: React.FC<IdCardPrintViewProps> = ({
     }
 
     // Filter berdasarkan subkategori (ALL, panitia, dewan_hakim, panitera)
+    let filtered = rawList;
     if (committeeSubCategory === 'panitia') {
-      return rawList.filter((item) => item.cardCategory === 'panitia');
+      filtered = rawList.filter((item) => item.cardCategory === 'panitia');
+    } else if (committeeSubCategory === 'dewan_hakim') {
+      filtered = rawList.filter((item) => item.cardCategory === 'dewan_hakim');
+    } else if (committeeSubCategory === 'panitera') {
+      filtered = rawList.filter((item) => item.cardCategory === 'panitera');
     }
-    if (committeeSubCategory === 'dewan_hakim') {
-      return rawList.filter((item) => item.cardCategory === 'dewan_hakim');
-    }
-    if (committeeSubCategory === 'panitera') {
-      return rawList.filter((item) => item.cardCategory === 'panitera');
-    }
-    return rawList;
+
+    return sortCommitteesList(filtered);
   }, [committeeMode, customCommittees, blankoType, blankoCount, PRESET_PANITIA, PRESET_DEWAN_HAKIM, PRESET_PANITERA, committeeSubCategory]);
 
   // Handle Tambah Custom Official

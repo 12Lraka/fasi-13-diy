@@ -1438,7 +1438,7 @@ export async function bulkUpsertCommitteesToSupabase(
 
   try {
     const buildPayloads = (withBadgeAndAccess = true, useRoleColumn = true) => {
-      return committees.map((c) => {
+      return committees.map((c, index) => {
         const cat = c.cardCategory || 'panitia';
         const badge = c.customBadge || (cat === 'dewan_hakim' ? 'DEWAN HAKIM' : (cat === 'panitera' ? 'PANITERA' : 'PANITIA'));
         const item: Record<string, any> = {
@@ -1446,6 +1446,10 @@ export async function bulkUpsertCommitteesToSupabase(
           name: c.name || '',
           division: c.division || 'Panitia Pelaksana',
         };
+
+        if (c.createdAt) {
+          item.created_at = c.createdAt;
+        }
 
         if (useRoleColumn) {
           item.role = cat;
@@ -1513,6 +1517,28 @@ export async function deleteCommitteeFromSupabase(id: string): Promise<boolean> 
     return true;
   } catch (err: any) {
     console.error('Exception deleteCommitteeFromSupabase:', err?.message || err);
+    return false;
+  }
+}
+
+export async function clearAllCommitteesFromSupabase(): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    // Menghapus seluruh baris data pada tabel id_card_committees
+    const { error } = await client
+      .from('id_card_committees')
+      .delete()
+      .neq('id', '');
+
+    if (error) {
+      console.error('Error clearing all committees from Supabase:', error);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.error('Exception clearAllCommitteesFromSupabase:', err?.message || err);
     return false;
   }
 }

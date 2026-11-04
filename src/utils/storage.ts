@@ -36,6 +36,7 @@ import {
   upsertCommitteeToSupabase,
   bulkUpsertCommitteesToSupabase,
   deleteCommitteeFromSupabase,
+  clearAllCommitteesFromSupabase,
   saveSettingsToSupabase,
   fetchMasterTpaFromSupabase,
   upsertMasterTpaToSupabase,
@@ -831,6 +832,12 @@ export function clearStoredCommittees(): void {
     localStorage.setItem(COMMITTEES_KEY, JSON.stringify([]));
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('fasi_committees_updated', { detail: [] }));
+    }
+
+    if (isSupabaseConfigured()) {
+      clearAllCommitteesFromSupabase().catch((err) => {
+        console.warn('Gagal membersihkan data committees di Supabase:', err);
+      });
     }
   } catch (err) {
     console.error('Gagal mengosongkan data committees:', err);

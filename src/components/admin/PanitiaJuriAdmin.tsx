@@ -57,7 +57,7 @@ import {
 } from '../../utils/storage';
 import { isSupabaseConfigured, fetchCommitteesFromSupabase } from '../../lib/supabase';
 import { showToast, showSuccessAlert, showConfirmDialog } from '../../utils/sweetalert';
-import { downloadDaftarHadirPdf } from '../../utils/daftarHadirPdfGenerator';
+import { downloadDaftarHadirPdf, sortCommitteesList } from '../../utils/daftarHadirPdfGenerator';
 
 interface PanitiaJuriAdminProps {
   session: UserSession;
@@ -137,7 +137,7 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
 
   // Filtered list
   const filteredList = useMemo(() => {
-    return committees.filter((item) => {
+    const filtered = committees.filter((item) => {
       // Category filter
       if (selectedCategory !== 'all') {
         const itemCat = item.cardCategory || 'panitia';
@@ -161,6 +161,9 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
 
       return true;
     });
+
+    // Urutkan secara rapi dan konsisten (Kategori -> Penugasan/Cabang -> Nama)
+    return sortCommitteesList(filtered);
   }, [committees, selectedCategory, selectedAccessLevel, searchQuery]);
 
   // Reset ke halaman 1 jika filter atau pencarian berubah
@@ -564,14 +567,18 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
     try {
       showToast('info', 'Menyimpan data massal langsung ke database Supabase Cloud...');
 
+      const baseTime = Date.now();
       const newItems: IdCardCommitteeData[] = parsedImportRows.map((row, idx) => {
         // Tentukan accessLevel / instansi: utamakan hasil parsing kolom 3 jika terdeteksi
         const accessOrInstansi = row.institution?.trim() || importAccessLevel.trim() || (importCategory === 'dewan_hakim' ? '-' : 'ALL ACCESS');
+        // Buat timestamp ISO bertahap per milidetik/detik agar urutan input tetap 100% konsisten di PostgreSQL & LocalStorage
+        const itemCreatedAt = new Date(baseTime + (idx * 100)).toISOString();
+        const safeIdx = String(idx + 1).padStart(4, '0');
 
         return {
           id: row.isExisting && row.existingId && avoidDuplicates
             ? row.existingId
-            : `com-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+            : `com-${baseTime}-${safeIdx}`,
           name: row.name,
           division: row.division,
           accessLevel: accessOrInstansi,
@@ -583,7 +590,8 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
               : importCategory === 'panitera'
               ? 'PANITERA'
               : 'PANITIA'),
-          updatedAt: new Date().toISOString(),
+          createdAt: row.isExisting && row.existingId ? undefined : itemCreatedAt,
+          updatedAt: itemCreatedAt,
         };
       });
 
@@ -664,27 +672,8 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
         return;
       }
 
-      // Urutkan data secara rapi: Kategori (Dewan Hakim -> Panitera -> Panitia) -> Jabatan / Penugasan -> Nama
-      const CATEGORY_ORDER: Record<string, number> = {
-        dewan_hakim: 1,
-        panitera: 2,
-        panitia: 3,
-      };
-
-      const sortedData = [...dataToExport].sort((a, b) => {
-        const catA = a.cardCategory || 'panitia';
-        const catB = b.cardCategory || 'panitia';
-        const rankA = CATEGORY_ORDER[catA] || 99;
-        const rankB = CATEGORY_ORDER[catB] || 99;
-        if (rankA !== rankB) return rankA - rankB;
-
-        const divA = a.division || '';
-        const divB = b.division || '';
-        const divComp = divA.localeCompare(divB, 'id');
-        if (divComp !== 0) return divComp;
-
-        return (a.name || '').localeCompare(b.name || '', 'id');
-      });
+      // Urutkan data secara konsisten (Kategori -> Urutan Asli Input)
+      const sortedData = sortCommitteesList(dataToExport);
 
       // Label kategori untuk judul kop dokumen Excel
       const categoryLabel =
