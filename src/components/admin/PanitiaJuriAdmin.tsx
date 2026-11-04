@@ -37,6 +37,10 @@ import {
   AlertCircle,
   Info,
   Layers,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { IdCardCommitteeData, UserSession } from '../../types/fasi';
@@ -73,6 +77,10 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
+
+  // Pagination State (Default 20 per halaman sesuai permintaan pengguna)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
 
   // Form Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -154,6 +162,20 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
       return true;
     });
   }, [committees, selectedCategory, selectedAccessLevel, searchQuery]);
+
+  // Reset ke halaman 1 jika filter atau pencarian berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedAccessLevel, pageSize]);
+
+  // Perhitungan Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedList = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredList.slice(startIndex, startIndex + pageSize);
+  }, [filteredList, safeCurrentPage, pageSize]);
 
   // Statistics Count
   const stats = useMemo(() => {
@@ -1150,10 +1172,11 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredList.map((item, index) => {
+                paginatedList.map((item, index) => {
                   const cat = item.cardCategory || 'panitia';
                   const isHakim = cat === 'dewan_hakim';
                   const isPanitera = cat === 'panitera';
+                  const itemNumber = (safeCurrentPage - 1) * pageSize + index + 1;
 
                   return (
                     <tr
@@ -1161,7 +1184,7 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
                       className="hover:bg-slate-50/80 transition-colors group"
                     >
                       <td className="py-3 px-4 text-center font-mono text-slate-400 font-bold">
-                        {index + 1}
+                        {itemNumber}
                       </td>
 
                       {/* Kategori Badge */}
@@ -1241,6 +1264,132 @@ export const PanitiaJuriAdmin: React.FC<PanitiaJuriAdminProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION CONTROL BAR */}
+        {filteredList.length > 0 && (
+          <div className="p-4 bg-slate-50/90 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            {/* Kiri: Info Jumlah & Page Size Selector */}
+            <div className="flex items-center gap-3 text-slate-600 flex-wrap">
+              <span>
+                Menampilkan{' '}
+                <strong className="text-slate-900 font-mono">
+                  {(safeCurrentPage - 1) * pageSize + 1}
+                </strong>
+                –
+                <strong className="text-slate-900 font-mono">
+                  {Math.min(safeCurrentPage * pageSize, filteredList.length)}
+                </strong>{' '}
+                dari{' '}
+                <strong className="text-slate-900 font-mono">
+                  {filteredList.length}
+                </strong>{' '}
+                Personel
+              </span>
+
+              <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                <span className="text-[11px] text-slate-500">Tampilkan:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="py-1 px-2 text-xs bg-white border border-slate-300 rounded-lg font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-600 cursor-pointer"
+                >
+                  <option value={10}>10 / hal</option>
+                  <option value={20}>20 / hal</option>
+                  <option value={50}>50 / hal</option>
+                  <option value={100}>100 / hal</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Kanan: Navigasi Tombol Halaman */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                {/* First Page */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={safeCurrentPage === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors"
+                  title="Halaman Pertama"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+
+                {/* Previous Page */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safeCurrentPage === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Page Number Buttons */}
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => {
+                      return (
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - safeCurrentPage) <= 1
+                      );
+                    })
+                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) {
+                        acc.push('...');
+                      }
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === '...' ? (
+                        <span key={`dots-${idx}`} className="px-1 text-slate-400 font-mono">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={`page-${item}`}
+                          type="button"
+                          onClick={() => setCurrentPage(item as number)}
+                          className={`w-7 h-7 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                            safeCurrentPage === item
+                              ? 'bg-emerald-800 text-white shadow-2xs'
+                              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )}
+                </div>
+
+                {/* Next Page */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors"
+                  title="Halaman Berikutnya"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {/* Last Page */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={safeCurrentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors"
+                  title="Halaman Terakhir"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 5. MODAL FORM TAMBAH / EDIT PERSONEL */}

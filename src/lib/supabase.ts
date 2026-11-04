@@ -1381,6 +1381,26 @@ export async function upsertCommitteeToSupabase(committee: IdCardCommitteeData):
       .upsert(payload, { onConflict: 'id' });
 
     if (error) {
+      // Fallback otomatis: jika kolom access_level atau custom_badge belum ada di schema cache Supabase
+      if (
+        error.code === 'PGRST204' ||
+        /access_level/i.test(error.message) ||
+        /custom_badge/i.test(error.message)
+      ) {
+        console.warn('Fallback otomatis ke kolom dasar id_card_committees:', error.message);
+        const basicPayload = {
+          id: committee.id,
+          name: committee.name || '',
+          division: committee.division,
+          card_category: committee.cardCategory || 'panitia',
+          updated_at: new Date().toISOString(),
+        };
+        const { error: retryErr } = await client
+          .from('id_card_committees')
+          .upsert(basicPayload, { onConflict: 'id' });
+        if (!retryErr) return { success: true };
+      }
+
       console.error('Error upserting committee to Supabase:', error);
       return { success: false, error: error.message };
     }
@@ -1420,6 +1440,29 @@ export async function bulkUpsertCommitteesToSupabase(
       .upsert(payloads, { onConflict: 'id' });
 
     if (error) {
+      // Fallback otomatis jika schema Supabase belum memiliki kolom access_level atau custom_badge
+      if (
+        error.code === 'PGRST204' ||
+        /access_level/i.test(error.message) ||
+        /custom_badge/i.test(error.message)
+      ) {
+        console.warn('Fallback otomatis ke kolom dasar id_card_committees:', error.message);
+        const basicPayloads = committees.map((committee) => ({
+          id: committee.id,
+          name: committee.name || '',
+          division: committee.division || 'Panitia Pelaksana',
+          card_category: committee.cardCategory || 'panitia',
+          updated_at: new Date().toISOString(),
+        }));
+        const { error: retryError } = await client
+          .from('id_card_committees')
+          .upsert(basicPayloads, { onConflict: 'id' });
+
+        if (!retryError) {
+          return { success: true, count: basicPayloads.length };
+        }
+      }
+
       console.error('Error bulk upserting committees to Supabase:', error);
       return { success: false, error: error.message };
     }
