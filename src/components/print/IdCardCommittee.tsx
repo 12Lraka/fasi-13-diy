@@ -6,6 +6,9 @@
  * Komponen Cocard Resmi Panitia Pelaksana, Dewan Hakim, & Panitera
  * Ukuran Resmi Portrait 9,2 cm × 13,8 cm (92mm × 138mm)
  * Menggunakan Template Desain Resmi Supabase
+ * Tata Letak:
+ *  - Baris 1: Nama Lengkap & Gelar (Font tebal, ukuran besar, 1 baris)
+ *  - Baris 2: Jabatan / Penugasan
  */
 
 import React from 'react';
@@ -63,22 +66,26 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({ data }) => {
   const hasDigitalName = displayName.length > 0;
   const displayDivision = (data.division || defaultDivision).trim();
 
-  // Dynamic font sizing berdasarkan panjang nama
+  // Dynamic font sizing adaptif agar nama dengan karakter panjang PASTI cukup 1 baris
   const nameLength = displayName.length;
-  let nameFontSize = '14.5px';
-  if (nameLength > 34) {
+  let nameFontSize = '16.5px';
+  if (nameLength > 36) {
     nameFontSize = '11.5px';
+  } else if (nameLength > 30) {
+    nameFontSize = '12.5px';
   } else if (nameLength > 24) {
-    nameFontSize = '13px';
+    nameFontSize = '14px';
+  } else if (nameLength > 18) {
+    nameFontSize = '15px';
   }
 
-  // Dynamic font sizing untuk jabatan
+  // Dynamic font sizing untuk jabatan / penugasan (cukup 1 baris)
   const divLength = displayDivision.length;
-  let divFontSize = '11px';
-  if (divLength > 34) {
+  let divFontSize = '11.5px';
+  if (divLength > 36) {
     divFontSize = '9.5px';
-  } else if (divLength > 24) {
-    divFontSize = '10px';
+  } else if (divLength > 26) {
+    divFontSize = '10.5px';
   }
 
   return (
@@ -108,7 +115,7 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({ data }) => {
           top: 57.91% (944px), height: 14.79% (241px), left: 3.03% (33px), width: 93.93% (1022px)
       */}
       <div
-        className="absolute z-10 flex flex-col justify-center items-center text-center px-4 py-1 select-none pointer-events-none"
+        className="absolute z-10 flex flex-col justify-center items-center text-center px-3 py-1 select-none pointer-events-none"
         style={{
           top: '57.91%',
           height: '14.79%',
@@ -117,31 +124,15 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({ data }) => {
           boxSizing: 'border-box',
         }}
       >
-        {/* Jabatan / Penugasan */}
-        <div
-          className="font-extrabold uppercase tracking-wide line-clamp-1 w-full text-center"
-          style={{
-            fontSize: divFontSize,
-            color: roleColor,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {displayDivision}
-        </div>
-
-        {/* Garis Aksen Halus */}
-        <div
-          className="w-16 h-[1.5px] rounded-full my-1 shrink-0"
-          style={{ backgroundColor: `${roleColor}40` }}
-        />
-
-        {/* Nama Lengkap & Gelar */}
+        {/* Baris 1: Nama Lengkap & Gelar (Font Tebal, Ukuran Besar, PASTI Cukup 1 Baris) */}
         {hasDigitalName ? (
           <div
-            className="font-black uppercase tracking-tight text-slate-900 line-clamp-2 leading-tight w-full text-center font-sans"
+            className="font-black uppercase tracking-tight text-slate-950 w-full text-center font-sans whitespace-nowrap overflow-hidden text-ellipsis leading-tight px-1"
             style={{
               fontSize: nameFontSize,
+              letterSpacing: nameLength > 30 ? '-0.02em' : '-0.01em',
             }}
+            title={displayName}
           >
             {displayName}
           </div>
@@ -152,6 +143,25 @@ export const IdCardCommittee: React.FC<IdCardCommitteeProps> = ({ data }) => {
             </span>
           </div>
         )}
+
+        {/* Garis Aksen Halus Pemisah */}
+        <div
+          className="w-14 h-[1.5px] rounded-full my-1.5 shrink-0"
+          style={{ backgroundColor: `${roleColor}40` }}
+        />
+
+        {/* Baris 2: Jabatan / Penugasan */}
+        <div
+          className="font-extrabold uppercase tracking-wide w-full text-center whitespace-nowrap overflow-hidden text-ellipsis px-1 leading-tight"
+          style={{
+            fontSize: divFontSize,
+            color: roleColor,
+            letterSpacing: '0.03em',
+          }}
+          title={displayDivision}
+        >
+          {displayDivision}
+        </div>
       </div>
     </div>
   );
