@@ -158,13 +158,13 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
             ? chunk.reduce((sum, m) => sum + (m.totalScore || 0), 0) / chunk.length
             : 0;
 
-          const groupLabel = `Regu ${reguCounter} - ${unitTpa || kemName} (${kemName})`;
+          const groupLabel = `Regu ${reguCounter} - Kontingen ${kemName}`;
 
           groups.push({
             groupId: `${kemId}-${tpaKey.replace(/[^a-z0-9]/g, '_')}-${reguCounter}`,
             kemantrenId: kemId,
             kemantrenName: kemName,
-            unitTpa: unitTpa,
+            unitTpa: '',
             members: chunk,
             memberNames: memberNames,
             formattedName: `${groupLabel} (${memberNames.join(', ')})`,
@@ -254,7 +254,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
       participantId: p.id,
       nama: p.fullName,
       kemantren: kemName,
-      unitTpa: p.tpaUnitName,
+      unitTpa: '',
       totalNilai: p.totalScore || 0,
     };
 
@@ -275,7 +275,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
     const updatedSlot: WinnerSlot = {
       nama: g.formattedName,
       kemantren: g.kemantrenName,
-      unitTpa: g.unitTpa,
+      unitTpa: '',
       totalNilai: g.averageScore,
       anggota: g.memberNames,
     };
@@ -293,7 +293,7 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
         return;
       }
       if (!juara1.nama || !juara1.kemantren) {
-        showToast('warning', 'Minimal Juara I harus diisi nama dan asal kontingen daerah sebelum disahkan.');
+        showToast('warning', 'Minimal Juara I harus diisi nama dan asal Kontingen / Kab. Kota sebelum disahkan.');
         return;
       }
     }
@@ -522,9 +522,8 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
             <tr className="bg-slate-100">
               <th className="border border-black px-2 py-1.5 text-center w-24">Peringkat</th>
               <th className="border border-black px-2 py-1.5 text-left">Nama Santri / Regu</th>
-              <th className="border border-black px-2 py-1.5 text-left w-40">Kabupaten / Kota</th>
-              <th className="border border-black px-2 py-1.5 text-left w-40">Unit TPA</th>
-              <th className="border border-black px-2 py-1.5 text-center w-20">Total Nilai</th>
+              <th className="border border-black px-2 py-1.5 text-left w-56">Kontingen / Kab. Kota</th>
+              <th className="border border-black px-2 py-1.5 text-center w-24">Total Nilai</th>
             </tr>
           </thead>
           <tbody>
@@ -532,21 +531,18 @@ export const BeritaAcaraAdmin: React.FC<BeritaAcaraAdminProps> = ({ participants
               <td className="border border-black px-2 py-1.5 font-bold text-center">Juara I</td>
               <td className="border border-black px-2 py-1.5 font-bold">{juara1.nama || '-'}</td>
               <td className="border border-black px-2 py-1.5">{juara1.kemantren || '-'}</td>
-              <td className="border border-black px-2 py-1.5">{juara1.unitTpa || '-'}</td>
               <td className="border border-black px-2 py-1.5 font-mono font-bold text-center">{juara1.totalNilai || '-'}</td>
             </tr>
             <tr>
               <td className="border border-black px-2 py-1.5 font-bold text-center">Juara II</td>
               <td className="border border-black px-2 py-1.5 font-bold">{juara2.nama || '-'}</td>
               <td className="border border-black px-2 py-1.5">{juara2.kemantren || '-'}</td>
-              <td className="border border-black px-2 py-1.5">{juara2.unitTpa || '-'}</td>
               <td className="border border-black px-2 py-1.5 font-mono font-bold text-center">{juara2.totalNilai || '-'}</td>
             </tr>
             <tr>
               <td className="border border-black px-2 py-1.5 font-bold text-center">Juara III</td>
               <td className="border border-black px-2 py-1.5 font-bold">{juara3.nama || '-'}</td>
               <td className="border border-black px-2 py-1.5">{juara3.kemantren || '-'}</td>
-              <td className="border border-black px-2 py-1.5">{juara3.unitTpa || '-'}</td>
               <td className="border border-black px-2 py-1.5 font-mono font-bold text-center">{juara3.totalNilai || '-'}</td>
             </tr>
           </tbody>
@@ -1075,7 +1071,7 @@ const WinnerRow: React.FC<WinnerRowProps> = ({
       {/* Inputs Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
         {/* Nama Santri / Regu */}
-        <div className="sm:col-span-4">
+        <div className="sm:col-span-6">
           <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
             {isGroupCategory ? 'Nama Regu & Anggota (3 Santri)' : 'Nama Santri Lengkap'}
           </label>
@@ -1088,33 +1084,21 @@ const WinnerRow: React.FC<WinnerRowProps> = ({
           />
         </div>
 
-        {/* Asal Kabupaten / Kota */}
-        <div className="sm:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Kabupaten / Kota</label>
+        {/* Asal Kontingen / Kab. Kota */}
+        <div className="sm:col-span-4">
+          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Kontingen / Kab. Kota</label>
           <select
             value={slot.kemantren}
             onChange={(e) => onChange({ ...slot, kemantren: e.target.value })}
-            className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
+            className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:ring-1 focus:ring-emerald-700 focus:outline-none font-semibold text-slate-800"
           >
-            <option value="">-- Pilih Kabupaten / Kota --</option>
+            <option value="">-- Pilih Kontingen Kab. / Kota --</option>
             {KEMANTREN_LIST.map((k) => (
               <option key={k.id} value={k.name}>
                 {k.name}
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Asal Unit TPA */}
-        <div className="sm:col-span-3">
-          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Asal Unit TPA</label>
-          <input
-            type="text"
-            placeholder="Contoh: TPA Al-Ikhlas"
-            value={slot.unitTpa}
-            onChange={(e) => onChange({ ...slot, unitTpa: e.target.value })}
-            className="w-full px-2.5 py-1.5 text-xs bg-white rounded-lg border border-slate-200 focus:ring-1 focus:ring-emerald-700 focus:outline-none"
-          />
         </div>
 
         {/* Total Nilai */}

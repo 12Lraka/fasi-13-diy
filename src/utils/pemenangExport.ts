@@ -87,7 +87,7 @@ export function extractWinnerRows(
       if (slot && (slot.nama?.trim() || slot.totalNilai > 0)) {
         const cleanKontingen = slot.kemantren
           ? slot.kemantren.replace(/^Rayon\s+/i, '').replace(/^Kem\.\s+/i, '').trim()
-          : (slot.unitTpa || '-');
+          : '-';
 
         rows.push({
           no: no++,
@@ -100,7 +100,7 @@ export function extractWinnerRows(
           namaPemenang: slot.nama || '-',
           kontingenDaerah: cleanKontingen || '-',
           rayon: cleanKontingen || '-',
-          unitTpa: slot.unitTpa || '-',
+          unitTpa: '-',
           totalNilai: slot.totalNilai || 0,
           tanggalPenetapan: tgl,
         });
@@ -184,11 +184,10 @@ export function exportPemenangToExcel(
     { wch: 15 }, // Kategori
     { wch: 18 }, // Peringkat
     { wch: 32 }, // Nama Pemenang
-    { wch: 22 }, // Rayon
-    { wch: 28 }, // Unit TPA
+    { wch: 28 }, // Kontingen / Kab. Kota
     { wch: 14 }, // Total Nilai
-    { wch: 18 }, // Tanggal
-    { wch: 22 }, // Bobot
+    { wch: 18 }, // Tanggal Penetapan
+    { wch: 24 }, // Keterangan Bobot
   ];
 
   const wb = XLSX.utils.book_new();
@@ -484,18 +483,17 @@ export async function exportSingleCabangPdf(
   const p = beritaAcara?.pemenang;
   const getKontingenText = (slot?: WinnerSlot) => {
     if (!slot) return '-';
-    const raw = slot.kemantren ? slot.kemantren.replace(/^Rayon\s+/i, '').replace(/^Kem\.\s+/i, '').trim() : (slot.unitTpa || '-');
-    return raw || '-';
+    return slot.kemantren ? slot.kemantren.replace(/^Rayon\s+/i, '').replace(/^Kem\.\s+/i, '').trim() : '-';
   };
 
   const tableData = [
-    ['Juara I', p?.juara1?.nama || '-', getKontingenText(p?.juara1), p?.juara1?.unitTpa || '-', p?.juara1?.totalNilai || '-'],
-    ['Juara II', p?.juara2?.nama || '-', getKontingenText(p?.juara2), p?.juara2?.unitTpa || '-', p?.juara2?.totalNilai || '-'],
-    ['Juara III', p?.juara3?.nama || '-', getKontingenText(p?.juara3), p?.juara3?.unitTpa || '-', p?.juara3?.totalNilai || '-'],
+    ['Juara I', p?.juara1?.nama || '-', getKontingenText(p?.juara1), p?.juara1?.totalNilai || '-'],
+    ['Juara II', p?.juara2?.nama || '-', getKontingenText(p?.juara2), p?.juara2?.totalNilai || '-'],
+    ['Juara III', p?.juara3?.nama || '-', getKontingenText(p?.juara3), p?.juara3?.totalNilai || '-'],
   ];
 
   autoTable(doc, {
-    head: [['Peringkat', 'Nama Lengkap Juara', 'Kabupaten / Kota', 'Asal Unit TPA', 'Total Nilai']],
+    head: [['Peringkat', 'Nama Lengkap Juara', 'Kontingen / Kab. Kota', 'Total Nilai']],
     body: tableData,
     startY: narasiY + (splitNarasi.length * 4) + 2,
     margin: { left: marginX, right: marginX },
@@ -517,11 +515,10 @@ export async function exportSingleCabangPdf(
       lineColor: [148, 163, 184],
     },
     columnStyles: {
-      0: { cellWidth: 36, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 82, fontStyle: 'bold' },
-      2: { cellWidth: 70 },
-      3: { cellWidth: 74 },
-      4: { cellWidth: 36, halign: 'center', fontStyle: 'bold' },
+      0: { cellWidth: 40, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 120, fontStyle: 'bold' },
+      2: { cellWidth: 98, fontStyle: 'bold' },
+      3: { cellWidth: 40, halign: 'center', fontStyle: 'bold' },
     },
     alternateRowStyles: {
       fillColor: [248, 250, 252],

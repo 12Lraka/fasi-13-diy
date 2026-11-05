@@ -413,7 +413,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Cari cabang, peserta, atau rayon..."
+              placeholder="Cari cabang, peserta, atau kontingen / kab. kota..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 font-medium"
@@ -528,8 +528,9 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                               <div className="font-extrabold text-slate-900 text-sm truncate">
                                 {p.juara1.nama || '-'}
                               </div>
-                              <div className="text-xs text-slate-600 truncate">
-                                {p.juara1.kemantren || '-'}
+                              <div className="text-xs text-slate-700 truncate flex items-center gap-1">
+                                <span className="font-medium text-slate-500">Kontingen:</span>
+                                <span className="font-bold text-slate-900">{p.juara1.kemantren || '-'}</span>
                               </div>
                             </div>
                           </div>
@@ -558,8 +559,9 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                               <div className="font-bold text-slate-900 text-sm truncate">
                                 {p.juara2.nama || '-'}
                               </div>
-                              <div className="text-xs text-slate-600 truncate">
-                                {p.juara2.kemantren || '-'}
+                              <div className="text-xs text-slate-700 truncate flex items-center gap-1">
+                                <span className="font-medium text-slate-500">Kontingen:</span>
+                                <span className="font-bold text-slate-900">{p.juara2.kemantren || '-'}</span>
                               </div>
                             </div>
                           </div>
@@ -588,8 +590,9 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                               <div className="font-bold text-slate-900 text-sm truncate">
                                 {p.juara3.nama || '-'}
                               </div>
-                              <div className="text-xs text-slate-600 truncate">
-                                {p.juara3.kemantren || '-'}
+                              <div className="text-xs text-slate-700 truncate flex items-center gap-1">
+                                <span className="font-medium text-slate-500">Kontingen:</span>
+                                <span className="font-bold text-slate-900">{p.juara3.kemantren || '-'}</span>
                               </div>
                             </div>
                           </div>
