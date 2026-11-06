@@ -271,7 +271,13 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
       if (activeTab === 'tqa' && ba.jenjang !== 'TQA') return;
 
       const p = ba.pemenang;
-      const isUtama = ba.isCabangUtama;
+      const catName = (ba.namaCabang || ba.cabangNama || '').toLowerCase();
+      const isUtama = Boolean(
+        ba.isCabangUtama ||
+        catName.includes('tartil') ||
+        catName.includes('tilawah') ||
+        catName.includes('tilawati')
+      );
       const p1 = isUtama ? 7 : 5;
       const p2 = isUtama ? 5 : 3;
       const p3 = isUtama ? 3 : 1;
@@ -507,7 +513,10 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
             {filteredArenaCategories.map((cat) => {
               const prog = getCabangProgress(cat.id);
               const IconComp = prog.icon;
-              const isUtama = cat.name.toLowerCase().includes('tartil') || cat.name.toLowerCase().includes('tilawah');
+              const isUtama =
+                cat.name.toLowerCase().includes('tartil') ||
+                cat.name.toLowerCase().includes('tilawah') ||
+                cat.name.toLowerCase().includes('tilawati');
 
               return (
                 <div
