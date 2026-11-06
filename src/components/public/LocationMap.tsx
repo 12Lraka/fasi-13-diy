@@ -57,7 +57,7 @@ export const LocationMap: React.FC = () => {
               <span>Panggung & Ruang Lomba</span>
             </div>
             <p className="font-semibold text-slate-900 text-sm">Ruang Kelas & Aula Utama</p>
-            <p className="text-slate-500 text-[11px]">Disertai QR Check-in di setiap panggung</p>
+            <p className="text-slate-500 text-[11px]">Gedung Barat dan Gedung Timur</p>
           </div>
 
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
@@ -88,9 +88,9 @@ export const LocationMap: React.FC = () => {
           {[
             {
               time: '06.00 - 08.00 WIB',
-              title: 'Registrasi Kedatangan Kafilah & Pra Acara',
+              title: 'Pengambilan Cocard (Peserta dan Offical) & Pra Acara',
               description:
-                'Penempatan posisi kafilah Kabupaten/Kota, welcome song, serta penampilan Juara 2 & 3 Eksibisi Vokal Tunggal dan Tari (Gerak Lagu).',
+                'Pengambilan Cocard Peserta dan Official oleh Perwakilan Kafilah, penempatan posisi kafilah Kabupaten/Kota, welcome song, serta penampilan Juara 2 & 3 Eksibisi Vokal Tunggal dan Tari (Gerak Lagu).',
               badge: 'Pra Acara',
               badgeColor: 'bg-blue-50 text-blue-800 border-blue-200',
               dotColor: 'bg-blue-600',
