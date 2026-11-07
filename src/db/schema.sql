@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
     event_location TEXT NOT NULL DEFAULT 'SMPN 1 Yogyakarta (Jl. Cik Di Tiro No. 29, Terban, Gondokusuman)',
     theme_color VARCHAR(50) NOT NULL DEFAULT 'emerald',
     superadmin_password VARCHAR(255) DEFAULT 'badko2026',
+    arena_statuses JSONB DEFAULT '{}'::jsonb,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

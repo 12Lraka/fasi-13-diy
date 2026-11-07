@@ -266,8 +266,24 @@ export default function App() {
     if (isSupabaseConfigured()) {
       fetchSettingsFromSupabase().then((remoteSettings) => {
         if (remoteSettings) {
-          saveSettings(remoteSettings);
-          setSettings(remoteSettings);
+          const localSettings = getStoredSettings();
+          const localArenas = localSettings.arenaStatuses || {};
+          const remoteArenas = remoteSettings.arenaStatuses || {};
+
+          // Safe Merge: gabungkan pengaturan lokal & remote
+          // Jika di remote ada arena, gunakan remote. Jika remote kosong namun lokal memiliki data, pertahankan data lokal
+          const mergedArenas = {
+            ...localArenas,
+            ...remoteArenas,
+          };
+
+          const mergedSettings: typeof remoteSettings = {
+            ...remoteSettings,
+            arenaStatuses: mergedArenas,
+          };
+
+          saveSettings(mergedSettings);
+          setSettings(mergedSettings);
         }
       });
 

@@ -70,6 +70,7 @@ import {
 import {
   isSupabaseConfigured,
   saveSettingsToSupabase,
+  syncAllArenaStatusesToSupabase,
   syncCategoriesToSupabase,
   syncKemantrenToSupabase,
   bulkSyncParticipantsToSupabase,
@@ -110,6 +111,8 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
   const [arenaSearch, setArenaSearch] = useState<string>('');
   const [editingRoomCatId, setEditingRoomCatId] = useState<string | null>(null);
   const [editingRoomText, setEditingRoomText] = useState<string>('');
+  const [isSyncingAllArenas, setIsSyncingAllArenas] = useState<boolean>(false);
+  const [savingArenaId, setSavingArenaId] = useState<string | null>(null);
 
   // Sinkronisasi data Berita Acara kejuaraan dari Supabase
   useEffect(() => {
@@ -149,16 +152,36 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
 
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
-
-    showToast(
-      'success',
-      `Status ${cat.name} diubah ke: ${nextStatus === 'berlangsung' ? '🟢 Sedang Berlangsung' : '🟡 Terjadwal'}`
-    );
+    setSavingArenaId(cat.id);
 
     if (isSupabaseConfigured()) {
-      saveSettingsToSupabase(updatedSettings).catch((err) => {
-        console.warn('Gagal sinkron status arena ke Supabase:', err);
-      });
+      try {
+        const res = await saveSettingsToSupabase(updatedSettings);
+        if (!res.success) {
+          showErrorAlert(
+            'Gagal Sinkronisasi Cloud',
+            `Status arena telah diubah di browser, namun GAGAL disimpan ke Supabase Cloud:\n\n${res.error || 'Terjadi kesalahan sistem'}\n\nPerubahan ini mungkin tidak terlihat di perangkat lain.`
+          );
+        } else {
+          showToast(
+            'success',
+            `Status ${cat.name} diubah ke: ${nextStatus === 'berlangsung' ? '🟢 Sedang Berlangsung' : '🟡 Terjadwal'} (Tersimpan di Cloud)`
+          );
+        }
+      } catch (err: any) {
+        showErrorAlert(
+          'Gagal Sinkronisasi Cloud',
+          `Terjadi kesalahan jaringan saat menyimpan status ke Supabase: ${err?.message || 'Kendala koneksi'}`
+        );
+      } finally {
+        setSavingArenaId(null);
+      }
+    } else {
+      showToast(
+        'success',
+        `Status ${cat.name} diubah ke: ${nextStatus === 'berlangsung' ? '🟢 Sedang Berlangsung' : '🟡 Terjadwal'}`
+      );
+      setSavingArenaId(null);
     }
   };
 
@@ -181,12 +204,87 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
     setEditingRoomCatId(null);
-    showToast('success', 'Lokasi ruang majelis berhasil disimpan & sinkron ke Live Scoreboard!');
+    setSavingArenaId(catId);
 
     if (isSupabaseConfigured()) {
-      saveSettingsToSupabase(updatedSettings).catch((err) => {
-        console.warn('Gagal sinkron ruang majelis ke Supabase:', err);
+      try {
+        const res = await saveSettingsToSupabase(updatedSettings);
+        if (!res.success) {
+          showErrorAlert(
+            'Gagal Sinkronisasi Cloud',
+            `Lokasi ruang berhasil disimpan di browser, namun GAGAL disimpan ke Supabase Cloud:\n\n${res.error || 'Terjadi kesalahan'}\n\nPastikan izin database Supabase aktif.`
+          );
+        } else {
+          showToast('success', 'Lokasi ruang majelis berhasil disimpan & tersinkron permanen ke Cloud!');
+        }
+      } catch (err: any) {
+        showErrorAlert(
+          'Gagal Sinkronisasi Cloud',
+          `Terjadi kesalahan saat menyimpan lokasi ke Supabase: ${err?.message || 'Kendala koneksi'}`
+        );
+      } finally {
+        setSavingArenaId(null);
+      }
+    } else {
+      showToast('success', 'Lokasi ruang majelis berhasil disimpan!');
+      setSavingArenaId(null);
+    }
+  };
+
+  const handleSyncAllArenasToCloud = async () => {
+    if (!isSupabaseConfigured()) {
+      showErrorAlert('Supabase Belum Aktif', 'Koneksi database Supabase belum terkonfigurasi di aplikasi ini.');
+      return;
+    }
+
+    const confirmed = await showConfirmDialog(
+      'Sinkronkan Seluruh Arena ke Cloud?',
+      `Sistem akan mengunggah seluruh pemetaan ${categoriesList.length} cabang lomba, ruang majelis, dan status live switcher ke database Supabase Cloud agar permanen dan sinkron di semua device. Lanjutkan?`
+    );
+    if (!confirmed) return;
+
+    setIsSyncingAllArenas(true);
+    try {
+      const currentMapping: Record<string, { status: 'terjadwal' | 'berlangsung'; roomLocation?: string; updatedAt?: string }> = {
+        ...(settings.arenaStatuses || {}),
+      };
+
+      categoriesList.forEach((cat) => {
+        if (!currentMapping[cat.id]) {
+          currentMapping[cat.id] = {
+            status: 'terjadwal',
+            roomLocation: DEFAULT_ARENA_LOCATIONS[cat.id] || 'Komplek SMK Muhammadiyah 3 Yogyakarta',
+            updatedAt: new Date().toISOString(),
+          };
+        } else if (!currentMapping[cat.id].roomLocation) {
+          currentMapping[cat.id].roomLocation = DEFAULT_ARENA_LOCATIONS[cat.id] || 'Komplek SMK Muhammadiyah 3 Yogyakarta';
+        }
       });
+
+      const updatedSettings: AppSettings = {
+        ...settings,
+        arenaStatuses: currentMapping,
+      };
+
+      setSettings(updatedSettings);
+      saveSettings(updatedSettings);
+
+      const res = await syncAllArenaStatusesToSupabase(currentMapping);
+      if (res.success) {
+        showSuccessAlert(
+          'Sinkronisasi Cloud Berhasil!',
+          `Alhamdulillah, seluruh data ${res.count || categoriesList.length} cabang lomba beserta nama ruang majelis dan status live switcher telah tersimpan secara permanen di database Supabase Cloud. Data ini tidak akan tertimpa saat dibuka di perangkat mana pun.`
+        );
+      } else {
+        showErrorAlert(
+          'Gagal Sinkronisasi Cloud',
+          `Server Supabase merespons dengan kesalahan:\n\n${res.error || 'Gagal menyimpan ke database'}`
+        );
+      }
+    } catch (err: any) {
+      showErrorAlert('Gagal Sinkronisasi', `Terjadi error jaringan: ${err?.message || 'Gagal menghubungi server'}`);
+    } finally {
+      setIsSyncingAllArenas(false);
     }
   };
 
@@ -324,15 +422,29 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
 
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
-    showSuccessAlert(
-      'Berhasil',
-      `${filtered.length} cabang lomba berhasil diubah statusnya menjadi ${targetStatus === 'berlangsung' ? 'Sedang Berlangsung' : 'Terjadwal'} dan tersinkron ke Live Scoreboard!`
-    );
 
     if (isSupabaseConfigured()) {
-      saveSettingsToSupabase(updatedSettings).catch((err) => {
-        console.warn('Gagal sinkron massal status arena ke Supabase:', err);
-      });
+      try {
+        const res = await saveSettingsToSupabase(updatedSettings);
+        if (!res.success) {
+          showErrorAlert(
+            'Peringatan Sinkronisasi Cloud',
+            `Status telah diubah secara lokal di browser, namun GAGAL disimpan ke Supabase Cloud:\n\n${res.error || 'Terjadi kesalahan'}`
+          );
+        } else {
+          showSuccessAlert(
+            'Berhasil',
+            `${filtered.length} cabang lomba berhasil diubah statusnya menjadi ${targetStatus === 'berlangsung' ? 'Sedang Berlangsung' : 'Terjadwal'} dan tersinkron permanen ke Cloud Supabase!`
+          );
+        }
+      } catch (err: any) {
+        showErrorAlert('Gagal Sinkronisasi Cloud', `Error: ${err?.message || 'Gagal menghubungi server Supabase'}`);
+      }
+    } else {
+      showSuccessAlert(
+        'Berhasil',
+        `${filtered.length} cabang lomba berhasil diubah statusnya menjadi ${targetStatus === 'berlangsung' ? 'Sedang Berlangsung' : 'Terjadwal'} dan tersinkron ke Live Scoreboard!`
+      );
     }
   };
 
@@ -1399,7 +1511,22 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
               </div>
 
               {/* Mass Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSyncAllArenasToCloud}
+                  disabled={isSyncingAllArenas}
+                  title="Unggah seluruh pemetaan ruang dan status switcher ke Cloud Supabase agar tersimpan permanen di semua perangkat"
+                  className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  {isSyncingAllArenas ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CloudUpload className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isSyncingAllArenas ? 'Menyimpan ke Cloud...' : 'Sinkronkan Semua ke Cloud'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleBulkSetArenaStatus('berlangsung')}
@@ -1585,7 +1712,8 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleToggleArenaStatus(cat)}
-                                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-2xs cursor-pointer flex items-center gap-2 active:scale-95 ${
+                                  disabled={savingArenaId === cat.id}
+                                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-2xs cursor-pointer flex items-center gap-2 active:scale-95 disabled:opacity-60 ${
                                     currentStatus === 'berlangsung'
                                       ? 'bg-amber-500 hover:bg-amber-600 text-white ring-2 ring-amber-300'
                                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
@@ -1596,7 +1724,12 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                                       : 'Klik untuk mengaktifkan status Sedang Berlangsung'
                                   }
                                 >
-                                  {currentStatus === 'berlangsung' ? (
+                                  {savingArenaId === cat.id ? (
+                                    <>
+                                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                      <span>Menyimpan...</span>
+                                    </>
+                                  ) : currentStatus === 'berlangsung' ? (
                                     <>
                                       <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
                                       <span>Sedang Berlangsung</span>

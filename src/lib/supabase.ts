@@ -953,6 +953,11 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
       }
     }
 
+    // Prioritaskan kolom arena_statuses JSONB di row 1 atau row 2, fallback ke extraSettings.arenaStatuses
+    const row1Arenas = row1.arena_statuses && typeof row1.arena_statuses === 'object' ? row1.arena_statuses : null;
+    const row2Arenas = row2?.arena_statuses && typeof row2.arena_statuses === 'object' ? row2.arena_statuses : null;
+    const parsedArenas = row1Arenas || row2Arenas || extraSettings.arenaStatuses || {};
+
     return {
       eventName: row1.event_name || 'FESTIVAL ANAK SHOLEH INDONESIA - XIII',
       eventSubtitle: row1.event_subtitle || 'Kota Yogyakarta 2026',
@@ -980,7 +985,7 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
       registrationClosedMessage:
         extraSettings.registrationClosedMessage ||
         'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.',
-      arenaStatuses: extraSettings.arenaStatuses || {},
+      arenaStatuses: parsedArenas,
     };
   } catch (error: any) {
     console.error('Gagal mengambil data pengaturan dari Supabase:', error);
@@ -993,10 +998,10 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
  */
 export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseClient();
-  if (!client) return { success: false, error: 'Supabase belum terkonfigurasi' };
+  if (!client) return { success: false, error: 'Supabase belum terkonfigurasi di aplikasi' };
 
   try {
-    const payloadRow1 = {
+    const payloadRow1: any = {
       id: 1,
       event_name: settings.eventName,
       event_subtitle: settings.eventSubtitle,
@@ -1005,6 +1010,7 @@ export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ s
       event_location: settings.eventLocation,
       theme_color: settings.themeColor,
       superadmin_password: settings.superAdminPassword || 'badko2026',
+      arena_statuses: settings.arenaStatuses || {},
       updated_at: new Date().toISOString(),
     };
 
@@ -1019,7 +1025,7 @@ export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ s
       arenaStatuses: settings.arenaStatuses || {},
     };
 
-    const payloadRow2 = {
+    const payloadRow2: any = {
       id: 2,
       event_name: 'FASI_CONFIG_REGISTRATION',
       event_subtitle: 'Kota Yogyakarta 2026',
@@ -1028,19 +1034,92 @@ export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ s
       event_location: settings.eventLocation || '',
       theme_color: settings.themeColor || 'emerald',
       superadmin_password: settings.superAdminPassword || 'badko2026',
+      arena_statuses: settings.arenaStatuses || {},
       updated_at: new Date().toISOString(),
     };
 
-    const { error: err1 } = await client.from('app_settings').upsert(payloadRow1, { onConflict: 'id' });
-    if (err1) throw err1;
+    // Coba simpan row 1 dengan arena_statuses
+    let { error: err1 } = await client.from('app_settings').upsert(payloadRow1, { onConflict: 'id' });
+    if (err1) {
+      // Jika kolom arena_statuses belum ada di database, coba hapus field tersebut lalu ulangi
+      if (err1.message?.includes('arena_statuses')) {
+        delete payloadRow1.arena_statuses;
+        const retry = await client.from('app_settings').upsert(payloadRow1, { onConflict: 'id' });
+        err1 = retry.error;
+      }
+      if (err1) throw err1;
+    }
 
-    const { error: err2 } = await client.from('app_settings').upsert(payloadRow2, { onConflict: 'id' });
-    if (err2) throw err2;
+    // Simpan row 2 sebagai backup redundansi konfigurasi ekstra
+    let { error: err2 } = await client.from('app_settings').upsert(payloadRow2, { onConflict: 'id' });
+    if (err2) {
+      if (err2.message?.includes('arena_statuses')) {
+        delete payloadRow2.arena_statuses;
+        const retry2 = await client.from('app_settings').upsert(payloadRow2, { onConflict: 'id' });
+        err2 = retry2.error;
+      }
+      if (err2) {
+        console.warn('Upsert row 2 app_settings warning:', err2.message);
+      }
+    }
 
     return { success: true };
   } catch (error: any) {
     console.error('Gagal menyimpan app_settings ke Supabase:', error);
     return { success: false, error: error?.message || 'Gagal menyimpan pengaturan ke Supabase' };
+  }
+}
+
+/**
+ * Sinkronisasi seluruh pemetaan arena & status majelis ke Supabase
+ * Menyimpan ke tabel app_settings (kolom arena_statuses) dan juga ke tabel categories jika kolomnya tersedia.
+ */
+export async function syncAllArenaStatusesToSupabase(
+  arenaStatuses: Record<string, { status: 'terjadwal' | 'berlangsung'; roomLocation?: string; updatedAt?: string }>
+): Promise<{ success: boolean; count: number; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) return { success: false, count: 0, error: 'Supabase belum terkonfigurasi di environment.' };
+
+  try {
+    // 1. Simpan ke app_settings (Row 1 dan Row 2)
+    const currentSettings = await fetchSettingsFromSupabase();
+    const updatedSettings: AppSettings = {
+      ...(currentSettings || ({} as any)),
+      arenaStatuses: arenaStatuses || {},
+    };
+
+    const res = await saveSettingsToSupabase(updatedSettings);
+    if (!res.success) {
+      throw new Error(res.error || 'Gagal menyimpan ke tabel app_settings');
+    }
+
+    // 2. Cobakan juga pembaruan kolom room_location & arena_status pada tabel categories jika kolom sudah dibuat
+    const categoryUpdates = Object.entries(arenaStatuses).map(([catId, data]) => ({
+      id: catId,
+      room_location: data.roomLocation || '',
+      arena_status: data.status || 'terjadwal',
+    }));
+
+    if (categoryUpdates.length > 0) {
+      try {
+        for (const update of categoryUpdates) {
+          await client
+            .from('categories')
+            .update({
+              room_location: update.room_location,
+              arena_status: update.arena_status,
+            })
+            .eq('id', update.id);
+        }
+      } catch (catErr) {
+        console.warn('Update kolom categories opsional dilewati:', catErr);
+      }
+    }
+
+    return { success: true, count: Object.keys(arenaStatuses).length };
+  } catch (error: any) {
+    console.error('Gagal sinkronisasi seluruh arena ke Supabase:', error);
+    return { success: false, count: 0, error: error?.message || 'Gagal menyimpan data arena ke Supabase' };
   }
 }
 
