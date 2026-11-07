@@ -73,6 +73,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   registrationAutoClose: false,
   registrationClosedMessage: 'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.',
   presensiPin: 'fasi132026',
+  arenaStatuses: {},
 };
 
 const PRESENSI_AUTH_KEY = 'fasi13_presensi_authorized';

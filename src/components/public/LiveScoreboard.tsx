@@ -12,15 +12,17 @@ import {
   Sparkles,
   Users,
   Layers,
-  ChevronRight
+  ChevronRight,
+  MapPin
 } from 'lucide-react';
 import { Participant, BeritaAcaraKejuaraan, AppSettings, Jenjang } from '../../types/fasi';
-import { KEMANTREN_LIST, CATEGORIES_LIST } from '../../data/fasiMasterData';
+import { KEMANTREN_LIST, CATEGORIES_LIST, DEFAULT_ARENA_LOCATIONS } from '../../data/fasiMasterData';
 import { getStoredBeritaAcara, saveBeritaAcaraList, getStoredSettings } from '../../utils/storage';
 import { getThemeConfig } from '../../utils/theme';
 import {
   fetchBeritaAcaraFromSupabase,
   subscribeToBeritaAcaraRealtime,
+  fetchSettingsFromSupabase,
   isSupabaseConfigured
 } from '../../lib/supabase';
 import { showToast } from '../../utils/sweetalert';
@@ -45,8 +47,12 @@ interface RayonTally {
 }
 
 export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, settings: propSettings }) => {
-  const settings = propSettings || getStoredSettings();
-  const theme = getThemeConfig(settings?.themeColor);
+  const [currentSettings, setCurrentSettings] = useState<AppSettings>(() => propSettings || getStoredSettings());
+  const theme = getThemeConfig(currentSettings?.themeColor);
+
+  useEffect(() => {
+    if (propSettings) setCurrentSettings(propSettings);
+  }, [propSettings]);
 
   // Default tab langsung ke TKA (Klasemen Juara Umum ditiadakan demi menjaga surprise pengumuman akbar)
   const [activeTab, setActiveTab] = useState<'tka' | 'tpa' | 'tqa'>('tka');
@@ -66,10 +72,16 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
     const syncInitialData = async () => {
       if (!isSupabaseConfigured()) return;
       try {
-        const cloudData = await fetchBeritaAcaraFromSupabase();
+        const [cloudData, cloudSettings] = await Promise.all([
+          fetchBeritaAcaraFromSupabase(),
+          fetchSettingsFromSupabase()
+        ]);
         if (cloudData && isMounted) {
           setBeritaAcaraList(cloudData);
           saveBeritaAcaraList(cloudData);
+        }
+        if (cloudSettings && isMounted) {
+          setCurrentSettings(cloudSettings);
         }
       } catch (err) {
         console.warn('Gagal memuat berita acara live score dari Supabase:', err);
@@ -87,8 +99,18 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
       }
     };
 
+    const handleSettingsUpdate = (e: any) => {
+      if (e?.detail) {
+        setCurrentSettings(e.detail);
+      } else {
+        setCurrentSettings(getStoredSettings());
+      }
+    };
+
     window.addEventListener('fasi_berita_acara_updated', handleUpdate);
+    window.addEventListener('fasi_settings_updated', handleSettingsUpdate);
     window.addEventListener('storage', handleUpdate);
+    window.addEventListener('storage', handleSettingsUpdate);
 
     // Direct Realtime Supabase Subscription
     const unsubscribe = subscribeToBeritaAcaraRealtime((updatedList) => {
@@ -104,7 +126,9 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
     return () => {
       isMounted = false;
       window.removeEventListener('fasi_berita_acara_updated', handleUpdate);
+      window.removeEventListener('fasi_settings_updated', handleSettingsUpdate);
       window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('storage', handleSettingsUpdate);
       if (unsubscribe) unsubscribe();
     };
   }, []);
@@ -114,13 +138,20 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
     setIsRefreshing(true);
     try {
       if (isSupabaseConfigured()) {
-        const cloudData = await fetchBeritaAcaraFromSupabase();
+        const [cloudData, cloudSettings] = await Promise.all([
+          fetchBeritaAcaraFromSupabase(),
+          fetchSettingsFromSupabase()
+        ]);
         if (cloudData) {
           setBeritaAcaraList(cloudData);
           saveBeritaAcaraList(cloudData);
         }
+        if (cloudSettings) {
+          setCurrentSettings(cloudSettings);
+        }
       } else {
         setBeritaAcaraList(getStoredBeritaAcara());
+        setCurrentSettings(getStoredSettings());
       }
       setLastRefreshedAt(
         new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -144,50 +175,55 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
     return CATEGORIES_LIST.filter(c => c.level === targetLevel);
   }, [activeTab]);
 
-  // Logika Status Arena per Cabang Lomba
+  // Logika Status Arena per Cabang Lomba (Realtime Manual Switcher + Otomatisasi Berita Acara)
   const getCabangProgress = (catId: string) => {
     const ba = validatedBeritaAcara.find(b => b.cabangId === catId);
     const isSelesai = !!ba && ba.status === 'Disahkan';
     
-    // Hari H Lomba FASI XIII: 8 November 2026
-    const isHariH = new Date() >= new Date('2026-11-08T00:00:00');
+    // Status arena & ruang yang dikontrol dari Superadmin (Pengaturan > Kontrol Arena Lomba)
+    const arenaConfig = currentSettings?.arenaStatuses?.[catId];
+    const isManualBerlangsung = arenaConfig?.status === 'berlangsung';
+    const roomLocation = arenaConfig?.roomLocation || DEFAULT_ARENA_LOCATIONS[catId] || 'Komplek SMK Muhammadiyah 3 Yogyakarta';
 
     if (isSelesai) {
       return {
         status: 'selesai' as const,
         label: 'Selesai Dinilai & Berkas Terkunci',
         shortLabel: 'Selesai Dinilai',
-        badgeBg: 'bg-emerald-500 text-white',
-        borderClass: 'border-emerald-300 bg-emerald-50/70',
+        badgeBg: 'bg-emerald-600 text-white shadow-2xs',
+        borderClass: 'border-emerald-300 bg-emerald-50/80',
         textClass: 'text-emerald-900',
         icon: Lock,
         description: 'Hasil penilaian dewan juri telah disahkan & berkas terkunci aman.',
         disahkanAt: ba?.tanggalPenetapan || ba?.updatedAt || ba?.createdAt,
+        roomLocation,
       };
     }
 
-    if (isHariH) {
+    if (isManualBerlangsung) {
       return {
         status: 'berlangsung' as const,
         label: 'Sedang Berlangsung',
         shortLabel: 'Sedang Berlangsung',
-        badgeBg: 'bg-amber-500 text-white',
-        borderClass: 'border-amber-300 bg-amber-50/70',
+        badgeBg: 'bg-amber-500 text-white animate-pulse shadow-2xs',
+        borderClass: 'border-amber-400 bg-amber-50/90 shadow-xs ring-1 ring-amber-300',
         textClass: 'text-amber-900',
         icon: Clock,
-        description: 'Dewan juri & panitera sedang memproses jalannya penilaian di majelis.',
+        description: 'Majelis lomba aktif berjalan. Dewan hakim & panitera sedang memproses penilaian.',
+        roomLocation,
       };
     }
 
     return {
       status: 'terjadwal' as const,
-      label: 'Terjadwal (8 Nov 2026)',
+      label: 'Terjadwal (Menunggu)',
       shortLabel: 'Terjadwal',
       badgeBg: 'bg-slate-200 text-slate-700',
       borderClass: 'border-slate-200 bg-slate-50/70',
       textClass: 'text-slate-700',
       icon: Calendar,
-      description: 'Arena majelis siap digelar pada hari pelaksanaan lomba 8 November 2026.',
+      description: 'Menunggu giliran pelaksanaan majelis perlombaan.',
+      roomLocation,
     };
   };
 
@@ -554,6 +590,12 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                           </span>
                         )}
                       </h4>
+                    </div>
+
+                    {/* Lokasi Ruang / Majelis Lomba */}
+                    <div className="flex items-center gap-1.5 text-[10.5px] text-slate-700 bg-white/80 px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                      <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                      <span className="truncate font-medium">{prog.roomLocation}</span>
                     </div>
                   </div>
 

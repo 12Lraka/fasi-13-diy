@@ -6,7 +6,7 @@
  * Panel Pengaturan Terpadu (Tagline, Warna Tema, CRUD Admin Kecamatan, CRUD Cabang Lomba)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Settings,
   Palette,
@@ -42,8 +42,15 @@ import {
   Trophy,
   Clock,
   Calendar,
+  Radio,
+  Play,
+  Square,
+  Search,
+  MapPin,
+  Sliders,
 } from 'lucide-react';
-import { AppSettings, CompetitionCategory, Kemantren, UserSession } from '../../types/fasi';
+import { AppSettings, CompetitionCategory, Kemantren, UserSession, BeritaAcaraKejuaraan } from '../../types/fasi';
+import { DEFAULT_ARENA_LOCATIONS } from '../../data/fasiMasterData';
 import {
   getStoredSettings,
   saveSettings,
@@ -54,6 +61,7 @@ import {
   saveCategories,
   resetCategories,
   getStoredParticipants,
+  getStoredBeritaAcara,
   logAuditEvent,
   DEFAULT_SETTINGS,
   addDummyParticipantsToStorage,
@@ -68,6 +76,7 @@ import {
   bulkInsertDummyParticipantsToSupabase,
   deleteDummyParticipantsFromSupabase,
   fetchParticipantsFromSupabase,
+  fetchBeritaAcaraFromSupabase,
   getRemoteParticipantCounts
 } from '../../lib/supabase';
 import { generateDummyParticipantsList } from '../../utils/dummyGenerator';
@@ -82,7 +91,7 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
   session,
   onSettingsChanged,
 }) => {
-  const [activeTab, setActiveTab] = useState<'pendaftaran' | 'tagline' | 'tema' | 'kemantren' | 'cabang' | 'database'>('pendaftaran');
+  const [activeTab, setActiveTab] = useState<'pendaftaran' | 'kontrol-lomba' | 'tagline' | 'tema' | 'kemantren' | 'cabang' | 'database'>('pendaftaran');
 
   // 1. Settings State
   const [settings, setSettings] = useState<AppSettings>(() => getStoredSettings());
@@ -94,6 +103,92 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
   const [superAdminPassInput, setSuperAdminPassInput] = useState<string>(settings.superAdminPassword || '');
   const [showPass, setShowPass] = useState<boolean>(false);
   const [publishResultsToRayon, setPublishResultsToRayon] = useState<boolean>(!!settings.publishResultsToRayon);
+
+  // Kontrol Arena Lomba State
+  const [beritaAcaraList, setBeritaAcaraList] = useState<BeritaAcaraKejuaraan[]>(() => getStoredBeritaAcara());
+  const [arenaFilterJenjang, setArenaFilterJenjang] = useState<'all' | 'TKA' | 'TPA' | 'TQA'>('all');
+  const [arenaSearch, setArenaSearch] = useState<string>('');
+  const [editingRoomCatId, setEditingRoomCatId] = useState<string | null>(null);
+  const [editingRoomText, setEditingRoomText] = useState<string>('');
+
+  // Sinkronisasi data Berita Acara kejuaraan dari Supabase
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      fetchBeritaAcaraFromSupabase().then((res) => {
+        if (res && res.length > 0) {
+          setBeritaAcaraList(res);
+        }
+      });
+    }
+  }, []);
+
+  const handleToggleArenaStatus = async (cat: CompetitionCategory) => {
+    const ba = beritaAcaraList.find((b) => b.cabangId === cat.id && b.status === 'Disahkan');
+    if (ba) {
+      showToast('info', `Cabang ${cat.name} sudah selesai dinilai & Berita Acara disahkan (${ba.cabangNama || ba.id}). Status terkunci.`);
+      return;
+    }
+
+    const currentStatus = settings.arenaStatuses?.[cat.id]?.status || 'terjadwal';
+    const nextStatus: 'terjadwal' | 'berlangsung' = currentStatus === 'berlangsung' ? 'terjadwal' : 'berlangsung';
+    const currentRoom = settings.arenaStatuses?.[cat.id]?.roomLocation || DEFAULT_ARENA_LOCATIONS[cat.id] || 'Komplek SMK Muhammadiyah 3 Yogyakarta';
+
+    const updatedStatuses: Record<string, { status: 'terjadwal' | 'berlangsung'; roomLocation?: string; updatedAt?: string }> = {
+      ...(settings.arenaStatuses || {}),
+      [cat.id]: {
+        status: nextStatus,
+        roomLocation: currentRoom,
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    const updatedSettings: AppSettings = {
+      ...settings,
+      arenaStatuses: updatedStatuses,
+    };
+
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+
+    showToast(
+      'success',
+      `Status ${cat.name} diubah ke: ${nextStatus === 'berlangsung' ? '🟢 Sedang Berlangsung' : '🟡 Terjadwal'}`
+    );
+
+    if (isSupabaseConfigured()) {
+      saveSettingsToSupabase(updatedSettings).catch((err) => {
+        console.warn('Gagal sinkron status arena ke Supabase:', err);
+      });
+    }
+  };
+
+  const handleSaveRoomLocation = async (catId: string, location: string) => {
+    const currentStatus = settings.arenaStatuses?.[catId]?.status || 'terjadwal';
+    const updatedStatuses: Record<string, { status: 'terjadwal' | 'berlangsung'; roomLocation?: string; updatedAt?: string }> = {
+      ...(settings.arenaStatuses || {}),
+      [catId]: {
+        status: currentStatus,
+        roomLocation: location.trim(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    const updatedSettings: AppSettings = {
+      ...settings,
+      arenaStatuses: updatedStatuses,
+    };
+
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    setEditingRoomCatId(null);
+    showToast('success', 'Lokasi ruang majelis berhasil disimpan & sinkron ke Live Scoreboard!');
+
+    if (isSupabaseConfigured()) {
+      saveSettingsToSupabase(updatedSettings).catch((err) => {
+        console.warn('Gagal sinkron ruang majelis ke Supabase:', err);
+      });
+    }
+  };
 
   // Registration Control State (Buka/Tutup & Lockdown)
   const [regStatus, setRegStatus] = useState<'open' | 'closed' | 'lockdown'>(settings.registrationStatus || 'open');
@@ -199,6 +294,73 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
     maxParticipantsPerKemantren: 1,
     description: '',
   });
+
+  const handleBulkSetArenaStatus = async (targetStatus: 'terjadwal' | 'berlangsung') => {
+    const confirmed = await showConfirmDialog(
+      `Ubah Status ke ${targetStatus === 'berlangsung' ? 'Sedang Berlangsung' : 'Terjadwal'}?`,
+      `Semua cabang ${arenaFilterJenjang === 'all' ? 'seluruh jenjang' : `jenjang ${arenaFilterJenjang}`} yang belum selesai akan diubah statusnya menjadi "${targetStatus === 'berlangsung' ? 'Sedang Berlangsung' : 'Terjadwal'}". Perubahan ini langsung tampil real-time di Live Scoreboard.`
+    );
+    if (!confirmed) return;
+
+    const filtered = categoriesList.filter((cat) => {
+      if (arenaFilterJenjang !== 'all' && cat.level !== arenaFilterJenjang) return false;
+      const isDone = beritaAcaraList.some((b) => b.cabangId === cat.id && b.status === 'Disahkan');
+      return !isDone;
+    });
+
+    const updatedStatuses: Record<string, { status: 'terjadwal' | 'berlangsung'; roomLocation?: string; updatedAt?: string }> = { ...(settings.arenaStatuses || {}) };
+    filtered.forEach((cat) => {
+      updatedStatuses[cat.id] = {
+        status: targetStatus,
+        roomLocation: updatedStatuses[cat.id]?.roomLocation || DEFAULT_ARENA_LOCATIONS[cat.id] || 'Komplek SMK Muhammadiyah 3 Yogyakarta',
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    const updatedSettings: AppSettings = {
+      ...settings,
+      arenaStatuses: updatedStatuses,
+    };
+
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    showSuccessAlert(
+      'Berhasil',
+      `${filtered.length} cabang lomba berhasil diubah statusnya menjadi ${targetStatus === 'berlangsung' ? 'Sedang Berlangsung' : 'Terjadwal'} dan tersinkron ke Live Scoreboard!`
+    );
+
+    if (isSupabaseConfigured()) {
+      saveSettingsToSupabase(updatedSettings).catch((err) => {
+        console.warn('Gagal sinkron massal status arena ke Supabase:', err);
+      });
+    }
+  };
+
+  const arenaStats = useMemo(() => {
+    const total = categoriesList.length;
+    let selesai = 0;
+    let berlangsung = 0;
+    categoriesList.forEach((cat) => {
+      const isDone = beritaAcaraList.some((b) => b.cabangId === cat.id && b.status === 'Disahkan');
+      if (isDone) {
+        selesai++;
+      } else if (settings.arenaStatuses?.[cat.id]?.status === 'berlangsung') {
+        berlangsung++;
+      }
+    });
+    const terjadwal = total - selesai - berlangsung;
+    return { total, selesai, berlangsung, terjadwal };
+  }, [categoriesList, beritaAcaraList, settings.arenaStatuses]);
+
+  const filteredArenaCategories = useMemo(() => {
+    return categoriesList.filter((cat) => {
+      if (arenaFilterJenjang !== 'all' && cat.level !== arenaFilterJenjang) return false;
+      if (!arenaSearch.trim()) return true;
+      const q = arenaSearch.toLowerCase();
+      const room = (settings.arenaStatuses?.[cat.id]?.roomLocation || DEFAULT_ARENA_LOCATIONS[cat.id] || '').toLowerCase();
+      return cat.name.toLowerCase().includes(q) || cat.code.toLowerCase().includes(q) || room.includes(q);
+    });
+  }, [categoriesList, arenaFilterJenjang, arenaSearch, settings.arenaStatuses]);
 
   // 4. Dummy Data Generator & Cleaner State
   const [selectedGenerateCount, setSelectedGenerateCount] = useState<number>(50);
@@ -818,6 +980,21 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('kontrol-lomba')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'kontrol-lomba'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-300'
+            }`}
+          >
+            <Radio className="w-4 h-4 text-emerald-700 animate-pulse" />
+            <span>Kontrol Arena Lomba</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-emerald-200 text-emerald-950">
+              Live Score
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('tagline')}
             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'tagline'
@@ -1119,6 +1296,345 @@ export const PengaturanAdmin: React.FC<PengaturanAdminProps> = ({
                 <Save className="w-4 h-4" />
                 <span>Simpan Pengaturan Pendaftaran</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB KHUSUS: KONTROL ARENA LOMBA & SWITCHER REALTIME */}
+      {activeTab === 'kontrol-lomba' && (
+        <div className="space-y-6">
+          {/* Header Banner & Ringkasan Status */}
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>Live Switcher Terhubung</span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    SMK Muhammadiyah 3 Yogyakarta
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Kontrol Arena Lomba & Ruang Majelis FASI XIII D.I. Yogyakarta
+                </h3>
+                <p className="text-xs text-slate-500 max-w-3xl leading-relaxed">
+                  Gunakan panel ini untuk mengaktifkan status cabang lomba yang mulai duluan saat hari-H.
+                  Status <span className="font-semibold text-amber-700">🟢 Sedang Berlangsung</span> dan nama ruang majelis akan langsung sinkron secara <strong>real-time</strong> ke halaman <strong>Live Scoreboard</strong> publik tanpa reload browser. Cabang yang Berita Acaranya sudah disahkan otomatis berstatus <span className="font-semibold text-emerald-700">🟢 Selesai Dinilai</span> dan terkunci demi keamanan data.
+                </p>
+              </div>
+
+              {/* Status Ringkasan KPI Cards */}
+              <div className="grid grid-cols-3 gap-2.5 shrink-0">
+                <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-3 text-center min-w-[95px]">
+                  <div className="text-xl font-black text-emerald-800 leading-tight">
+                    {arenaStats.selesai}
+                  </div>
+                  <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mt-0.5">
+                    Selesai
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3 text-center min-w-[95px]">
+                  <div className="text-xl font-black text-amber-800 leading-tight">
+                    {arenaStats.berlangsung}
+                  </div>
+                  <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mt-0.5">
+                    Berlangsung
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center min-w-[95px]">
+                  <div className="text-xl font-black text-slate-800 leading-tight">
+                    {arenaStats.terjadwal}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mt-0.5">
+                    Terjadwal
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Jenjang, Search Bar & Quick Action Massal */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                  {(['all', 'TKA', 'TPA', 'TQA'] as const).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setArenaFilterJenjang(lvl)}
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                        arenaFilterJenjang === lvl
+                          ? 'bg-emerald-800 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {lvl === 'all' ? `Semua (${categoriesList.length})` : lvl}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={arenaSearch}
+                    onChange={(e) => setArenaSearch(e.target.value)}
+                    placeholder="Cari cabang atau ruang..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                  {arenaSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setArenaSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Mass Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetArenaStatus('berlangsung')}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Mulai Semua ({arenaFilterJenjang === 'all' ? 'Aktif' : arenaFilterJenjang})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetArenaStatus('terjadwal')}
+                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <Square className="w-3.5 h-3.5 fill-current text-slate-500" />
+                  <span>Reset ke Terjadwal</span>
+                </button>
+              </div>
+            </div>
+
+            {/* TABEL KONTROL ARENA LOMBA */}
+            <div className="overflow-x-auto border border-slate-200 rounded-xl">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                    <th className="py-3 px-4 w-12 text-center">No</th>
+                    <th className="py-3 px-4 w-24">Kode</th>
+                    <th className="py-3 px-4 min-w-[200px]">Cabang Lomba</th>
+                    <th className="py-3 px-4 min-w-[220px]">Ruang / Lokasi Majelis</th>
+                    <th className="py-3 px-4 w-56 text-center">Status Arena & Switcher</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredArenaCategories.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                        Tidak ada cabang lomba yang sesuai dengan filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredArenaCategories.map((cat, idx) => {
+                      const ba = beritaAcaraList.find(
+                        (b) => b.cabangId === cat.id && b.status === 'Disahkan'
+                      );
+                      const isSelesai = !!ba;
+                      const arenaConfig = settings.arenaStatuses?.[cat.id];
+                      const currentStatus = isSelesai ? 'selesai' : (arenaConfig?.status || 'terjadwal');
+                      const currentRoom = arenaConfig?.roomLocation || DEFAULT_ARENA_LOCATIONS[cat.id] || 'Komplek SMK Muhammadiyah 3 Yogyakarta';
+                      const isEditingThisRoom = editingRoomCatId === cat.id;
+
+                      const isUtama =
+                        cat.name.toLowerCase().includes('tartil') ||
+                        cat.name.toLowerCase().includes('tilawah') ||
+                        cat.name.toLowerCase().includes('tilawati');
+
+                      return (
+                        <tr
+                          key={cat.id}
+                          className={`transition-colors ${
+                            isSelesai
+                              ? 'bg-emerald-50/30 hover:bg-emerald-50/50'
+                              : currentStatus === 'berlangsung'
+                              ? 'bg-amber-50/40 hover:bg-amber-50/60'
+                              : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          {/* No */}
+                          <td className="py-3 px-4 text-center font-mono text-slate-400 font-medium">
+                            {idx + 1}
+                          </td>
+
+                          {/* Kode & Jenjang */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-black text-slate-900 bg-slate-200/80 px-2 py-0.5 rounded-md text-[11px]">
+                                {cat.code}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
+                                  cat.level === 'TKA'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : cat.level === 'TPA'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-purple-100 text-purple-800'
+                                }`}
+                              >
+                                {cat.level}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Nama Cabang Lomba */}
+                          <td className="py-3 px-4">
+                            <div className="space-y-0.5">
+                              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                <span>{cat.name}</span>
+                                {isUtama && (
+                                  <span
+                                    title="Cabang Utama (Bobot Poin: 7 - 5 - 3)"
+                                    className="px-1.5 py-0.2 bg-amber-100 text-amber-800 border border-amber-300 rounded text-[9px] font-extrabold"
+                                  >
+                                    ★ Utama
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-medium">
+                                {cat.isGroup ? 'Regu' : cat.genderRequirement === 'L' ? 'Putra' : cat.genderRequirement === 'P' ? 'Putri' : 'Campuran'} • {cat.description}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Ruang / Lokasi Majelis */}
+                          <td className="py-3 px-4">
+                            {isEditingThisRoom ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  value={editingRoomText}
+                                  onChange={(e) => setEditingRoomText(e.target.value)}
+                                  className="w-full px-2.5 py-1 text-xs border border-emerald-400 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium"
+                                  placeholder="Nama Ruang / Majelis..."
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleSaveRoomLocation(cat.id, editingRoomText);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingRoomCatId(null);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveRoomLocation(cat.id, editingRoomText)}
+                                  className="p-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition-all cursor-pointer"
+                                  title="Simpan Ruang"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingRoomCatId(null)}
+                                  className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg transition-all cursor-pointer"
+                                  title="Batal"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between group">
+                                <div className="flex items-center gap-1.5 text-slate-700">
+                                  <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  <span className="font-medium text-xs text-slate-800">{currentRoom}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingRoomCatId(cat.id);
+                                    setEditingRoomText(currentRoom);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-all cursor-pointer"
+                                  title="Edit Nama Ruang"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Status & Switcher */}
+                          <td className="py-3 px-4 text-center">
+                            {isSelesai ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded-lg font-bold text-[11px] shadow-2xs">
+                                  <Lock className="w-3 h-3" />
+                                  <span>Selesai Dinilai</span>
+                                </span>
+                                <span className="text-[9px] text-emerald-800 font-semibold mt-0.5">
+                                  BA: {ba?.cabangNama || ba?.id || 'Tersimpan & Sah'}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex flex-col items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleArenaStatus(cat)}
+                                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-2xs cursor-pointer flex items-center gap-2 active:scale-95 ${
+                                    currentStatus === 'berlangsung'
+                                      ? 'bg-amber-500 hover:bg-amber-600 text-white ring-2 ring-amber-300'
+                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                                  }`}
+                                  title={
+                                    currentStatus === 'berlangsung'
+                                      ? 'Klik untuk mengubah status kembali ke Terjadwal'
+                                      : 'Klik untuk mengaktifkan status Sedang Berlangsung'
+                                  }
+                                >
+                                  {currentStatus === 'berlangsung' ? (
+                                    <>
+                                      <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                                      <span>Sedang Berlangsung</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                      <span>Terjadwal (Menunggu)</span>
+                                    </>
+                                  )}
+                                </button>
+                                <span className="text-[9px] text-slate-400 font-medium">
+                                  {currentStatus === 'berlangsung' ? 'Klik untuk jeda' : 'Klik untuk mulai'}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Catatan Bantuan Petunjuk Pelaksanaan */}
+            <div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-start gap-3 text-xs text-emerald-950">
+              <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold">Tips Penggunaan Kontrol Arena Lomba Hari-H:</span>
+                <p className="text-[11px] text-emerald-900 leading-relaxed">
+                  1. Untuk cabang yang dimulai lebih awal (misal Mewarnai/Menggambar atau cabang Tartil), klik tombol switcher <strong>"Terjadwal"</strong> pada cabang tersebut sehingga berubah menjadi <strong>"Sedang Berlangsung"</strong>.
+                  <br />
+                  2. Layar <strong>Live Scoreboard</strong> publik di proyektor/HP pengunjung akan seketika berkedip hijau-kuning menandakan majelis sedang berjalan.
+                  <br />
+                  3. Setelah penilaian selesai dan diinput di menu <strong>Berita Acara</strong> oleh Dewan Hakim, statusnya akan <strong>otomatis berubah menjadi Selesai Dinilai & Terkunci</strong>.
+                </p>
+              </div>
             </div>
           </div>
         </div>

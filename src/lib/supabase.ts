@@ -980,6 +980,7 @@ export async function fetchSettingsFromSupabase(): Promise<AppSettings | null> {
       registrationClosedMessage:
         extraSettings.registrationClosedMessage ||
         'Pendaftaran santri baru resmi ditutup pada 28 Oktober 2026 pukul 23.59 WIB. Saat ini hanya tahap perbaikan/penyesuaian data santri yang sudah terdaftar menjelang pelaksanaan lomba FASI XIII D.I. Yogyakarta.',
+      arenaStatuses: extraSettings.arenaStatuses || {},
     };
   } catch (error: any) {
     console.error('Gagal mengambil data pengaturan dari Supabase:', error);
@@ -1015,6 +1016,7 @@ export async function saveSettingsToSupabase(settings: AppSettings): Promise<{ s
       registrationAutoClose: Boolean(settings.registrationAutoClose),
       registrationClosedMessage: settings.registrationClosedMessage || '',
       publishResultsToRayon: Boolean(settings.publishResultsToRayon),
+      arenaStatuses: settings.arenaStatuses || {},
     };
 
     const payloadRow2 = {

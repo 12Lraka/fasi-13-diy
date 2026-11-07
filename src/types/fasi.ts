@@ -99,6 +99,13 @@ export interface AppSettings {
   registrationAutoClose?: boolean;
   registrationClosedMessage?: string;
   presensiPin?: string;
+  arenaStatuses?: Record<string, CabangArenaStatus>;
+}
+
+export interface CabangArenaStatus {
+  status: 'terjadwal' | 'berlangsung';
+  roomLocation?: string;
+  updatedAt?: string;
 }
 
 export interface CompetitionCategory {

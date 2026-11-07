@@ -414,3 +414,48 @@ export function normalizeRayonToKemantren(rawInput: string): Kemantren | undefin
  */
 export const INITIAL_MASTER_TPA: MasterTpa[] = [];
 
+/**
+ * Pemetaan Default Lokasi Ruang & Majelis Lomba di Komplek SMK Muhammadiyah 3 Yogyakarta
+ */
+export const DEFAULT_ARENA_LOCATIONS: Record<string, string> = {
+  // TKA
+  'cat-tka-1': 'Ruang 01 (Gedung Barat Lt. 1)',
+  'cat-tka-2': 'Ruang 02 (Gedung Barat Lt. 1)',
+  'cat-tka-3': 'Masjid / Musholla Utama',
+  'cat-tka-4': 'Panggung Utama (Hall Gedung Barat)',
+  'cat-tka-5': 'Panggung Utama (Hall Gedung Barat)',
+  'cat-tka-6': 'Ruang 03 (Gedung Barat Lt. 1)',
+  'cat-tka-7': 'Ruang 04 (Gedung Barat Lt. 1)',
+  'cat-tka-8': 'Ruang CCQ (Gedung Timur Lt. 2)',
+  'cat-tka-9': 'Ruang Aula 1 (Gedung Timur Lt. 1)',
+  'cat-tka-10': 'Ruang Aula 2 (Gedung Timur Lt. 1)',
+  'cat-tka-11': 'Ruang 05 (Gedung Barat Lt. 2)',
+  'cat-tka-12': 'Ruang 06 (Gedung Barat Lt. 2)',
+
+  // TPA
+  'cat-tpa-1': 'Ruang 07 (Gedung Barat Lt. 2)',
+  'cat-tpa-2': 'Ruang 08 (Gedung Barat Lt. 2)',
+  'cat-tpa-3': 'Masjid / Musholla Utama',
+  'cat-tpa-4': 'Panggung Utama (Hall Gedung Barat)',
+  'cat-tpa-5': 'Ruang CCQ (Gedung Timur Lt. 2)',
+  'cat-tpa-6': 'Ruang Aula 3 (Gedung Timur Lt. 1)',
+  'cat-tpa-7': 'Ruang Aula 4 (Gedung Timur Lt. 1)',
+  'cat-tpa-8': 'Ruang 09 (Gedung Timur Lt. 2)',
+  'cat-tpa-9': 'Ruang 10 (Gedung Timur Lt. 2)',
+  'cat-tpa-10': 'Ruang 11 (Gedung Timur Lt. 2)',
+
+  // TQA
+  'cat-tqa-1': 'Ruang 12 (Gedung Barat Lt. 3)',
+  'cat-tqa-2': 'Ruang 13 (Gedung Barat Lt. 3)',
+  'cat-tqa-3': 'Ruang 14 (Gedung Barat Lt. 3)',
+  'cat-tqa-4': 'Ruang 15 (Gedung Barat Lt. 3)',
+  'cat-tqa-5': 'Ruang 16 (Gedung Barat Lt. 3)',
+  'cat-tqa-6': 'Ruang 17 (Gedung Barat Lt. 3)',
+  'cat-tqa-7': 'Ruang CCQ (Gedung Timur Lt. 2)',
+  'cat-tqa-8': 'Ruang Kaligrafi 1 (Gedung Timur Lt. 3)',
+  'cat-tqa-9': 'Ruang Kaligrafi 2 (Gedung Timur Lt. 3)',
+  'cat-tqa-10': 'Ruang 18 (Gedung Timur Lt. 3)',
+  'cat-tqa-11': 'Ruang 19 (Gedung Timur Lt. 3)',
+  'cat-tqa-12': 'Laboratorium Bahasa (Gedung Barat Lt. 2)',
+};
+
