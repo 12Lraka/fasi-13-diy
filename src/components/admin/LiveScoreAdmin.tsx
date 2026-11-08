@@ -70,7 +70,7 @@ interface RayonTally {
     cabangNama: string;
     jenjang: 'TKA' | 'TPA' | 'TQA';
     isUtama: boolean;
-    posisiJuara: 'Juara 1' | 'Juara 2' | 'Juara 3';
+    posisiJuara: 'Juara I' | 'Juara II' | 'Juara III';
     poin: number;
     namaSantri: string;
     tpaUnitName: string;
@@ -292,7 +292,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
             cabangNama: ba.cabangNama || ba.namaCabang || ba.id,
             jenjang: ba.jenjang,
             isUtama,
-            posisiJuara: 'Juara 1',
+            posisiJuara: 'Juara I',
             poin: p1,
             namaSantri: p.juara1.nama || '-',
             tpaUnitName: p.juara1.unitTpa || '-',
@@ -313,7 +313,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
             cabangNama: ba.cabangNama || ba.namaCabang || ba.id,
             jenjang: ba.jenjang,
             isUtama,
-            posisiJuara: 'Juara 2',
+            posisiJuara: 'Juara II',
             poin: p2,
             namaSantri: p.juara2.nama || '-',
             tpaUnitName: p.juara2.unitTpa || '-',
@@ -334,7 +334,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
             cabangNama: ba.cabangNama || ba.namaCabang || ba.id,
             jenjang: ba.jenjang,
             isUtama,
-            posisiJuara: 'Juara 3',
+            posisiJuara: 'Juara III',
             poin: p3,
             namaSantri: p.juara3.nama || '-',
             tpaUnitName: p.juara3.unitTpa || '-',
@@ -416,7 +416,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
             </h1>
 
             <p className="text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
-              Pantauan perolehan piala dan total poin kejuaraan 14 Kemantren se-Kota Yogyakarta. Data terhitung otomatis begitu Berita Acara Dewan Hakim disahkan.
+              Pantauan perolehan piala dan total poin kejuaraan 5 Kabupaten/Kota se-D.I. Yogyakarta. Data terhitung otomatis begitu Berita Acara Dewan Hakim disahkan.
             </p>
           </div>
 
@@ -592,20 +592,20 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
           </button>
         </div>
 
-        {/* Input Pencarian Kemantren */}
+        {/* Input Pencarian Kab/Kota */}
         <div className="relative w-full sm:w-64">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchKemantren}
             onChange={(e) => setSearchKemantren(e.target.value)}
-            placeholder="Cari nama kemantren / kode..."
+            placeholder="Cari nama Kab/Kota / kode..."
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
       </div>
 
-      {/* PODIUM TOP 3 KONTINGEN */}
+      {/* PODIUM TOP 3 KONTINGEN KAB/KOTA */}
       {standings.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-4">
           {/* PERINGKAT 2 (SILVER) */}
@@ -623,10 +623,10 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                 <span className="text-2xl font-black text-slate-900">{top2.totalPoin}</span>
                 <span className="text-xs text-slate-600 font-bold ml-1">Poin</span>
               </div>
-              <div className="flex items-center justify-center gap-3 text-xs font-bold text-slate-700">
-                <span title="Piala Juara 1 (Emas)">🥇 {top2.emas}</span>
-                <span title="Piala Juara 2 (Perak)">🥈 {top2.perak}</span>
-                <span title="Piala Juara 3 (Perunggu)">🥉 {top2.perunggu}</span>
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-700">
+                <span className="px-2 py-0.5 bg-slate-200/90 rounded-md">🥇 Juara I: {top2.emas}</span>
+                <span className="px-2 py-0.5 bg-slate-200/90 rounded-md">🥈 Juara II: {top2.perak}</span>
+                <span className="px-2 py-0.5 bg-slate-200/90 rounded-md">🥉 Juara III: {top2.perunggu}</span>
               </div>
             </div>
           )}
@@ -651,10 +651,10 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                 <span className="text-3xl font-black">{top1.totalPoin}</span>
                 <span className="text-sm font-bold ml-1">Total Poin</span>
               </div>
-              <div className="flex items-center justify-center gap-4 text-xs font-bold text-slate-800 pt-1">
-                <span className="px-2 py-1 bg-amber-100 text-amber-900 rounded-md">🥇 {top1.emas} Emas</span>
-                <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md">🥈 {top1.perak} Perak</span>
-                <span className="px-2 py-1 bg-orange-100 text-orange-900 rounded-md">🥉 {top1.perunggu} Perunggu</span>
+              <div className="flex items-center justify-center gap-2.5 text-xs font-bold text-slate-800 pt-1">
+                <span className="px-2 py-1 bg-amber-100 text-amber-900 rounded-md">🥇 {top1.emas} Juara I</span>
+                <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md">🥈 {top1.perak} Juara II</span>
+                <span className="px-2 py-1 bg-orange-100 text-orange-900 rounded-md">🥉 {top1.perunggu} Juara III</span>
               </div>
             </div>
           )}
@@ -674,10 +674,10 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                 <span className="text-2xl font-black text-orange-950">{top3.totalPoin}</span>
                 <span className="text-xs text-orange-800 font-bold ml-1">Poin</span>
               </div>
-              <div className="flex items-center justify-center gap-3 text-xs font-bold text-slate-700">
-                <span title="Piala Juara 1 (Emas)">🥇 {top3.emas}</span>
-                <span title="Piala Juara 2 (Perak)">🥈 {top3.perak}</span>
-                <span title="Piala Juara 3 (Perunggu)">🥉 {top3.perunggu}</span>
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-700">
+                <span className="px-2 py-0.5 bg-orange-100/90 text-orange-900 rounded-md">🥇 Juara I: {top3.emas}</span>
+                <span className="px-2 py-0.5 bg-slate-200/90 text-slate-800 rounded-md">🥈 Juara II: {top3.perak}</span>
+                <span className="px-2 py-0.5 bg-orange-100/90 text-orange-900 rounded-md">🥉 Juara III: {top3.perunggu}</span>
               </div>
             </div>
           )}
@@ -698,7 +698,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
           </div>
 
           <span className="text-xs font-bold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-            Menampilkan 14 Kontingen
+            Menampilkan 5 Kontingen Kab/Kota
           </span>
         </div>
 
@@ -708,21 +708,19 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
               <tr className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200">
                 <th className="py-3 px-4 w-16 text-center">Rank</th>
                 <th className="py-3 px-4 w-20">Kode</th>
-                <th className="py-3 px-4 min-w-[200px]">Kontingen Kemantren</th>
-                <th className="py-3 px-4 w-24 text-center">🥇 Emas</th>
-                <th className="py-3 px-4 w-24 text-center">🥈 Perak</th>
-                <th className="py-3 px-4 w-24 text-center">🥉 Perunggu</th>
-                <th className="py-3 px-4 w-28 text-center" title="Poin dari Tartil/Tilawah (7-5-3)">Poin Utama</th>
-                <th className="py-3 px-4 w-28 text-center" title="Poin dari Cabang Reguler (5-3-1)">Poin Reguler</th>
-                <th className="py-3 px-4 w-32 text-center bg-emerald-50 text-emerald-900">Total Poin</th>
-                <th className="py-3 px-4 w-32 text-center">Rincian Cabang</th>
+                <th className="py-3 px-4 min-w-[220px]">Kontingen Kab/Kota</th>
+                <th className="py-3 px-4 w-28 text-center">🥇 Juara I</th>
+                <th className="py-3 px-4 w-28 text-center">🥈 Juara II</th>
+                <th className="py-3 px-4 w-28 text-center">🥉 Juara III</th>
+                <th className="py-3 px-4 w-32 text-center bg-emerald-50 text-emerald-900 font-black">Total Poin</th>
+                <th className="py-3 px-4 w-32 text-center">Rincian Juara</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredStandings.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-slate-400">
-                    Tidak ada data kemantren yang cocok dengan pencarian.
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                    Tidak ada data kontingen Kab/Kota yang cocok dengan pencarian.
                   </td>
                 </tr>
               ) : (
@@ -768,7 +766,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                         </span>
                       </td>
 
-                      {/* Nama Kemantren */}
+                      {/* Nama Kab/Kota */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -781,7 +779,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                         </div>
                       </td>
 
-                      {/* Emas */}
+                      {/* Juara I */}
                       <td className="py-3 px-4 text-center font-bold text-amber-900">
                         {item.emas > 0 ? (
                           <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
@@ -792,7 +790,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                         )}
                       </td>
 
-                      {/* Perak */}
+                      {/* Juara II */}
                       <td className="py-3 px-4 text-center font-bold text-slate-700">
                         {item.perak > 0 ? (
                           <span className="px-2 py-0.5 bg-slate-200 text-slate-800 rounded-md">
@@ -803,7 +801,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                         )}
                       </td>
 
-                      {/* Perunggu */}
+                      {/* Juara III */}
                       <td className="py-3 px-4 text-center font-bold text-orange-900">
                         {item.perunggu > 0 ? (
                           <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded-md">
@@ -814,24 +812,14 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                         )}
                       </td>
 
-                      {/* Poin Utama */}
-                      <td className="py-3 px-4 text-center font-mono font-medium text-slate-600">
-                        {item.poinUtama > 0 ? item.poinUtama : '-'}
-                      </td>
-
-                      {/* Poin Reguler */}
-                      <td className="py-3 px-4 text-center font-mono font-medium text-slate-600">
-                        {item.poinReguler > 0 ? item.poinReguler : '-'}
-                      </td>
-
                       {/* Total Poin */}
                       <td className="py-3 px-4 text-center bg-emerald-50/50">
-                        <span className="inline-block px-3 py-1 bg-emerald-700 text-white font-black text-sm rounded-xl shadow-2xs">
+                        <span className="inline-block px-3.5 py-1 bg-emerald-700 text-white font-black text-sm rounded-xl shadow-2xs">
                           {item.totalPoin}
                         </span>
                       </td>
 
-                      {/* Tombol Rincian Cabang */}
+                      {/* Tombol Rincian Juara */}
                       <td className="py-3 px-4 text-center">
                         <button
                           type="button"
@@ -851,7 +839,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
         </div>
       </div>
 
-      {/* MODAL RINCIAN PEROLEHAN JUARA PER KEMANTREN */}
+      {/* MODAL RINCIAN PEROLEHAN JUARA PER KAB/KOTA */}
       {activeKemantrenDetailObj && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
@@ -861,7 +849,7 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                 <div>
                   <h3 className="font-bold text-base">Rincian Kejuaraan: {activeKemantrenDetailObj.nama}</h3>
                   <p className="text-xs text-emerald-200">
-                    Total: {activeKemantrenDetailObj.totalPoin} Poin • {activeKemantrenDetailObj.emas} Emas, {activeKemantrenDetailObj.perak} Perak, {activeKemantrenDetailObj.perunggu} Perunggu
+                    Total: {activeKemantrenDetailObj.totalPoin} Poin • {activeKemantrenDetailObj.emas} Juara I, {activeKemantrenDetailObj.perak} Juara II, {activeKemantrenDetailObj.perunggu} Juara III
                   </p>
                 </div>
               </div>
@@ -890,14 +878,14 @@ export const LiveScoreAdmin: React.FC<LiveScoreAdminProps> = ({ session, onNavig
                         <div className="flex items-center gap-2">
                           <span
                             className={`px-2 py-0.5 rounded font-black text-[10px] ${
-                              d.posisiJuara === 'Juara 1'
+                              d.posisiJuara === 'Juara I'
                                 ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                : d.posisiJuara === 'Juara 2'
+                                : d.posisiJuara === 'Juara II'
                                 ? 'bg-slate-200 text-slate-800'
                                 : 'bg-orange-100 text-orange-900 border border-orange-300'
                             }`}
                           >
-                            {d.posisiJuara === 'Juara 1' ? '🥇' : d.posisiJuara === 'Juara 2' ? '🥈' : '🥉'} {d.posisiJuara}
+                            {d.posisiJuara === 'Juara I' ? '🥇' : d.posisiJuara === 'Juara II' ? '🥈' : '🥉'} {d.posisiJuara}
                           </span>
                           <span className="font-bold text-slate-900">{d.cabangNama}</span>
                           <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded font-bold text-slate-700">

@@ -573,6 +573,7 @@ export default function App() {
           activeTab === 'admin-data-peserta' ||
           activeTab === 'admin-rekap-peserta' ||
           activeTab === 'admin-rekapcbg-lomba' ||
+          activeTab === 'admin-live-score' ||
           activeTab === 'hasil-cabang' ||
           activeTab === 'berita-acara' ||
           (activeTab === 'master-tpa' && session.role === 'super_admin') ||
