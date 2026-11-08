@@ -162,6 +162,7 @@ export default function App() {
       route === 'admin-form-peserta' ||
       route === 'admin-rekap-peserta' ||
       route === 'admin-rekapcbg-lomba' ||
+      route === 'admin-live-score' ||
       route === 'hasil-cabang' ||
       route === 'berita-acara' ||
       route === 'master-tpa' ||
@@ -178,6 +179,7 @@ export default function App() {
         // Menu khusus Superadmin: jika admin kemantren mencoba membuka, alihkan ke admin-dashboard
         const isSuperOnly =
           route === 'admin-rekapcbg-lomba' ||
+          route === 'admin-live-score' ||
           (route === 'hasil-cabang' && !settings.publishResultsToRayon) ||
           route === 'berita-acara' ||
           route === 'panitia-juri' ||

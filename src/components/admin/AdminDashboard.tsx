@@ -41,6 +41,7 @@ import {
   Scale,
   Table,
   AlertTriangle,
+  Radio,
 } from 'lucide-react';
 import { Participant, UserSession, Kemantren, AppSettings } from '../../types/fasi';
 import {
@@ -57,6 +58,7 @@ import { showToast, showConfirmDialog, showSuccessAlert, showErrorAlert } from '
 import { AdminOverviewDashboard } from './AdminOverviewDashboard';
 import { RekapPesertaAdmin } from './RekapPesertaAdmin';
 import { RekapCabangLombaAdmin } from './RekapCabangLombaAdmin';
+import { LiveScoreAdmin } from './LiveScoreAdmin';
 import { HasilCabangLombaAdmin } from './HasilCabangLombaAdmin';
 import { BeritaAcaraAdmin } from './BeritaAcaraAdmin';
 import { MasterTpaAdmin } from './MasterTpaAdmin';
@@ -101,10 +103,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   activeRoute = 'admin-dashboard',
   onNavigateRoute,
 }) => {
-  const getInitialTab = (): 'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log' => {
+  const getInitialTab = (): 'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'live-score' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log' => {
     if (activeRoute === 'admin-data-peserta') return 'peserta';
     if (activeRoute === 'admin-rekap-peserta') return 'rekap-peserta';
     if (activeRoute === 'admin-rekapcbg-lomba' && session.role === 'super_admin') return 'rekap-cabang';
+    if (activeRoute === 'admin-live-score' && session.role === 'super_admin') return 'live-score';
     if (activeRoute === 'hasil-cabang') {
       if (session.role === 'super_admin' || getStoredSettings().publishResultsToRayon) return 'hasil-cabang';
       return 'dashboard';
@@ -117,7 +120,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return 'dashboard';
   };
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log'>(getInitialTab);
+  const [activeAdminTab, setActiveAdminTab] = useState<'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'live-score' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log'>(getInitialTab);
   const [targetBeritaAcaraCabangId, setTargetBeritaAcaraCabangId] = useState<string | undefined>(undefined);
 
   const [kemantrenList, setKemantrenList] = useState<Kemantren[]>(() => getStoredKemantren());
@@ -129,6 +132,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     else if (activeRoute === 'admin-data-peserta') setActiveAdminTab('peserta');
     else if (activeRoute === 'admin-rekap-peserta') setActiveAdminTab('rekap-peserta');
     else if (activeRoute === 'admin-rekapcbg-lomba' && session.role === 'super_admin') setActiveAdminTab('rekap-cabang');
+    else if (activeRoute === 'admin-live-score' && session.role === 'super_admin') setActiveAdminTab('live-score');
     else if (activeRoute === 'hasil-cabang') {
       if (session.role === 'super_admin' || appSettings.publishResultsToRayon) {
         setActiveAdminTab('hasil-cabang');
@@ -141,12 +145,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     else if (activeRoute === 'panitia-juri' && session.role === 'super_admin') setActiveAdminTab('panitia-juri');
     else if (activeRoute === 'pengaturan' && session.role === 'super_admin') setActiveAdminTab('pengaturan');
     else if (activeRoute === 'log' && session.role === 'super_admin') setActiveAdminTab('log');
-    else if (session.role !== 'super_admin' && (activeRoute === 'admin-rekapcbg-lomba' || activeRoute === 'berita-acara' || activeRoute === 'master-tpa' || activeRoute === 'panitia-juri' || activeRoute === 'pengaturan' || activeRoute === 'log')) {
+    else if (session.role !== 'super_admin' && (activeRoute === 'admin-rekapcbg-lomba' || activeRoute === 'admin-live-score' || activeRoute === 'berita-acara' || activeRoute === 'master-tpa' || activeRoute === 'panitia-juri' || activeRoute === 'pengaturan' || activeRoute === 'log')) {
       setActiveAdminTab('dashboard');
     }
   }, [activeRoute, session.role, appSettings.publishResultsToRayon]);
 
-  const handleTabChange = (tab: 'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log') => {
+  const handleTabChange = (tab: 'dashboard' | 'peserta' | 'rekap-peserta' | 'rekap-cabang' | 'live-score' | 'hasil-cabang' | 'berita-acara' | 'master-tpa' | 'panitia-juri' | 'pengaturan' | 'log') => {
     if (tab === 'master-tpa' && session.role !== 'super_admin') {
       showToast('info', 'Fitur Manajemen Data TPA dinonaktifkan untuk Admin Kab/Kota.');
       return;
@@ -157,6 +161,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       else if (tab === 'peserta') onNavigateRoute('admin-data-peserta');
       else if (tab === 'rekap-peserta') onNavigateRoute('admin-rekap-peserta');
       else if (tab === 'rekap-cabang') onNavigateRoute('admin-rekapcbg-lomba');
+      else if (tab === 'live-score') onNavigateRoute('admin-live-score');
       else if (tab === 'hasil-cabang') onNavigateRoute('hasil-cabang');
       else if (tab === 'berita-acara') onNavigateRoute('berita-acara');
       else if (tab === 'master-tpa') onNavigateRoute('master-tpa');
@@ -600,6 +605,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           )}
 
+          {/* Live Score Superadmin Tab (Real-Time Supabase Klasemen) */}
+          {session.role === 'super_admin' && (
+            <button
+              onClick={() => handleTabChange('live-score')}
+              className={`w-full px-3 py-2 font-bold rounded-xl flex items-center justify-between transition-all cursor-pointer text-left ${
+                activeAdminTab === 'live-score'
+                  ? 'bg-emerald-800 text-white shadow-xs ring-1 ring-emerald-600'
+                  : 'text-slate-700 hover:text-emerald-900 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Radio className="w-4 h-4 shrink-0 text-red-500 animate-pulse" />
+                <span>Live Score</span>
+              </div>
+              <span className="px-1.5 py-0.2 bg-red-600 text-white text-[9px] font-black rounded-full animate-pulse shadow-2xs">
+                LIVE
+              </span>
+            </button>
+          )}
+
           {/* Hasil Cabang Lomba Tab (Superadmin atau jika diizinkan untuk Admin Rayon) */}
           {(session.role === 'super_admin' || appSettings.publishResultsToRayon) && (
             <button
@@ -881,6 +906,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               }
               handleTabChange('berita-acara');
             }}
+          />
+        )}
+
+        {/* VIEW: LIVE SCORE & KLASEMEN SUPERADMIN (REAL-TIME SUPABASE) */}
+        {activeAdminTab === 'live-score' && session.role === 'super_admin' && (
+          <LiveScoreAdmin
+            session={session}
+            onNavigateTab={handleTabChange}
           />
         )}
 
