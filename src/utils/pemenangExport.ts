@@ -34,6 +34,33 @@ export interface WinnerRow {
 }
 
 /**
+ * Membersihkan nama pemenang kategori beregu dari awalan "Regu 1/2/3 - "
+ * Contoh:
+ * - "Regu 3 - Kontingen Kabupaten Gunungkidul (Almira Puspa Ramadhani, Birru Aufatihah, Nur Aliifah)"
+ *   -> "Kontingen Kabupaten Gunungkidul (Almira Puspa Ramadhani, Birru Aufatihah, Nur Aliifah)"
+ * - "Regu 1 - Kontingen Kabupaten Sleman" -> "Kontingen Kabupaten Sleman"
+ * - "Kontingen Kabupaten Gunungkidul - Regu 2" -> "Kontingen Kabupaten Gunungkidul"
+ */
+export function cleanGroupWinnerName(rawName?: string, isGroup: boolean = false): string {
+  if (!rawName) return '-';
+  if (!isGroup) return rawName;
+
+  let cleaned = rawName.trim();
+  // Hapus awalan seperti "Regu 1 - ", "Regu 2 : ", "Regu 3 — ", dsb.
+  cleaned = cleaned.replace(/^Regu\s*\d+\s*[-–—:]\s*/i, '');
+
+  // Hapus akhiran seperti " - Regu 1", " - Regu 2", dsb. jika ada
+  cleaned = cleaned.replace(/\s*[-–—:]\s*Regu\s*\d+$/i, '');
+
+  // Jika setelah dibersihkan hanya tersisa kata "Regu X", kembalikan nama aslinya
+  if (/^Regu\s*\d+$/i.test(cleaned)) {
+    return rawName;
+  }
+
+  return cleaned || rawName;
+}
+
+/**
  * Ekstraksi baris datar pemenang dari daftar Berita Acara
  * Diurutkan berdasarkan:
  * 1. Jenjang (TKA -> TPA -> TQA)
@@ -97,7 +124,7 @@ export function extractWinnerRows(
           kategoriGender: genderText,
           isCabangUtama: isUtama,
           peringkat,
-          namaPemenang: slot.nama || '-',
+          namaPemenang: cleanGroupWinnerName(slot.nama, Boolean(cat.isGroup)),
           kontingenDaerah: cleanKontingen || '-',
           rayon: cleanKontingen || '-',
           unitTpa: '-',
@@ -486,10 +513,15 @@ export async function exportSingleCabangPdf(
     return slot.kemantren ? slot.kemantren.replace(/^Rayon\s+/i, '').replace(/^Kem\.\s+/i, '').trim() : '-';
   };
 
+  const getWinnerName = (slot?: WinnerSlot) => {
+    if (!slot || !slot.nama) return '-';
+    return cleanGroupWinnerName(slot.nama, Boolean(category.isGroup));
+  };
+
   const tableData = [
-    ['Juara I', p?.juara1?.nama || '-', getKontingenText(p?.juara1), p?.juara1?.totalNilai || '-'],
-    ['Juara II', p?.juara2?.nama || '-', getKontingenText(p?.juara2), p?.juara2?.totalNilai || '-'],
-    ['Juara III', p?.juara3?.nama || '-', getKontingenText(p?.juara3), p?.juara3?.totalNilai || '-'],
+    ['Juara I', getWinnerName(p?.juara1), getKontingenText(p?.juara1), p?.juara1?.totalNilai || '-'],
+    ['Juara II', getWinnerName(p?.juara2), getKontingenText(p?.juara2), p?.juara2?.totalNilai || '-'],
+    ['Juara III', getWinnerName(p?.juara3), getKontingenText(p?.juara3), p?.juara3?.totalNilai || '-'],
   ];
 
   autoTable(doc, {

@@ -37,7 +37,8 @@ import { showToast } from '../../utils/sweetalert';
 import {
   exportPemenangToExcel,
   exportPemenangToPdf,
-  exportSingleCabangPdf
+  exportSingleCabangPdf,
+  cleanGroupWinnerName
 } from '../../utils/pemenangExport';
 
 interface HasilCabangLombaAdminProps {
@@ -526,7 +527,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                                 </span>
                               </div>
                               <div className="font-extrabold text-slate-900 text-sm truncate">
-                                {p.juara1.nama || '-'}
+                                {cleanGroupWinnerName(p.juara1.nama, cat.isGroup)}
                               </div>
                               <div className="text-xs text-slate-700 truncate flex items-center gap-1">
                                 <span className="font-medium text-slate-500">Kontingen:</span>
@@ -557,7 +558,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                                 </span>
                               </div>
                               <div className="font-bold text-slate-900 text-sm truncate">
-                                {p.juara2.nama || '-'}
+                                {cleanGroupWinnerName(p.juara2.nama, cat.isGroup)}
                               </div>
                               <div className="text-xs text-slate-700 truncate flex items-center gap-1">
                                 <span className="font-medium text-slate-500">Kontingen:</span>
@@ -588,7 +589,7 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
                                 </span>
                               </div>
                               <div className="font-bold text-slate-900 text-sm truncate">
-                                {p.juara3.nama || '-'}
+                                {cleanGroupWinnerName(p.juara3.nama, cat.isGroup)}
                               </div>
                               <div className="text-xs text-slate-700 truncate flex items-center gap-1">
                                 <span className="font-medium text-slate-500">Kontingen:</span>
