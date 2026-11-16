@@ -305,9 +305,14 @@ export async function exportPemenangToPdf(
   categories: CompetitionCategory[],
   beritaAcaraMap: Map<string, BeritaAcaraKejuaraan>,
   fileNamePrefix: string = 'Hasil_Pemenang_FASI_XIII_DIY',
-  onlyDisahkan: boolean = false
+  onlyDisahkan: boolean = false,
+  jenjangFilter: 'ALL' | 'TKA' | 'TPA' | 'TQA' = 'ALL'
 ) {
-  const winnerRows = extractWinnerRows(categories, beritaAcaraMap, onlyDisahkan);
+  const filteredCategories = jenjangFilter === 'ALL'
+    ? categories
+    : categories.filter((c) => c.level === jenjangFilter);
+
+  const winnerRows = extractWinnerRows(filteredCategories, beritaAcaraMap, onlyDisahkan);
 
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -346,7 +351,10 @@ export async function exportPemenangToPdf(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.text('DAFTAR RESMI REKAPITULASI PEMENANG KEJUARAAN', pageWidth / 2, titleY, { align: 'center' });
+  const docTitle = jenjangFilter === 'ALL'
+    ? 'DAFTAR RESMI REKAPITULASI PEMENANG KEJUARAAN LENGKAP (TKA, TPA, TQA)'
+    : `DAFTAR RESMI REKAPITULASI PEMENANG KEJUARAAN - JENJANG ${jenjangFilter}`;
+  doc.text(docTitle, pageWidth / 2, titleY, { align: 'center' });
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
@@ -418,24 +426,47 @@ export async function exportPemenangToPdf(
     alternateRowStyles: {
       fillColor: [248, 250, 252],
     },
-    didDrawPage: () => {
-      // Footer Halaman
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184);
-      doc.text(
-        `FASI XIII D.I. Yogyakarta — Hasil Pemenang Resmi (Kertas F4 Landscape) • Halaman ${currentPage} dari ${pageCount}`,
-        pageWidth / 2,
-        pageHeight - 6,
-        { align: 'center' }
-      );
-    },
   });
 
+  // 4. BLOK TANDA TANGAN RESMI KOORD SIE LOMBA
+  const tableEndY = (doc as any).lastAutoTable?.finalY || (titleY + 25);
+  let signStartY = tableEndY + 10;
+  if (signStartY + 28 > pageHeight - 14) {
+    doc.addPage();
+    signStartY = 20;
+  }
+
+  const signCenterX = pageWidth - marginX - 42;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Yogyakarta, 08 November 2026', signCenterX, signStartY, { align: 'center' });
+  doc.text('Koord Sie Lomba', signCenterX, signStartY + 4.5, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Nihayaturruhama, S.E.', signCenterX, signStartY + 22, { align: 'center' });
+
+  // 5. FOOTER HALAMAN (Setelah semua halaman termasuk tanda tangan selesai dibuat)
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    const jenjangLabel = jenjangFilter === 'ALL' ? 'Semua Jenjang' : `Jenjang ${jenjangFilter}`;
+    doc.text(
+      `FASI XIII D.I. Yogyakarta — Hasil Pemenang Resmi ${jenjangLabel} (Kertas F4 Landscape) • Halaman ${i} dari ${totalPages}`,
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: 'center' }
+    );
+  }
+
   const dateStr = new Date().toISOString().slice(0, 10);
-  doc.save(`${fileNamePrefix}_${dateStr}.pdf`);
+  const suffix = jenjangFilter === 'ALL' ? '' : `_${jenjangFilter}`;
+  doc.save(`${fileNamePrefix}${suffix}_${dateStr}.pdf`);
 }
 
 /**

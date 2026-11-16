@@ -6,7 +6,7 @@
  * Modul Superadmin: Hasil Pemenang Per Cabang Lomba (Terintegrasi Otomatis dengan Berita Acara & Supabase)
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Trophy,
   Award,
@@ -21,6 +21,7 @@ import {
   Users,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
   Filter,
   Download,
   FileSpreadsheet
@@ -58,8 +59,20 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportingPdfTarget, setExportingPdfTarget] = useState<'ALL' | Jenjang | null>(null);
+  const [showPdfMenu, setShowPdfMenu] = useState(false);
+  const pdfMenuRef = useRef<HTMLDivElement | null>(null);
   const [exportingCabangId, setExportingCabangId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pdfMenuRef.current && !pdfMenuRef.current.contains(event.target as Node)) {
+        setShowPdfMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Helper untuk menentukan cabang utama (Bobot 7-5-3)
   const isCategoryUtama = (name: string, level: string) => {
@@ -150,17 +163,19 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
     }
   };
 
-  // Export Semua Pemenang ke PDF
-  const handleExportPdf = async () => {
+  // Export Pemenang ke PDF (Semua atau per Jenjang TKA/TPA/TQA)
+  const handleExportPdf = async (jenjang: 'ALL' | Jenjang = 'ALL') => {
+    setShowPdfMenu(false);
     try {
-      setIsExportingPdf(true);
-      await exportPemenangToPdf(CATEGORIES_LIST, beritaAcaraMap, 'Hasil_Pemenang_FASI_XIII_DIY', false);
-      showToast('success', 'Dokumen PDF daftar pemenang (F4 Landscape) berhasil diunduh.');
+      setExportingPdfTarget(jenjang);
+      await exportPemenangToPdf(CATEGORIES_LIST, beritaAcaraMap, 'Hasil_Pemenang_FASI_XIII_DIY', false, jenjang);
+      const label = jenjang === 'ALL' ? 'Semua Jenjang' : `Jenjang ${jenjang}`;
+      showToast('success', `Dokumen PDF daftar pemenang ${label} (F4 Landscape) berhasil diunduh.`);
     } catch (err) {
       console.error('Gagal ekspor PDF:', err);
       showToast('error', 'Gagal membuat dokumen PDF.');
     } finally {
-      setIsExportingPdf(false);
+      setExportingPdfTarget(null);
     }
   };
 
@@ -270,16 +285,72 @@ export const HasilCabangLombaAdmin: React.FC<HasilCabangLombaAdminProps> = ({
               <span>{isExportingExcel ? 'Membuat...' : 'Excel (.xlsx)'}</span>
             </button>
 
-            {/* Download PDF Resmi */}
-            <button
-              onClick={handleExportPdf}
-              disabled={isExportingPdf}
-              className="px-3.5 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 disabled:opacity-50 border border-rose-400/40"
-              title="Download Dokumen Rekap Pemenang Resmi format PDF Landscape"
-            >
-              <Download className="w-4 h-4 text-rose-100" />
-              <span>{isExportingPdf ? 'Membuat...' : 'PDF Resmi'}</span>
-            </button>
+            {/* Download PDF Resmi (TKA, TPA, TQA, Semua) */}
+            <div className="relative" ref={pdfMenuRef}>
+              <button
+                onClick={() => setShowPdfMenu((prev) => !prev)}
+                disabled={exportingPdfTarget !== null}
+                className="px-3.5 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 disabled:opacity-50 border border-rose-400/40"
+                title="Download Dokumen Rekap Pemenang Resmi format PDF Landscape (TKA / TPA / TQA / Semua)"
+              >
+                <Download className="w-4 h-4 text-rose-100" />
+                <span>
+                  {exportingPdfTarget
+                    ? `Membuat (${exportingPdfTarget})...`
+                    : 'PDF Resmi'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-rose-100 transition-transform ${showPdfMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showPdfMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 text-slate-800 overflow-hidden">
+                  <div className="px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                    Pilih Dokumen PDF Resmi
+                  </div>
+                  <button
+                    onClick={() => handleExportPdf('TKA')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-emerald-50 text-slate-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      PDF Resmi TKA
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Jenjang TKA</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportPdf('TPA')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-sky-50 text-slate-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-500" />
+                      PDF Resmi TPA
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Jenjang TPA</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportPdf('TQA')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-purple-50 text-slate-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-purple-500" />
+                      PDF Resmi TQA
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">Jenjang TQA</span>
+                  </button>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    onClick={() => handleExportPdf('ALL')}
+                    className="w-full px-3.5 py-2 text-left text-xs font-extrabold hover:bg-rose-50 text-rose-700 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-rose-600" />
+                      PDF Resmi Semua
+                    </span>
+                    <span className="text-[10px] font-semibold text-rose-400">TKA-TPA-TQA</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handleManualRefresh}
