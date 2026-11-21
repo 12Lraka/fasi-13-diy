@@ -15,7 +15,7 @@ import {
   ChevronRight,
   MapPin
 } from 'lucide-react';
-import { Participant, BeritaAcaraKejuaraan, AppSettings, Jenjang } from '../../types/fasi';
+import { Participant, BeritaAcaraKejuaraan, AppSettings, Jenjang, WinnerSlot } from '../../types/fasi';
 import { KEMANTREN_LIST, CATEGORIES_LIST, DEFAULT_ARENA_LOCATIONS } from '../../data/fasiMasterData';
 import { getStoredBeritaAcara, saveBeritaAcaraList, getStoredSettings } from '../../utils/storage';
 import { getThemeConfig } from '../../utils/theme';
@@ -26,6 +26,35 @@ import {
   isSupabaseConfigured
 } from '../../lib/supabase';
 import { showToast } from '../../utils/sweetalert';
+import { cleanGroupWinnerName } from '../../utils/pemenangExport';
+
+function formatShortRegion(raw?: string): string {
+  if (!raw) return '-';
+  let cleaned = raw
+    .replace(/^(Kontingen|Rayon|Kem\.)\s+/i, '')
+    .trim();
+  cleaned = cleaned.replace(/^Kabupaten\s+/i, 'Kab. ');
+  cleaned = cleaned.replace(/^Kab\s+/i, 'Kab. ');
+  return cleaned || '-';
+}
+
+function getGroupWinnerMembers(slot?: WinnerSlot): string[] {
+  if (!slot) return [];
+  if (Array.isArray(slot.anggota)) {
+    const validMembers = slot.anggota.map((m) => (m || '').trim()).filter(Boolean);
+    if (validMembers.length > 0) return validMembers;
+  }
+  const nama = (slot.nama || '').trim();
+  const parenMatch = nama.match(/\(([^()]+)\)\s*$/);
+  if (parenMatch && parenMatch[1]) {
+    const splitNames = parenMatch[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (splitNames.length > 0) return splitNames;
+  }
+  return [];
+}
 
 interface LiveScoreboardProps {
   participants: Participant[];
@@ -553,6 +582,35 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                 cat.name.toLowerCase().includes('tartil') ||
                 cat.name.toLowerCase().includes('tilawah') ||
                 cat.name.toLowerCase().includes('tilawati');
+              const validatedBa = validatedBeritaAcara.find((b) => b.cabangId === cat.id);
+              const winnerCandidates: Array<{ rankLabel: string; badgeClass: string; slot?: WinnerSlot }> =
+                validatedBa?.pemenang
+                  ? [
+                      {
+                        rankLabel: 'Juara 1',
+                        badgeClass: 'bg-amber-100 text-amber-800 border-amber-200/80',
+                        slot: validatedBa.pemenang.juara1,
+                      },
+                      {
+                        rankLabel: 'Juara 2',
+                        badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+                        slot: validatedBa.pemenang.juara2,
+                      },
+                      {
+                        rankLabel: 'Juara 3',
+                        badgeClass: 'bg-orange-50 text-orange-800 border-orange-200/80',
+                        slot: validatedBa.pemenang.juara3,
+                      },
+                    ]
+                  : [];
+              const winnerSlots = winnerCandidates.filter(
+                (item): item is { rankLabel: string; badgeClass: string; slot: WinnerSlot } =>
+                  Boolean(
+                    item.slot &&
+                      (item.slot.nama?.trim() ||
+                        (Array.isArray(item.slot.anggota) && item.slot.anggota.some((a) => a?.trim())))
+                  )
+              );
 
               return (
                 <div
@@ -597,6 +655,50 @@ export const LiveScoreboard: React.FC<LiveScoreboardProps> = ({ participants, se
                       <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
                       <span className="truncate font-medium">{prog.roomLocation}</span>
                     </div>
+
+                    {/* Daftar Pemenang (Compact List - Juara 1, 2, 3) */}
+                    {prog.status === 'selesai' && winnerSlots.length > 0 && (
+                      <div className="bg-white/95 rounded-xl border border-emerald-200/80 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+                        {winnerSlots.map(({ rankLabel, badgeClass, slot }) => {
+                          const groupMembers = cat.isGroup ? getGroupWinnerMembers(slot) : [];
+                          const regionShort = formatShortRegion(slot.kemantren);
+
+                          return (
+                            <div key={rankLabel} className="px-2.5 py-1.5 flex items-start gap-2">
+                              <span
+                                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 leading-tight mt-0.5 ${badgeClass}`}
+                              >
+                                {rankLabel}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                {cat.isGroup && groupMembers.length > 0 ? (
+                                  <ul className="space-y-0.5">
+                                    {groupMembers.map((memberName, idx) => (
+                                      <li
+                                        key={`${rankLabel}-m-${idx}`}
+                                        className="text-[11px] sm:text-[11.5px] font-semibold text-slate-800 leading-snug flex items-start gap-1"
+                                      >
+                                        <span className="text-emerald-600 shrink-0 leading-snug">&bull;</span>
+                                        <span className="break-words">{memberName}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <div className="text-[11px] sm:text-[11.5px] font-semibold text-slate-800 leading-snug break-words">
+                                    {cat.isGroup
+                                      ? cleanGroupWinnerName(slot.nama, true)
+                                      : slot.nama}
+                                  </div>
+                                )}
+                                <div className="text-[10px] font-medium text-slate-500 leading-tight mt-0.5">
+                                  {regionShort}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer Keterangan Status */}
